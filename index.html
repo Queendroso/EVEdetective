@@ -248,19 +248,67 @@
   </div>
 </div>
 
-        <div id="adults" role="tabpanel" aria-labelledby="tab-adults" class="panel">
-          <h3>Adults: EVE signature hunt</h3>
-          <p>Look for simplified EVE-like signatures (e.g., long terminal repeats “LTR” labels or target site duplications) in the mock sequence below.</p>
-          <div class="challenge">
-            <textarea id="adults-seq" rows="4">TTGAC...ATG... [LTR] ...GAG... [LTR] ...TAA</textarea>
-            <label><input type="checkbox" id="adults-found-ltr" /> I can locate paired LTR labels</label>
-            <label><input type="checkbox" id="adults-found-orf" /> I can identify a plausible ORF (ATG..TAA/TAG/TGA)</label>
-            <button class="btn btn-primary" onclick="runAdults()">Submit</button>
-            <p id="adults-feedback" class="feedback" aria-live="polite"></p>
-          </div>
-        </div>
+<div id="adults" role="tabpanel" aria-labelledby="tab-adults" class="panel">
+  <h3>Advanced Level: Antiviral Immunity Challenge</h3>
+  <p>Use EVE type and state to predict protection against invading viruses. Functional EVEs provide sequence-specific immunity; matching type matters (retrovirus EVEs protect against retroviruses). Degraded EVEs offer no protection; silent EVEs can be reactivated; EVE evolution mirrors host evolution, but function can be lost or gained.</p>
+
+  <!-- Step 1 -->
+  <div class="adv-step">
+    <h4>Step 1 — Exact match (retrovirus “RV1” infects D. melanogaster)</h4>
+    <p>Which EVE will help the fly fight the virus, and why?</p>
+    <div id="adv-eves-mel" class="eves-list" aria-live="polite"></div>
+    <div class="build-actions">
+      <button class="btn small" onclick="AdvancedGame.hint(1)">Hint</button>
+      <button class="btn btn-primary" onclick="AdvancedGame.checkStep1()">Check</button>
+    </div>
+    <p id="adv-feedback-1" class="feedback" aria-live="polite"></p>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="adv-step">
+    <h4>Step 2 — Same ancestor (new retrovirus “RV1a”)</h4>
+    <p>Select which species is most resistant, and which is most vulnerable.</p>
+    <div class="adv-grid" id="adv-step2" aria-live="polite">
+      <div>
+        <strong>Most resistant</strong>
+        <div class="radio-col" id="adv-resist-radios"></div>
       </div>
-    </section>
+      <div>
+        <strong>Most vulnerable</strong>
+        <div class="radio-col" id="adv-vuln-radios"></div>
+      </div>
+    </div>
+    <div class="build-actions">
+      <button class="btn small" onclick="AdvancedGame.hint(2)">Hint</button>
+      <button class="btn btn-primary" onclick="AdvancedGame.checkStep2()">Check</button>
+    </div>
+    <p id="adv-feedback-2" class="feedback" aria-live="polite"></p>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="adv-step">
+    <h4>Step 3 — Mutated variant (retrovirus “RV1b”)</h4>
+    <p>If the invading virus mutates slightly, which species might still have protection? (Select all that apply.)</p>
+    <div class="adv-grid" id="adv-step3" aria-live="polite">
+      <div class="check-col" id="adv-mutation-checks"></div>
+    </div>
+    <div class="build-actions">
+      <button class="btn small" onclick="AdvancedGame.hint(3)">Hint</button>
+      <button class="btn btn-primary" onclick="AdvancedGame.checkStep3()">Check</button>
+    </div>
+    <p id="adv-feedback-3" class="feedback" aria-live="polite"></p>
+  </div>
+
+  <!-- Portfolios -->
+  <div class="adv-portfolios">
+    <button class="btn" onclick="AdvancedGame.togglePortfolios()">Show/Hide species EVE portfolios</button>
+    <div id="adv-portfolios" class="portfolio-wrap" hidden aria-live="polite"></div>
+  </div>
+
+  <div class="build-actions">
+    <button class="btn" onclick="AdvancedGame.reset()">Reset</button>
+  </div>
+</div>
 
     <!-- Achievements -->
     <section id="achievements" class="section container">
