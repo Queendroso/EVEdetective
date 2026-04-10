@@ -244,3 +244,52 @@ textarea,input{background:#fff;color:var(--navy);border:1px solid var(--ash-200)
 /* Inline EVEs list (Step 1) improvements */
 .eves-list .eve-card{border-width:2px}
 .eves-list .eve-card input{accent-color:#22c55e}
+
+/* Inspect/Compare cards */
+.inspect-controls{display:flex;gap:.5rem;align-items:center;margin:.5rem 0;flex-wrap:wrap}
+.inspect-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.6rem;margin:.5rem 0}
+.inspect-card{background:#fff;border:2px solid var(--ash-200);border-radius:.65rem;padding:.6rem;cursor:pointer;transition:transform .08s ease, border-color .2s ease, box-shadow .2s ease; position:relative; overflow:hidden}
+.inspect-card:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(2,6,23,.06)}
+.inspect-card.revealed{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(96,165,250,.18) inset}
+.inspect-card.selected{border-color:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.18) inset}
+.inspect-card h5{margin:.1rem 0}
+.barcode{display:flex;gap:4px;margin-top:.4rem}
+.strip{width:10px;height:50px;border-radius:3px;background:#e2e8f0;opacity:.25;transition:opacity .2s ease,box-shadow .2s ease}
+.strip.has{opacity:.9}
+.strip.broken{background:#6b7280}
+.strip.intact{background:#16a34a}
+.strip.useful{background:#22c55e}
+.strip.unique{background:#d4a017}
+.strip.glow{box-shadow:0 0 0 3px rgba(34,197,94,.25)}
+
+/* Drag-and-drop builder */
+.drag-builder{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.6rem;margin:.6rem 0}
+.drop-zone{background:#fff;border:2px dashed var(--ash-200);border-radius:.65rem;padding:.6rem;min-height:120px}
+.drop-zone h5{margin:.1rem 0 .4rem}
+.slot{height:36px;display:flex;align-items:center;gap:.4rem;margin:.25rem 0;padding:.3rem;border:1px dashed var(--ash-200);border-radius:.5rem;background:#f8fafc}
+.badge-draggable{display:inline-flex;gap:.35rem;align-items:center;border:1px solid var(--ash-200);border-radius:999px;padding:.2rem .5rem;background:#fff;cursor:grab}
+.badge-draggable .dot{width:8px;height:8px;border-radius:50%;background:#60a5fa}
+.badge-draggable:active{cursor:grabbing}
+
+/* Species deck */
+.deck{display:flex;flex-wrap:wrap;gap:.4rem;padding:.4rem;border:1px solid var(--ash-200);border-radius:.5rem;background:#fff}
+
+/* Matrix visual polish */
+.matrix td.heat.low{background:#f0fdf4}
+.matrix td.heat.med{background:#dcfce7}
+.matrix td.heat.high{background:#bbf7d0}
+.matrix td.heat.max{background:#86efac}
+.matrix td.heat{color:#064e3b}
+
+/* Tree SVG polish */
+.tree-svg{margin-top:.5rem;border:1px solid var(--ash-200);border-radius:.5rem;background:#fff;overflow:auto;max-height:360px}
+.tree-svg svg text{font-size:12px;fill:#0a1a2f}
+.tree-svg .edge{stroke:#60a5fa;stroke-width:2}
+.tree-svg .edge-vert{stroke:#34d399;stroke-width:2}
+
+/* Timer & celebrate */
+.timer-wrap{display:flex;align-items:center;gap:.5rem;margin:.5rem 0;flex-wrap:wrap}
+.timer-bar{flex:1;height:10px;background:#e6f4ef;border-radius:999px;overflow:hidden;border:1px solid var(--ring)}
+.timer-fill{height:100%;background:linear-gradient(90deg,#22c55e,#16a34a);width:100%}
+#confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:9999}
+.claps{position:fixed;left:50%;top:15%;transform:translateX(-50%);font-size:42px;opacity:0;transition:opacity .2s ease;z-index:9999}
