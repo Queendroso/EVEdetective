@@ -186,54 +186,54 @@
 
     <!-- Achievements -->
     <section id="achievements" class="section container">
-      <h2 class="section-title">My Achievements</h2>
-      <p class="lede">Unlock badges as you complete challenges. Earn Champion by collecting all three.</p>
+  <h2 class="section-title">My Achievements</h2>
+  <p class="lede">Unlock badges as you complete challenges. Earn Champion by collecting all three.</p>
 
-      <div class="badges">
-        <div class="badge" data-badge="kids">
-          <div class="medal medal-kids" aria-hidden="true">🏆</div>
-          <div>
-            <strong>Kids — EVE Detective</strong>
-            <p>Complete the Kids challenge.</p>
-            <button class="btn small" onclick="downloadBadge('kids')">Download Badge</button>
-          </div>
-        </div>
-
-        <div class="badge" data-badge="teens">
-          <div class="medal medal-teens" aria-hidden="true">🏆</div>
-          <div>
-            <strong>Teens — EVE Evolution Expert</strong>
-            <p>Complete the Teens challenge.</p>
-            <button class="btn small" onclick="downloadBadge('teens')">Download Badge</button>
-          </div>
-        </div>
-
-        <div class="badge" data-badge="adults">
-          <div class="medal medal-adults" aria-hidden="true">🏆</div>
-          <div>
-            <strong>Adults — Viral Immunity Expert</strong>
-            <p>Complete the Adults challenge.</p>
-            <button class="btn small" onclick="downloadBadge('adults')">Download Badge</button>
-          </div>
-        </div>
-
-        <div class="badge badge-champion" data-badge="champion" aria-live="polite">
-          <div class="medal medal-champion" aria-hidden="true">🏆</div>
-          <div>
-            <strong>Champion — EVE Champion</strong>
-            <p>Unlocked automatically when you have all three badges.</p>
-            <button class="btn small" onclick="downloadBadge('champion')">Download Badge</button>
-          </div>
-        </div>
+  <div class="badges">
+    <div class="badge" data-badge="kids">
+      <img class="sticker" src="assets/Beginner-sticker.jpeg" alt="Kids badge sticker" />
+      <div>
+        <strong>Kids — EVE Detective</strong>
+        <p>Complete the Kids challenge.</p>
+        <button class="btn small" onclick="downloadBadge('kids')">Download Sticker</button>
       </div>
+    </div>
 
-      <div class="progress-wrap">
-        <div class="progress" aria-label="Progress towards Champion">
-          <div id="progress-bar" class="progress-bar" style="width:0%"></div>
-        </div>
-        <button class="btn" onclick="shareProgress()">Share</button>
+    <div class="badge" data-badge="teens">
+      <img class="sticker" src="assets/Intermediate-sticker.jpeg" alt="Teens badge sticker" />
+      <div>
+        <strong>Teens — EVE Evolution Expert</strong>
+        <p>Complete the Teens challenge.</p>
+        <button class="btn small" onclick="downloadBadge('teens')">Download Sticker</button>
       </div>
-    </section>
+    </div>
+
+    <div class="badge" data-badge="adults">
+      <img class="sticker" src="assets/Advanced-sticker.jpeg" alt="Adults badge sticker" />
+      <div>
+        <strong>Adults — Viral Immunity Expert</strong>
+        <p>Complete the Adults challenge.</p>
+        <button class="btn small" onclick="downloadBadge('adults')">Download Sticker</button>
+      </div>
+    </div>
+
+    <div class="badge badge-champion" data-badge="champion" aria-live="polite">
+      <img class="sticker" src="assets/Champion-sticker.jpeg" alt="Champion badge sticker" />
+      <div>
+        <strong>Champion — EVE Champion</strong>
+        <p>Unlocked automatically when you have all three badges.</p>
+        <button class="btn small" onclick="downloadBadge('champion')">Download Sticker</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress" aria-label="Progress towards Champion">
+      <div id="progress-bar" class="progress-bar" style="width:0%"></div>
+    </div>
+    <button class="btn" onclick="shareProgress()">Share</button>
+  </div>
+</section>
 
     <!-- Call to action -->
     <section class="section section-alt">
