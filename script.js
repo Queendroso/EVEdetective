@@ -110,21 +110,24 @@ function setFeedback(id, msg, ok){
   el.style.color = ok ? '#0f766e' : '#b91c1c';
 }
 
-// Badge download (simple canvas PNG)
+// Download the actual sticker image files
 window.downloadBadge = function(key){
+  // If you kept spaces in filenames, use this map:
   const map = {
-    kids: { label:'Kids — EVE Detective', color:'#60a5fa' },
-    teens:{ label:'Teens — EVE Evolution Expert', color:'#ffd166' },
-    adults:{ label:'Adults — Viral Immunity Expert', color:'#22c55e' },
-    champion:{ label:'Champion — EVE Champion', color:'#a78bfa' }
+    kids:      { file: 'assets/Beginner-sticker.jpeg',     name: 'Kids — EVE Detective.jpeg' },
+    teens:     { file: 'assets/Intermediate-sticker.jpeg', name: 'Teens — EVE Evolution Expert.jpeg' },
+    adults:    { file: 'assets/Advanced-sticker.jpeg',     name: 'Adults — Viral Immunity Expert.jpeg' },
+    champion:  { file: 'assets/Champion-sticker.jpeg',     name: 'Champion — EVE Champion.jpeg' }
   };
-  const {label,color} = map[key] || map.kids;
-  const c = document.createElement('canvas');
-  c.width = 900; c.height = 450;
-  const ctx = c.getContext('2d');
-  const grad = ctx.createLinearGradient(0,0,900,450);
-  grad.addColorStop(0, '#e8f7f1'); grad.addColorStop(1, '#ffffff');
-  ctx.fillStyle = grad; ctx.fillRect(0,0,900,450);
+  const item = map[key];
+  if (!item) return;
+  const a = document.createElement('a');
+  a.href = item.file;
+  a.download = item.name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+};
   // Medal circle
   ctx.fillStyle = color; ctx.beginPath(); ctx.arc(160,225,90,0,Math.PI*2); ctx.fill();
   // Text
