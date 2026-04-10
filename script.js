@@ -21,6 +21,9 @@ tabs.forEach(tab => {
   });
 });
 
+// Gate downloads? Set to true if stickers should only download after earning the badge
+const GATE_BADGE_DOWNLOADS = true;
+
 // Progress state in localStorage (adds Champion when 3/3 complete)
 const STATE_KEY = 'eveDetectiveProgress';
 function getState(){
@@ -28,7 +31,6 @@ function getState(){
   catch { return { kids:false, teens:false, adults:false, champion:false }; }
 }
 function setState(s){
-  // If all three complete, unlock champion
   if (s.kids && s.teens && s.adults) s.champion = true;
   localStorage.setItem(STATE_KEY, JSON.stringify(s));
   renderProgress();
@@ -42,12 +44,17 @@ function renderProgress(){
 
   document.querySelectorAll('.badge').forEach(b => {
     const key = b.getAttribute('data-badge');
+    const btn = b.querySelector('button');
     if (key === 'champion') {
-      b.classList.toggle('badge-champion', true);
+      b.classList.add('badge-champion');
       b.classList.toggle('unlocked', s.champion);
       b.style.opacity = s.champion ? 1 : 0.7;
+      if (btn && GATE_BADGE_DOWNLOADS) btn.disabled = !s.champion;
+      if (btn) btn.setAttribute('aria-disabled', btn && btn.disabled ? 'true' : 'false');
     } else {
-      b.style.opacity = s[key] ? 1 : 0.9;
+      b.style.opacity = s[key] ? 1 : 0.95;
+      if (btn && GATE_BADGE_DOWNLOADS) btn.disabled = !s[key];
+      if (btn) btn.setAttribute('aria-disabled', btn && btn.disabled ? 'true' : 'false');
     }
   });
 }
@@ -110,37 +117,63 @@ function setFeedback(id, msg, ok){
   el.style.color = ok ? '#0f766e' : '#b91c1c';
 }
 
-// Download the actual sticker image files
-window.downloadBadge = function(key){
-  // If you kept spaces in filenames, use this map:
-  const map = {
-    kids:      { file: 'assets/Beginner-sticker.jpeg',     name: 'Kids — EVE Detective.jpeg' },
-    teens:     { file: 'assets/Intermediate-sticker.jpeg', name: 'Teens — EVE Evolution Expert.jpeg' },
-    adults:    { file: 'assets/Advanced-sticker.jpeg',     name: 'Adults — Viral Immunity Expert.jpeg' },
-    champion:  { file: 'assets/Champion-sticker.jpeg',     name: 'Champion — EVE Champion.jpeg' }
+// Helper: try to fetch a file from a list of candidate paths
+async function fetchFirstOk(candidates){
+  for (const url of candidates){
+    try{
+      const res = await fetch(url, { cache:'no-store' });
+      if (res.ok) return await res.blob();
+    }catch(e){}
+  }
+  throw new Error('No sticker file found');
+}
+
+// Download the actual sticker image files (supports hyphen-or-space filenames)
+window.downloadBadge = async function(key){
+  // If you renamed with hyphens, keep first path; the second is a fallback with space
+  const fileMap = {
+    kids:     ['assets/Beginner-sticker.jpeg',    'assets/Beginner sticker.jpeg'],
+    teens:    ['assets/Intermediate-sticker.jpeg','assets/Intermediate sticker.jpeg'],
+    adults:   ['assets/Advanced-sticker.jpeg',    'assets/Advanced sticker.jpeg'],
+    champion: ['assets/Champion-sticker.jpeg',    'assets/Champion sticker.jpeg']
   };
-  const item = map[key];
-  if (!item) return;
-  const a = document.createElement('a');
-  a.href = item.file;
-  a.download = item.name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-};
-  // Medal circle
-  ctx.fillStyle = color; ctx.beginPath(); ctx.arc(160,225,90,0,Math.PI*2); ctx.fill();
-  // Text
-  ctx.fillStyle = '#0a1a2f';
-  ctx.font = 'bold 40px "Playfair Display"';
-  ctx.fillText(label, 320, 230);
-  ctx.font = '20px Inter';
-  ctx.fillText('EVE Detective — Royal Society Summer Science', 320, 270);
-  // Download
-  const a = document.createElement('a');
-  a.href = c.toDataURL('image/png');
-  a.download = label.replace(/\s+/g,'-').toLowerCase() + '.png';
-  a.click();
+  const nameMap = {
+    kids:     'Kids — EVE Detective.jpeg',
+    teens:    'Teens — EVE Evolution Expert.jpeg',
+    adults:   'Adults — Viral Immunity Expert.jpeg',
+    champion: 'Champion — EVE Champion.jpeg'
+  };
+
+  // Optional gating
+  if (GATE_BADGE_DOWNLOADS) {
+    const s = getState();
+    if (key === 'champion' && !s.champion) {
+      alert('Unlock Champion by earning all three badges first.');
+      return;
+    }
+    if (['kids','teens','adults'].includes(key) && !s[key]) {
+      alert('Complete this challenge to unlock the sticker.');
+      return;
+    }
+  }
+
+  const candidates = fileMap[key];
+  if (!candidates) return;
+
+  try{
+    const blob = await fetchFirstOk(candidates);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nameMap[key] || 'sticker.jpeg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }catch(e){
+    // Fallback: open first candidate in a new tab so the user can save manually
+    window.open(candidates[0], '_blank');
+  }
 };
 
 // Share API
