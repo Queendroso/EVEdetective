@@ -161,3 +161,25 @@ textarea,input{background:#fff;color:var(--navy);border:1px solid var(--ash-200)
 
 .toast{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:#fff;border:1px solid var(--ash-200);border-radius:.5rem;padding:.4rem .6rem;color:var(--navy);box-shadow:0 10px 24px rgba(2,6,23,.08);font-size:.9rem}
 
+/* Intermediate (Teens) — matrix + tree */
+.matrix-wrap{margin:.75rem 0}
+.matrix-head{display:flex;align-items:center;gap:.5rem;justify-content:space-between;flex-wrap:wrap}
+.matrix{overflow:auto;border:1px solid var(--ash-200);border-radius:.5rem;background:#fff}
+.matrix table{border-collapse:collapse;width:100%;min-width:520px}
+.matrix th,.matrix td{border:1px solid var(--ash-200);padding:.4rem .5rem;text-align:center}
+.matrix th{background:var(--ash);color:var(--navy);font-weight:700;position:sticky;top:0}
+.matrix td.heat{color:#0a1a2f;font-weight:600}
+.matrix td.heat.low{background:#f1faf6}
+.matrix td.heat.med{background:#dbf4ea}
+.matrix td.heat.high{background:#c3ecdE}
+.matrix td.heat.max{background:#9fe3cf}
+.muted{color:var(--muted);font-size:.95rem}
+
+.pair-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.5rem;margin:.5rem 0}
+.pair{display:flex;align-items:center;justify-content:space-between;gap:.5rem;background:#fff;border:1px solid var(--ash-200);border-radius:.5rem;padding:.5rem}
+.pair .score{font-weight:700;color:var(--green)}
+.pair button{white-space:nowrap}
+
+.build-actions{display:flex;gap:.5rem;margin:.5rem 0}
+.tree-wrap{background:#fff;border:1px solid var(--ash-200);border-radius:.5rem;padding:.6rem}
+.tree{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;color:#0a1a2f}
