@@ -21,6 +21,7 @@ tabs.forEach(tab => {
     document.getElementById(id).classList.add('is-active');
     if (id === 'kids') setTimeout(() => KidsGame.resize(), 50);
     if (id === 'teens') setTimeout(() => IntermediateGame.render(), 50);
+    if (id === 'adults') setTimeout(() => AdvancedGame.init(), 50);
   });
 });
 
@@ -71,7 +72,6 @@ function toast(msg, parent){
 
 // ---------------- Sticker downloads ----------------
 window.downloadBadge = async function(key){
-  // Prefer hyphenated filenames; provide space variants as fallback
   const fileMap = {
     kids:     ['assets/Beginner-sticker.jpeg',     'assets/Beginner sticker.jpeg'],
     teens:    ['assets/Intermediate-sticker.jpeg', 'assets/Intermediate sticker.jpeg'],
@@ -99,7 +99,6 @@ window.downloadBadge = async function(key){
     document.body.appendChild(a); a.click(); a.remove();
     URL.revokeObjectURL(url);
   }catch(e){
-    // Fallback: open in a new tab
     window.open(candidates[0], '_blank');
   }
 };
@@ -221,7 +220,6 @@ document.addEventListener('DOMContentLoaded', () => { if (document.getElementByI
 
 // ---------------- Intermediate (Teens) — Phylogeny Builder ----------------
 const IntermediateGame = (() => {
-  // Species keys and display labels
   const S = ['melanogaster','simulans','yakuba','virilis','pseudoananassae'];
   const LABEL = {
     melanogaster:'melanogaster',
@@ -231,30 +229,26 @@ const IntermediateGame = (() => {
     pseudoananassae:'pseudoananassae'
   };
 
-  // EVE presence across species (crafted so the "gold" tree is: ((mel,sim),yak),(vir,pseudo))
-  // States reflect relative "age": broken ~ older, intact/useful ~ newer; unique = lineage-specific
   const EVE_DB = {
-    E1:{ state:'broken',  present:new Set(S) },                                            // ancient (all)
-    E2:{ state:'broken',  present:new Set(['melanogaster','simulans','yakuba']) },        // older clade
-    E3:{ state:'intact',  present:new Set(['melanogaster','simulans']) },                 // mel+sim clade
-    E4:{ state:'useful',  present:new Set(['melanogaster']) },                            // unique to mel
-    E5:{ state:'intact',  present:new Set(['simulans']) },                                // unique to sim
-    E6:{ state:'intact',  present:new Set(['virilis','pseudoananassae']) },               // vir+pseudo clade
-    E7:{ state:'useful',  present:new Set(['pseudoananassae']) },                         // unique to pseudo
-    E8:{ state:'unique',  present:new Set(['yakuba']) }                                   // unique to yak
+    E1:{ state:'broken',  present:new Set(S) },
+    E2:{ state:'broken',  present:new Set(['melanogaster','simulans','yakuba']) },
+    E3:{ state:'intact',  present:new Set(['melanogaster','simulans']) },
+    E4:{ state:'useful',  present:new Set(['melanogaster']) },
+    E5:{ state:'intact',  present:new Set(['simulans']) },
+    E6:{ state:'intact',  present:new Set(['virilis','pseudoananassae']) },
+    E7:{ state:'useful',  present:new Set(['pseudoananassae']) },
+    E8:{ state:'unique',  present:new Set(['yakuba']) }
   };
 
-  // Target internal clades for correctness (unordered leaf sets as JSON strings)
   const GOLD_CLADE_STRS = new Set([
     JSON.stringify(['melanogaster','simulans'].sort()),
     JSON.stringify(['virilis','pseudoananassae'].sort()),
     JSON.stringify(['melanogaster','simulans','yakuba'].sort())
   ]);
 
-  // Runtime state
-  let clusters = [];   // array of arrays of species (e.g., ['melanogaster','simulans'])
-  let steps = [];      // record of merges: [clusterA, clusterB]
-  let treeMap = new Map(); // key: sorted cluster key -> Newick string for that subtree
+  let clusters = [];
+  let steps = [];
+  let treeMap = new Map();
 
   function init(){
     reset();
@@ -262,10 +256,9 @@ const IntermediateGame = (() => {
   }
 
   function reset(){
-    clusters = S.map(x=>[x]); // start with singletons
+    clusters = S.map(x=>[x]);
     steps = [];
     treeMap = new Map();
-    // Initialize treeMap with singletons
     S.forEach(sp => { treeMap.set(sp, sp); });
     renderPairs();
     renderTree();
@@ -279,7 +272,6 @@ const IntermediateGame = (() => {
     renderTree();
   }
 
-  // ---------- Matrix ----------
   function renderMatrix(){
     const el = document.getElementById('matrix');
     if (!el) return;
@@ -303,14 +295,12 @@ const IntermediateGame = (() => {
     html += '</tbody></table>';
     el.innerHTML = html;
   }
-
   function toggleMatrix(){
     const el = document.getElementById('matrix');
     if (!el) return;
     const hidden = el.hasAttribute('hidden');
     if (hidden) el.removeAttribute('hidden'); else el.setAttribute('hidden','');
   }
-
   function showHints(){
     alert([
       'Hints:',
@@ -322,7 +312,6 @@ const IntermediateGame = (() => {
     ].join('\n'));
   }
 
-  // ---------- Pair list and merging ----------
   function renderPairs(){
     const el = document.getElementById('pair-list');
     if (!el) return;
@@ -344,13 +333,14 @@ const IntermediateGame = (() => {
     const stepsEl = document.getElementById('build-steps');
     if (!el || !stepsEl) return;
 
-    // Find current root(s) in treeMap that match existing clusters
     const keys = clusters.map(c => c.slice().sort().join('|'));
     const currentTrees = keys.map(k => treeMap.get(k) || `[${k}]`);
     if (currentTrees.length === 1) {
       el.textContent = currentTrees[0] + ';';
+      drawTreeSVG(currentTrees[0]); // pretty tree
     } else {
       el.textContent = currentTrees.map(t => t).join('  |  ');
+      drawTreeSVG(null); // clear
     }
 
     stepsEl.textContent = steps.length
@@ -366,7 +356,6 @@ const IntermediateGame = (() => {
 
     const merged = [...clusters[idxA], ...clusters[idxB]].sort();
 
-    // Update treeMap (Newick)
     const keyA = clusters[idxA].slice().sort().join('|');
     const keyB = clusters[idxB].slice().sort().join('|');
     const newKey = merged.join('|');
@@ -388,12 +377,10 @@ const IntermediateGame = (() => {
       toast('Finish merging until one tree remains.');
       return;
     }
-    // Extract internal clades from final treeMap root
     const rootKey = clusters[0].slice().sort().join('|');
     const newick = treeMap.get(rootKey);
     const leafSets = extractInternalClades(newick);
 
-    // Score
     let correct = 0;
     GOLD_CLADE_STRS.forEach(k => { if (leafSets.has(k)) correct++; });
 
@@ -407,7 +394,7 @@ const IntermediateGame = (() => {
     }
   }
 
-  // ---------- Helpers ----------
+  // ---- Helpers for matrix ----
   function pairwiseSharedCounts(){
     const out = {};
     for (let i=0;i<S.length;i++){
@@ -423,7 +410,6 @@ const IntermediateGame = (() => {
     }
     return out;
   }
-
   function countForSpecies(sp){
     let c=0;
     for (const k in EVE_DB){
@@ -431,33 +417,18 @@ const IntermediateGame = (() => {
     }
     return c;
   }
-
   function keyPair(a,b){ return [a,b].sort().join('|'); }
-
-  function maxSharedValue(shared){
-    let m = 0;
-    Object.values(shared).forEach(v => { if (v>m) m=v; });
-    return Math.max(m, 1);
-  }
-
+  function maxSharedValue(shared){ let m = 0; Object.values(shared).forEach(v => { if (v>m) m=v; }); return Math.max(m, 1); }
   function heatClass(val, diag, max){
-    if (diag) return 'med'; // self-count shading
+    if (diag) return 'med';
     const r = val / max;
     if (r >= 0.95) return 'max';
     if (r >= 0.65) return 'high';
     if (r >= 0.35) return 'med';
     return 'low';
   }
-
-  function sameSet(a,b){
-    if (a.length !== b.length) return false;
-    const A = a.slice().sort().join('|');
-    const B = b.slice().sort().join('|');
-    return A === B;
-  }
-
+  function sameSet(a,b){ if (a.length !== b.length) return false; return a.slice().sort().join('|') === b.slice().sort().join('|'); }
   function clusterCandidates(){
-    // Score candidate merges by shared EVEs across the two clusters
     const cands = [];
     for (let i=0;i<clusters.length;i++){
       for (let j=i+1;j<clusters.length;j++){
@@ -466,13 +437,10 @@ const IntermediateGame = (() => {
         cands.push({ a:a.slice(), b:b.slice(), score });
       }
     }
-    // Sort by score descending, then by name for stability
     cands.sort((x,y)=> y.score - x.score || x.a.join(',').localeCompare(y.a.join(',')));
     return cands.slice(0, 8);
   }
-
   function sharedAcrossClusters(a,b){
-    // Count EVEs present in at least one species in 'a' and at least one species in 'b'
     let c = 0;
     for (const k in EVE_DB){
       const p = EVE_DB[k].present;
@@ -483,10 +451,9 @@ const IntermediateGame = (() => {
     return c;
   }
 
-  // Extract all internal clade leaf sets from a Newick-like "(A,(B,C))" string (no branch lengths)
+  // ---- Newick parsing + SVG tree ----
   function extractInternalClades(nw){
-    // Parse quickly: build a tree of arrays/leaves
-    const tokens = nw.replace(/\s+/g,'');
+    const tokens = (nw||'').replace(/\s+/g,'');
     let i = 0;
     function parse(){
       if (tokens[i] === '('){
@@ -495,21 +462,19 @@ const IntermediateGame = (() => {
           children.push(parse());
           if (tokens[i] === ',') i++;
         }
-        i++; // skip ')'
-        return children;
+        i++; return children;
       } else {
-        // read name until , or ) 
         let name = '';
         while (i < tokens.length && !',)'.includes(tokens[i])) { name += tokens[i++]; }
         return name;
       }
     }
+    if (!tokens) return new Set();
     const tree = parse();
     const leafSets = new Set();
     function collect(node){
       if (typeof node === 'string') return [node];
       const leaves = node.flatMap(collect);
-      // record internal clade if not a leaf and not the full set
       if (leaves.length > 1 && leaves.length < S.length){
         leafSets.add(JSON.stringify(leaves.slice().sort()));
       }
@@ -519,7 +484,97 @@ const IntermediateGame = (() => {
     return leafSets;
   }
 
-  // Expose API
+  function drawTreeSVG(nw){
+    const box = document.getElementById('tree-svg');
+    if (!box) return;
+    if (!nw){ box.innerHTML = ''; return; }
+    // Parse Newick into nested arrays
+    const tokens = nw.replace(/\s+/g,'');
+    let i=0;
+    function parse(){
+      if (tokens[i] === '('){
+        i++; const kids=[];
+        while (i<tokens.length && tokens[i]!==')'){ kids.push(parse()); if (tokens[i]===',') i++; }
+        i++; return kids;
+      } else {
+        let name=''; while (i<tokens.length && !',)'.includes(tokens[i])) name+=tokens[i++];
+        return name;
+      }
+    }
+    const tree = parse();
+    // Collect leaves (tip order)
+    const leaves = [];
+    function collectLeaves(n){ if (typeof n==='string'){ leaves.push(n); } else { n.forEach(collectLeaves); } }
+    collectLeaves(tree);
+    const depth = maxDepth(tree);
+    const margin = {l:12, r:12, t:12, b:12};
+    const xStep = 110, yStep = 34;
+    const width = margin.l + margin.r + (depth * xStep);
+    const height = margin.t + margin.b + (leaves.length-1) * yStep;
+
+    // Layout: assign y to leaves, x by depth
+    const pos = new Map();
+    leaves.forEach((leaf, idx) => pos.set(leaf, {x: margin.l + depth*xStep, y: margin.t + idx*yStep}));
+    function layout(node, d){
+      if (typeof node === 'string'){
+        const p = pos.get(node); p.x = margin.l + d*xStep; return p;
+      } else {
+        const kids = node.map(k => layout(k, d+1));
+        const y = (kids[0].y + kids[kids.length-1].y)/2;
+        const p = {x: margin.l + d*xStep, y};
+        pos.set(node, p);
+        return p;
+      }
+    }
+    layout(tree, 0);
+
+    // Render SVG
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg');
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', height);
+
+    // Edges
+    function drawEdges(node){
+      const p = pos.get(node) || pos.get(JSON.stringify(node));
+      if (typeof node !== 'string'){
+        node.forEach(child => {
+          const c = pos.get(child) || pos.get(JSON.stringify(child));
+          // elbow: horizontal from parent to child.x, then vertical to child.y
+          const hline = line(p.x, p.y, c.x, p.y);
+          const vline = line(c.x, p.y, c.x, c.y);
+          svg.appendChild(hline); svg.appendChild(vline);
+          drawEdges(child);
+        });
+      }
+    }
+    function line(x1,y1,x2,y2){
+      const el = document.createElementNS(svgNS, 'line');
+      el.setAttribute('x1', x1); el.setAttribute('y1', y1);
+      el.setAttribute('x2', x2); el.setAttribute('y2', y2);
+      el.setAttribute('stroke', '#94a3b8'); el.setAttribute('stroke-width', '2');
+      return el;
+    }
+    drawEdges(tree);
+    // Leaf labels
+    leaves.forEach(leaf => {
+      const p = pos.get(leaf);
+      const text = document.createElementNS(svgNS, 'text');
+      text.setAttribute('x', p.x + 6);
+      text.setAttribute('y', p.y + 4);
+      text.setAttribute('fill', '#0a1a2f');
+      text.setAttribute('font-size', '12');
+      text.textContent = leaf;
+      svg.appendChild(text);
+    });
+
+    box.innerHTML = '';
+    box.appendChild(svg);
+
+    function maxDepth(n){ return typeof n==='string' ? 0 : 1 + Math.max(...n.map(maxDepth)); }
+  }
+
   return {
     init,
     render,
@@ -534,16 +589,226 @@ document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('pair-list')) IntermediateGame.init();
 });
 
-// ---------------- Advanced (Adults) — simple signatures ----------------
-window.runAdults = function(){
-  const hasLTR = document.getElementById('adults-found-ltr')?.checked;
-  const hasORF = document.getElementById('adults-found-orf')?.checked;
-  if (hasLTR && hasORF) {
-    const el = document.getElementById('adults-feedback');
-    if (el){ el.textContent = 'Great! You identified key EVE-like signatures.'; el.style.color = '#0f766e'; }
-    const s = getState(); if (!s.adults){ s.adults = true; setState(s); toast('Advanced badge unlocked!'); }
-  } else {
-    const el = document.getElementById('adults-feedback');
-    if (el){ el.textContent = 'Hint: Look for paired [LTR] labels and an ORF (ATG..TAA/TAG/TGA).'; el.style.color = '#b91c1c'; }
+// ---------------- Advanced (Adults) — Immunity game ----------------
+const AdvancedGame = (() => {
+  const SPECIES = ['melanogaster','simulans','yakuba','virilis','pseudoananassae'];
+  const LABEL = {
+    melanogaster:'D. melanogaster',
+    simulans:'D. simulans',
+    yakuba:'D. yakuba',
+    virilis:'D. virilis',
+    pseudoananassae:'D. pseudoananassae'
+  };
+
+  // EVE portfolios per species
+  // type: 'retro' | 'dna'; state: 'useful' (piRNA active), 'intact' (present, maybe silent), 'silent' (potential), 'broken' (no help)
+  const CATALOG = {
+    melanogaster: [
+      { id:'EVE-A', type:'retro', state:'useful', family:'RV1', note:'piRNAs active (retrovirus RV1)' },
+      { id:'EVE-C', type:'retro', state:'broken', family:'RV0', note:'old, degraded' },
+      { id:'EVE-D', type:'retro', state:'silent', family:'RV1', note:'silent copy; could re-activate' },
+      { id:'EVE-X', type:'dna',   state:'useful', family:'DV2', note:'DNA virus DV2' }
+    ],
+    simulans: [
+      { id:'EVE-A′', type:'retro', state:'intact', family:'RV1', note:'intact retroviral copy' },
+      { id:'EVE-Z',  type:'dna',   state:'useful', family:'DV1', note:'DNA virus DV1' }
+    ],
+    yakuba: [
+      { id:'EVE-Y1', type:'retro', state:'broken', family:'RV1', note:'degraded retroviral fragment' }
+    ],
+    virilis: [
+      { id:'EVE-D1', type:'dna',   state:'useful', family:'DV1', note:'DNA virus DV1' }
+    ],
+    pseudoananassae: [
+      { id:'EVE-P',  type:'retro', state:'useful', family:'RV1a', note:'piRNAs active (close to RV1)' }
+    ]
+  };
+
+  // Scenario answers
+  // Step 1: exact match RV1 in melanogaster => EVE-A (retro, useful, RV1)
+  const STEP1_CORRECT = 'EVE-A';
+  // Step 2: new retrovirus RV1a spreading => most resistant pseudoananassae (EVE-P useful to RV1a); most vulnerable yakuba (only broken retro)
+  const STEP2_RESIST = 'pseudoananassae';
+  const STEP2_VULN   = 'yakuba';
+  // Step 3: mutated variant RV1b => likely protection in species with retro useful/intact to RV1/RV1a: melanogaster (EVE-A), simulans (EVE-A′ maybe), pseudoananassae (EVE-P)
+  const STEP3_SET = new Set(['melanogaster','simulans','pseudoananassae']);
+
+  let passed = { s1:false, s2:false, s3:false };
+
+  function init(){
+    // Render step 1 EVE cards for mel
+    renderMelEves();
+    // Render step 2 radios
+    renderStep2Radios();
+    // Render step 3 checks
+    renderStep3Checks();
+    // Render portfolios (hidden by default)
+    renderPortfolios();
   }
-};
+
+  function renderMelEves(){
+    const box = document.getElementById('adv-eves-mel');
+    if (!box) return;
+    const list = CATALOG.melanogaster;
+    box.innerHTML = list.map((e,idx) => eveCardHTML(e, 'step1', idx)).join('');
+    // radio names per step
+  }
+
+  function eveCardHTML(e, group, idx){
+    const typeDot = e.type==='retro' ? 'dot-retro' : 'dot-dna';
+    const stateDot = {
+      useful:'dot-useful',
+      intact:'dot-intact',
+      broken:'dot-broken',
+      silent:'dot-silent'
+    }[e.state] || 'dot-intact';
+
+    return `
+      <label class="eve-card">
+        <input type="radio" name="${group}-choice" value="${e.id}" />
+        <div>
+          <div><strong>${e.id}</strong></div>
+          <div class="eve-meta">
+            <span class="eve-chip"><span class="dot ${typeDot}"></span>${e.type}</span>
+            <span class="eve-chip"><span class="dot ${stateDot}"></span>${e.state}</span>
+            <span class="eve-chip">family: ${e.family}</span>
+          </div>
+          <div class="eve-meta">${e.note}</div>
+        </div>
+      </label>
+    `;
+  }
+
+  function renderStep2Radios(){
+    const r = document.getElementById('adv-resist-radios');
+    const v = document.getElementById('adv-vuln-radios');
+    if (!r || !v) return;
+    r.innerHTML = SPECIES.map(s => `
+      <label><input type="radio" name="adv-resist" value="${s}" /> ${LABEL[s]}</label>
+    `).join('');
+    v.innerHTML = SPECIES.map(s => `
+      <label><input type="radio" name="adv-vuln" value="${s}" /> ${LABEL[s]}</label>
+    `).join('');
+  }
+
+  function renderStep3Checks(){
+    const c = document.getElementById('adv-mutation-checks');
+    if (!c) return;
+    c.innerHTML = SPECIES.map(s => `
+      <label><input type="checkbox" name="adv-muta" value="${s}" /> ${LABEL[s]}</label>
+    `).join('');
+  }
+
+  function togglePortfolios(){
+    const p = document.getElementById('adv-portfolios');
+    if (!p) return;
+    const hidden = p.hasAttribute('hidden');
+    if (hidden) p.removeAttribute('hidden'); else p.setAttribute('hidden','');
+  }
+
+  function renderPortfolios(){
+    const p = document.getElementById('adv-portfolios');
+    if (!p) return;
+    p.innerHTML = SPECIES.map(s => {
+      const rows = (CATALOG[s]||[]).map(e => {
+        return `• ${e.id} — ${e.type}, ${e.state}, family ${e.family}${e.note?` (${e.note})`:''}`;
+      }).join('<br>');
+      return `
+        <div class="portfolio">
+          <h5>${LABEL[s]}</h5>
+          <div class="eve-meta">${rows || 'No EVEs recorded'}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function hint(step){
+    if (step===1){
+      alert('Match type and sequence: a retrovirus identical to RV1 is best blocked by a retro EVE that is active (piRNAs) and targets RV1.');
+    } else if (step===2){
+      alert('Most resistant: species with a useful retro EVE matching the new lineage (RV1a). Most vulnerable: species with only broken retro EVEs or only DNA-virus EVEs.');
+    } else if (step===3){
+      alert('Small mutations may still be recognized by piRNAs if the EVE is close (RV1 or RV1a) and active/intact. Broken EVEs won’t help; DNA-virus EVEs won’t help against a retrovirus.');
+    }
+  }
+
+  function checkStep1(){
+    const val = (document.querySelector('input[name="step1-choice"]:checked')||{}).value;
+    const out = document.getElementById('adv-feedback-1');
+    if (!val){ out.textContent='Select an EVE above.'; out.style.color='#b91c1c'; return; }
+    if (val === STEP1_CORRECT){
+      out.textContent='Correct: EVE-A is a retro EVE with active piRNAs against RV1 (exact match).';
+      out.style.color='#0f766e';
+      passed.s1 = true; maybeUnlock();
+    } else {
+      out.textContent='Not quite. Choose an active retro EVE that matches RV1 (not DNA virus, not broken).';
+      out.style.color='#b91c1c';
+    }
+  }
+
+  function checkStep2(){
+    const resist = (document.querySelector('input[name="adv-resist"]:checked')||{}).value;
+    const vuln = (document.querySelector('input[name="adv-vuln"]:checked')||{}).value;
+    const out = document.getElementById('adv-feedback-2');
+    if (!resist || !vuln){ out.textContent='Pick one species for each: most resistant and most vulnerable.'; out.style.color='#b91c1c'; return; }
+    const ok = (resist===STEP2_RESIST) && (vuln===STEP2_VULN);
+    if (ok){
+      out.textContent = `Correct: ${LABEL[resist]} is most resistant (useful retro EVE to RV1a). ${LABEL[vuln]} is most vulnerable (only broken retro or only DNA-virus EVEs).`;
+      out.style.color='#0f766e';
+      passed.s2 = true; maybeUnlock();
+    } else {
+      out.textContent = 'Not quite. Look for a species with a useful/intact retro EVE close to RV1a (resistant) and one with only broken retro or only DNA-virus EVEs (vulnerable).';
+      out.style.color='#b91c1c';
+    }
+  }
+
+  function checkStep3(){
+    const chosen = Array.from(document.querySelectorAll('input[name="adv-muta"]:checked')).map(x=>x.value);
+    const out = document.getElementById('adv-feedback-3');
+    if (chosen.length===0){ out.textContent='Select at least one species.'; out.style.color='#b91c1c'; return; }
+    const set = new Set(chosen);
+    let allOk = true;
+    // Must include all expected and no unexpected
+    for (const s of STEP3_SET){ if (!set.has(s)) allOk = false; }
+    for (const s of set){ if (!STEP3_SET.has(s)) allOk = false; }
+
+    if (allOk){
+      out.textContent = 'Correct: melanogaster (EVE-A), pseudoananassae (EVE-P), and simulans (EVE-A′) likely retain some protection against RV1b.';
+      out.style.color='#0f766e';
+      passed.s3 = true; maybeUnlock();
+    } else {
+      out.textContent = 'Close. Think: active/intact retro EVEs targeting RV1 or RV1a may still recognize RV1b. Broken EVEs or DNA-virus EVEs won’t help.';
+      out.style.color='#b91c1c';
+    }
+  }
+
+  function maybeUnlock(){
+    if (passed.s1 && passed.s2 && passed.s3){
+      const s = getState();
+      if (!s.adults){ s.adults = true; setState(s); toast('Advanced badge unlocked!'); }
+    }
+  }
+
+  function reset(){
+    passed = { s1:false, s2:false, s3:false };
+    // Clear selections and feedback
+    document.querySelectorAll('input[name="step1-choice"]').forEach(x => x.checked=false);
+    document.querySelectorAll('input[name="adv-resist"]').forEach(x => x.checked=false);
+    document.querySelectorAll('input[name="adv-vuln"]').forEach(x => x.checked=false);
+    document.querySelectorAll('input[name="adv-muta"]').forEach(x => x.checked=false);
+    ['adv-feedback-1','adv-feedback-2','adv-feedback-3'].forEach(id => { const el=document.getElementById(id); if (el){ el.textContent=''; } });
+  }
+
+  return {
+    init,
+    hint,
+    checkStep1,
+    checkStep2,
+    checkStep3,
+    togglePortfolios,
+    reset
+  };
+})();
+document.addEventListener('DOMContentLoaded', () => {
+  if (document.getElementById('adv-eves-mel')) AdvancedGame.init();
+});
