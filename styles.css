@@ -183,3 +183,28 @@ textarea,input{background:#fff;color:var(--navy);border:1px solid var(--ash-200)
 .build-actions{display:flex;gap:.5rem;margin:.5rem 0}
 .tree-wrap{background:#fff;border:1px solid var(--ash-200);border-radius:.5rem;padding:.6rem}
 .tree{font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;color:#0a1a2f}
+
+/* Intermediate (Teens) — visual tree */
+.tree-svg{margin-top:.5rem;border:1px solid var(--ash-200);border-radius:.5rem;background:#fff;overflow:auto;max-height:360px}
+.tree-svg svg{display:block;width:100%;height:auto;min-width:520px}
+
+/* Advanced (Adults) — immunity game */
+.adv-step{background:#fff;border:1px solid var(--ash-200);border-radius:.75rem;padding:1rem;margin:.75rem 0}
+.eves-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.5rem;margin:.5rem 0}
+.eve-card{display:flex;gap:.5rem;align-items:flex-start;background:#fff;border:1px solid var(--ash-200);border-radius:.5rem;padding:.5rem;cursor:pointer}
+.eve-card input{margin-top:.4rem}
+.eve-meta{font-size:.88rem;color:var(--muted)}
+.eve-chip{display:inline-flex;gap:.35rem;align-items:center;border:1px solid var(--ash-200);border-radius:999px;padding:.1rem .4rem;margin-right:.35rem;font-size:.78rem}
+.eve-chip .dot{width:8px;height:8px;border-radius:50%}
+.dot-retro{background:#0ea5e9}   /* blue for retro */
+.dot-dna{background:#a16207}     /* brown/gold for dna */
+.dot-useful{background:#22c55e}
+.dot-intact{background:#16a34a}
+.dot-broken{background:#6b7280}
+.dot-silent{background:#f59e0b}
+
+.adv-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:.75rem;margin:.5rem 0}
+.radio-col,.check-col{display:grid;gap:.35rem;background:#fff;border:1px solid var(--ash-200);border-radius:.5rem;padding:.5rem}
+.portfolio-wrap{margin-top:.5rem;border:1px solid var(--ash-200);border-radius:.5rem;padding:.6rem;background:#fff}
+.portfolio{display:grid;gap:.25rem;margin:.5rem 0;padding:.5rem;border:1px dashed var(--ash-200);border-radius:.5rem}
+.portfolio h5{margin:.1rem 0}
