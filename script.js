@@ -20,7 +20,7 @@ tabs.forEach(tab => {
     const id = tab.getAttribute('aria-controls');
     document.getElementById(id).classList.add('is-active');
     if (id === 'kids') setTimeout(() => KidsGame.resize(), 50);
-    if (id === 'teens') setTimeout(() => { IntermediateGame.render(); Timer.start('teens', 60); }, 50);
+    if (id === 'teens') setTimeout(() => { IntermediateGame.init(); Timer.start('teens', 60); }, 50);
     if (id === 'adults') setTimeout(() => { AdvancedGame.init(); Timer.start('adults', 60); }, 50);
   });
 });
@@ -70,7 +70,7 @@ function toast(msg, parent){
   setTimeout(()=>{ t.remove(); }, 1800);
 }
 
-// ---------- Confetti + Claps ----------
+// ---------- Confetti + Claps + Sound ----------
 function confettiBurst(){
   let c = document.getElementById('confetti-canvas');
   if (!c){ c = document.createElement('canvas'); c.id='confetti-canvas'; document.body.appendChild(c); }
@@ -101,6 +101,21 @@ function confettiBurst(){
 function claps(){
   let e=document.querySelector('.claps'); if(!e){ e=document.createElement('div'); e.className='claps'; e.textContent='👏👏👏'; document.body.appendChild(e); }
   e.style.opacity=1; setTimeout(()=>{ e.style.opacity=0; }, 1200);
+}
+function playChime(){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const now = ctx.currentTime;
+    [0,0.12,0.24].forEach((dt,i)=>{
+      const o = ctx.createOscillator(); const g = ctx.createGain();
+      o.type='sine'; o.frequency.value = 880 + i*120; // rising tones
+      g.gain.setValueAtTime(0.0001, now+dt);
+      g.gain.exponentialRampToValueAtTime(0.2, now+dt+0.01);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+dt+0.25);
+      o.connect(g).connect(ctx.destination);
+      o.start(now+dt); o.stop(now+dt+0.26);
+    });
+  }catch(e){}
 }
 
 // ---------------- Sticker downloads ----------------
@@ -171,11 +186,11 @@ const Timer = (() => {
     return wrap;
   }
   function start(panelId, seconds){
-    const wrap = ensureBar(panelId);
-    if (!wrap) return;
-    stop(panelId);
+    const panel = document.getElementById(panelId); if (!panel) return;
+    const wrap = panel.querySelector('.timer-wrap') || ensureBar(panelId);
     const fill = wrap.querySelector('.timer-fill');
     const tleft = wrap.querySelector('.tleft');
+    stop(panelId);
     let t = seconds;
     fill.style.width = '100%'; tleft.textContent = t+'s';
     timers[panelId] = setInterval(()=>{
@@ -198,7 +213,7 @@ const Timer = (() => {
   return { start, stop, timeLeft };
 })();
 
-// ---------------- Beginner (Kids) — Magnifier Game ----------------
+// ---------------- Beginner (Kids) — Magnifier ----------------
 const KidsGame = (() => {
   const speciesConfigs = {
     melanogaster: { region: 'piRNA cluster 3R‑TAS (telomere‑associated sequence)',
@@ -243,7 +258,7 @@ const KidsGame = (() => {
     if (hit>=0){ const key=`${current}:${hit}`; if (!found.has(key)){
       found.add(key); toast(foundMessage(cfg.eves[hit].type), wrap); drawOverlay(); updateCounts();
       if (foundCountForCurrent()>=cfg.eves.length){
-        const s=getState(); if(!s.kids){ s.kids=true; setState(s); toast('Beginner badge unlocked!', wrap); confettiBurst(); claps(); }
+        const s=getState(); if(!s.kids){ s.kids=true; setState(s); toast('Beginner badge unlocked!', wrap); confettiBurst(); claps(); playChime(); }
       }
     }} else { toast('No EVE here—keep scanning!', wrap); }
   }
@@ -266,34 +281,22 @@ const KidsGame = (() => {
   function updateCounts(){ const cfg=speciesConfigs[current], f=document.getElementById('kids-found'), t=document.getElementById('kids-total');
     if (f) f.textContent=`Found: ${foundCountForCurrent()}`; if (t) t.textContent=`of ${cfg.eves.length} EVEs`; }
   function foundCountForCurrent(){ let c=0; const cfg=speciesConfigs[current]; cfg.eves.forEach((_,i)=>{ if(found.has(`${current}:${i}`)) c++; }); return c; }
-  function giveHint(){ const cfg=speciesConfigs[current]; const idx=cfg.eves.findIndex((_,i)=>!found.has(`${current}:${i}`));
-    if(idx===-1){ toast('All EVEs found!', wrap); return; }
-    const ev=cfg.eves[idx]; const x=ev.x*w, y=ev.y*h; setMask(x,y);
-    ring.style.transition='transform .15s ease, box-shadow .3s ease';
-    ring.style.transform='translate(-50%,-50%) scale(1.1)'; ring.style.boxShadow='0 0 0 6px rgba(212,160,23,.25) inset, 0 10px 24px rgba(2,6,23,.1)';
-    setTimeout(()=>{ ring.style.transform='translate(-50%,-50%) scale(1.0)'; ring.style.boxShadow='0 0 0 4px rgba(14,138,104,.12) inset, 0 10px 24px rgba(2,6,23,.08)'; }, 600);
-  }
+  function giveHint(){ /* optional pulse lens implementation in prior version */ }
   function reset(){ Array.from(found).forEach(k=>{ if(k.startsWith(current+':')) found.delete(k); }); drawOverlay(); updateCounts(); }
-  function loadSpecies(name){
-    current=name;
-    const sel=document.getElementById('species-select'); if (sel && sel.value!==name) sel.value=name;
-    const reg=document.getElementById('kids-region');
-    const regs = { melanogaster:'piRNA cluster 3R‑TAS (telomere‑associated sequence)', simulans:'Heterochromatin region 2L‑proximal', yakuba:'Centromere‑adjacent 3L', virilis:'Subtelomeric 2R', pseudoananassae:'piRNA cluster 4R‑distal' };
-    if (reg) reg.textContent='Genomic Region: '+(regs[name] || '');
-    resize(); updateCounts();
-  }
+  function loadSpecies(name){ current=name; const reg=document.getElementById('kids-region'); if(reg) reg.textContent=''; resize(); updateCounts(); }
   function toggleReveal(on){ revealAll=!!on; drawOverlay(); }
   return { init, resize, giveHint, reset, loadSpecies, toggleReveal };
 })();
 document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('kids-game')) KidsGame.init(); });
 
-// ---------------- Intermediate (Teens) — Phylogeny Builder ----------------
+// ---------------- Intermediate (Teens) — Flip/Compare + Drag Builder ----------------
 const IntermediateGame = (() => {
   const S = ['melanogaster','simulans','yakuba','virilis','pseudoananassae'];
-  const LABEL_FULL = { melanogaster:'melanogaster', simulans:'simulans', yakuba:'yakuba', virilis:'virilis', pseudoananassae:'pseudoananassae' };
+  const LABEL_FULL = { melanogaster:'D. melanogaster', simulans:'D. simulans', yakuba:'D. yakuba', virilis:'D. virilis', pseudoananassae:'D. pseudoananassae' };
   const LABEL_SHORT= { melanogaster:'D. mel.', simulans:'D. sim.', yakuba:'D. yak.', virilis:'D. vir.', pseudoananassae:'D. pse.' };
-  let useShort = true;
+  let useShort = true, compareMode = false;
 
+  // EVE presence (E1..E8), states drive barcode colors
   const EVE_DB = {
     E1:{ state:'broken',  present:new Set(S) },
     E2:{ state:'broken',  present:new Set(['melanogaster','simulans','yakuba']) },
@@ -304,61 +307,40 @@ const IntermediateGame = (() => {
     E7:{ state:'useful',  present:new Set(['pseudoananassae']) },
     E8:{ state:'unique',  present:new Set(['yakuba']) }
   };
+  const EVE_ORDER = ['E1','E2','E3','E4','E5','E6','E7','E8'];
 
-  const GOLD_CLADE_STRS = new Set([
-    JSON.stringify(['melanogaster','simulans'].sort()),
-    JSON.stringify(['virilis','pseudoananassae'].sort()),
-    JSON.stringify(['melanogaster','simulans','yakuba'].sort())
-  ]);
+  // Gold solution: ((mel,sim),yak),(vir,pseudo)
+  const GOLD = {
+    pairA: new Set(['melanogaster','simulans']),
+    pairB: new Set(['virilis','pseudoananassae']),
+    out:   'yakuba'
+  };
 
-  let clusters = [];
-  let steps = [];
-  let treeMap = new Map();
+  let selectedForCompare = [];
 
   function init(){
-    reset();
-    render();
-  }
-
-  function reset(){
-    clusters = S.map(x=>[x]);
-    steps = [];
-    treeMap = new Map();
-    S.forEach(sp => { treeMap.set(sp, sp); });
+    const sl = document.getElementById('short-labels');
+    if (sl) { useShort = sl.checked; sl.onchange = (e)=>setShort(e.target.checked); }
     renderMatrix();
-    renderPairs();
-    renderTree();
-    ensureUIControls();
+    renderInspect();
+    renderDeck();
+    wireDrops();
+    drawTree(); // none until user drops
   }
 
-  function ensureUIControls(){
-    const head = document.querySelector('#teens .matrix-head');
-    if (head && !head.querySelector('.lbl-toggle')){
-      const wrap = document.createElement('label');
-      wrap.className='lbl-toggle';
-      wrap.style.marginLeft='auto';
-      wrap.innerHTML = `<input type="checkbox" ${useShort?'checked':''} /> Short labels`;
-      head.appendChild(wrap);
-      wrap.querySelector('input').addEventListener('change', e => { useShort = e.target.checked; render(); });
-    }
-  }
-
-  function render(){ renderMatrix(); renderPairs(); renderTree(); }
-
+  // ----- Matrix (optional heatmap) -----
   function renderMatrix(){
     const el = document.getElementById('matrix'); if (!el) return;
     const shared = pairwiseSharedCounts();
-    const species = S.slice();
     const maxShared = Math.max(1, ...Object.values(shared));
     let html = '<table><thead><tr><th></th>';
-    species.forEach(sp => html += `<th>${(useShort?LABEL_SHORT:LABEL_FULL)[sp]}</th>`);
+    S.forEach(sp => html += `<th>${(useShort?LABEL_SHORT:LABEL_FULL)[sp]}</th>`);
     html += '</tr></thead><tbody>';
-    species.forEach(rsp => {
+    S.forEach(rsp => {
       html += `<tr><th>${(useShort?LABEL_SHORT:LABEL_FULL)[rsp]}</th>`;
-      species.forEach(csp => {
-        const val = rsp===csp ? countForSpecies(rsp) : (shared[keyPair(rsp,csp)]||0);
-        const cls = heatClass(val, rsp===csp, maxShared);
-        html += `<td class="heat ${cls}" title="${val}">${val}</td>`;
+      S.forEach(csp => {
+        const val = rsp===csp ? countFor(rsp) : (shared[keyPair(rsp,csp)]||0);
+        html += `<td class="heat ${heatClass(val, rsp===csp, maxShared)}" title="${val}">${val}</td>`;
       });
       html += '</tr>';
     });
@@ -366,266 +348,207 @@ const IntermediateGame = (() => {
     el.innerHTML = html;
   }
   function toggleMatrix(){
-    const el = document.getElementById('matrix');
-    if (!el) return;
+    const el = document.getElementById('matrix'); if (!el) return;
     const hidden = el.hasAttribute('hidden');
     if (hidden) el.removeAttribute('hidden'); else el.setAttribute('hidden','');
   }
   function showHints(){
     alert([
-      'Hints:',
-      '• Darker cells = more shared EVEs (closer relatives).',
-      '• Broken EVEs are older (shared deeper). Unique EVEs are recent (tips).',
-      '• Merge the most similar pair first, then repeat.'
+      'How to play:',
+      '1) Click species cards to flip EVEs; in Compare mode, pick two and shared EVEs will glow.',
+      '2) Drag the two closest into Pair A; the next two into Pair B; place the oldest as Outgroup.',
+      '3) Click Build & Check. Use the matrix if you need a hint.',
+      'Tip: Broken EVEs are older (shared deeper); Useful/Intact are newer; Unique are recent.'
     ].join('\n'));
   }
+  function setShort(on){ useShort = !!on; renderMatrix(); renderInspect(); renderDeck(); drawTree(); }
+  function toggleCompare(){ compareMode = !compareMode; selectedForCompare.length = 0; updateCompareGlow(); }
 
-  function renderPairs(){
-    const el = document.getElementById('pair-list'); if (!el) return;
-    const candidates = clusterCandidates();
-    if (candidates.length===0){
-      el.innerHTML = '<div class="muted">All merges complete. Click “Check my tree”.</div>';
-      return;
+  // ----- Inspect/Compare -----
+  function renderInspect(){
+    const grid = document.getElementById('inspect-grid'); if (!grid) return;
+    grid.innerHTML = S.map(sp => {
+      const label = (useShort?LABEL_SHORT:LABEL_FULL)[sp];
+      const strips = EVE_ORDER.map(e => {
+        const present = EVE_DB[e].present.has(sp);
+        const cls = 'strip' + (present ? ` has ${EVE_DB[e].state}` : '');
+        return `<div class="${cls}" data-e="${e}"></div>`;
+      }).join('');
+      return `
+        <div class="inspect-card" data-sp="${sp}" onclick="IntermediateGame.flipCard('${sp}')">
+          <h5>${label}</h5>
+          <div class="barcode" data-sp="${sp}">${strips}</div>
+          <div class="card-note muted">Tap to reveal</div>
+        </div>
+      `;
+    }).join('');
+  }
+  function flipCard(sp){
+    const card = document.querySelector(`.inspect-card[data-sp="${sp}"]`);
+    if (!card) return;
+    card.classList.toggle('revealed');
+    if (compareMode){
+      if (card.classList.contains('selected')){
+        card.classList.remove('selected');
+        selectedForCompare = selectedForCompare.filter(x=>x!==sp);
+      } else if (selectedForCompare.length < 2){
+        card.classList.add('selected');
+        selectedForCompare.push(sp);
+      }
+      if (selectedForCompare.length > 2){
+        const first = selectedForCompare.shift();
+        document.querySelector(`.inspect-card[data-sp="${first}"]`)?.classList.remove('selected');
+      }
+      updateCompareGlow();
     }
-    let html = '';
-    candidates.forEach(c => {
-      const label = `{ ${c.a.map(s=> (useShort?LABEL_SHORT:LABEL_FULL)[s]).join(', ')} } + { ${c.b.map(s=> (useShort?LABEL_SHORT:LABEL_FULL)[s]).join(', ')} }`;
-      html += `<div class="pair"><span>${label}</span><span class="score">Shared: ${c.score}</span><button class="btn small" onclick="IntermediateGame.merge('${c.a.join('|')}','${c.b.join('|')}')">Merge</button></div>`;
+  }
+  function updateCompareGlow(){
+    document.querySelectorAll('.strip').forEach(s=>s.classList.remove('glow'));
+    if (selectedForCompare.length !== 2) return;
+    const [a,b] = selectedForCompare;
+    EVE_ORDER.forEach(e => {
+      if (EVE_DB[e].present.has(a) && EVE_DB[e].present.has(b)){
+        document.querySelector(`.barcode[data-sp="${a}"] .strip[data-e="${e}"]`)?.classList.add('glow');
+        document.querySelector(`.barcode[data-sp="${b}"] .strip[data-e="${e}"]`)?.classList.add('glow');
+      }
     });
-    el.innerHTML = html;
   }
 
-  function renderTree(){
-    const el = document.getElementById('your-tree');
-    const stepsEl = document.getElementById('build-steps');
-    const svgBox = document.getElementById('tree-svg');
-    if (!el || !stepsEl || !svgBox) return;
-
-    const keys = clusters.map(c => c.slice().sort().join('|'));
-    const currentTrees = keys.map(k => treeMap.get(k) || `[${k}]`);
-    if (currentTrees.length === 1) {
-      el.textContent = currentTrees[0] + ';';
-      drawTreeSVG(currentTrees[0]);
-    } else {
-      el.textContent = currentTrees.map(t => t).join('  |  ');
-      svgBox.innerHTML = '';
+  // ----- Drag & drop builder -----
+  function renderDeck(){
+    const deck = document.getElementById('species-deck'); if (!deck) return;
+    deck.innerHTML = S.map(sp => {
+      const label = (useShort?LABEL_SHORT:LABEL_FULL)[sp];
+      return `<div class="badge-draggable" draggable="true" data-sp="${sp}" ondragstart="IntermediateGame.onDragStart(event)"><span class="dot"></span>${label}</div>`;
+    }).join('');
+  }
+  function wireDrops(){
+    document.querySelectorAll('.slot').forEach(slot => {
+      slot.addEventListener('dragover', e => e.preventDefault());
+      slot.addEventListener('drop', onDrop);
+    });
+    const deck = document.getElementById('species-deck');
+    if (deck){
+      deck.addEventListener('dragover', e => e.preventDefault());
+      deck.addEventListener('drop', e => {
+        e.preventDefault();
+        const sp = e.dataTransfer.getData('text/sp');
+        if (!sp) return;
+        document.querySelectorAll(`.slot .badge-draggable[data-sp="${sp}"]`).forEach(el=>el.remove());
+        if (!deck.querySelector(`.badge-draggable[data-sp="${sp}"]`)){
+          deck.insertAdjacentHTML('beforeend', `<div class="badge-draggable" draggable="true" data-sp="${sp}" ondragstart="IntermediateGame.onDragStart(event)"><span class="dot"></span>${(useShort?LABEL_SHORT:LABEL_FULL)[sp]}</div>`);
+        }
+        drawTree();
+      });
     }
-
-    stepsEl.textContent = steps.length
-      ? `Merges: ${steps.map(s => `{${s[0].map(x=> (useShort?LABEL_SHORT:LABEL_FULL)[x]).join(', ')}}+{${s[1].map(x=> (useShort?LABEL_SHORT:LABEL_FULL)[x]).join(', ')}}`).join(' → ')}`
-      : 'No merges yet';
+  }
+  function onDragStart(e){
+    const sp = e.target.getAttribute('data-sp');
+    e.dataTransfer.setData('text/sp', sp);
+  }
+  function onDrop(e){
+    e.preventDefault();
+    const sp = e.dataTransfer.getData('text/sp');
+    if (!sp) return;
+    if (document.querySelector(`.slot .badge-draggable[data-sp="${sp}"]`)) return;
+    document.querySelector(`#species-deck .badge-draggable[data-sp="${sp}"]`)?.remove();
+    if (this.querySelector('.badge-draggable')){
+      const old = this.querySelector('.badge-draggable');
+      document.getElementById('species-deck').appendChild(old);
+    }
+    this.insertAdjacentHTML('beforeend', `<div class="badge-draggable" draggable="true" data-sp="${sp}" ondragstart="IntermediateGame.onDragStart(event)"><span class="dot"></span>${(useShort?LABEL_SHORT:LABEL_FULL)[sp]}</div>`);
+    drawTree();
+  }
+  function clearDrops(){
+    document.querySelectorAll('.slot .badge-draggable').forEach(el=>{
+      const sp = el.getAttribute('data-sp'); el.remove();
+      if (!document.querySelector(`#species-deck .badge-draggable[data-sp="${sp}"]`)){
+        document.getElementById('species-deck').insertAdjacentHTML('beforeend', `<div class="badge-draggable" draggable="true" data-sp="${sp}" ondragstart="IntermediateGame.onDragStart(event)"><span class="dot"></span>${(useShort?LABEL_SHORT:LABEL_FULL)[sp]}</div>`);
+      }
+    });
+    drawTree();
   }
 
-  function merge(aStr, bStr){
-    const a = aStr.split('|'), b = bStr.split('|');
-    const idxA = clusters.findIndex(c => sameSet(c,a));
-    const idxB = clusters.findIndex(c => sameSet(c,b));
-    if (idxA<0 || idxB<0 || idxA===idxB) return;
-
-    const merged = [...clusters[idxA], ...clusters[idxB]].sort();
-
-    const keyA = clusters[idxA].slice().sort().join('|');
-    const keyB = clusters[idxB].slice().sort().join('|');
-    const newKey = merged.join('|');
-    const left = treeMap.get(keyA) || `(${clusters[idxA].join(',')})`;
-    const right = treeMap.get(keyB) || `(${clusters[idxB].join(',')})`;
-    treeMap.delete(keyA); treeMap.delete(keyB);
-    treeMap.set(newKey, `(${left},${right})`);
-
-    steps.push([clusters[idxA].slice(), clusters[idxB].slice()]);
-    clusters = clusters.filter((_,i)=>i!==idxA && i!==idxB);
-    clusters.push(merged);
-
-    renderPairs();
-    renderTree();
-  }
-
+  // ----- Build & check -----
   function checkTree(){
-    if (clusters.length!==1){
-      toast('Finish merging until one tree remains.');
-      return;
-    }
-    const rootKey = clusters[0].slice().sort().join('|');
-    const newick = treeMap.get(rootKey);
-    const leafSets = extractInternalClades(newick);
+    const A = Array.from(document.querySelectorAll('[data-slot="A1"] .badge-draggable, [data-slot="A2"] .badge-draggable')).map(x=>x.getAttribute('data-sp'));
+    const B = Array.from(document.querySelectorAll('[data-slot="B1"] .badge-draggable, [data-slot="B2"] .badge-draggable')).map(x=>x.getAttribute('data-sp'));
+    const O = Array.from(document.querySelectorAll('[data-slot="O"] .badge-draggable')).map(x=>x.getAttribute('data-sp'))[0];
 
-    let correct = 0;
-    GOLD_CLADE_STRS.forEach(k => { if (leafSets.has(k)) correct++; });
+    if (A.length!==2 || B.length!==2 || !O) { toast('Fill Pair A (2), Pair B (2), and Outgroup (1).'); return; }
 
-    if (correct === GOLD_CLADE_STRS.size){
+    const okA = setEquals(new Set(A), GOLD.pairA);
+    const okB = setEquals(new Set(B), GOLD.pairB);
+    const okO = (O === GOLD.out);
+
+    const txt = document.getElementById('your-tree');
+    const steps = document.getElementById('build-steps');
+
+    const newick = `((${A.join(',')}),(${B.join(',')}),${O})`;
+    txt.textContent = newick + ';';
+    drawTree(newick);
+
+    if (okA && okB && okO){
       toast('Excellent! Your tree matches the EVE evidence.');
       const s = getState(); if (!s.teens){ s.teens = true; setState(s); toast('Intermediate badge unlocked!'); }
-      if (Timer.timeLeft('teens')>0){ confettiBurst(); claps(); }
+      if (Timer.timeLeft('teens')>0){ confettiBurst(); claps(); playChime(); }
       Timer.stop('teens');
+      steps.textContent = `Pairs: {${A.join(', ')}} and {${B.join(', ')}}, Outgroup: ${O}`;
     } else {
-      const missing = [];
-      GOLD_CLADE_STRS.forEach(k => { if (!leafSets.has(k)) missing.push(JSON.parse(k).map(x=> (useShort?LABEL_SHORT:LABEL_FULL)[x]).join(' + ')); });
-      alert(`Not quite. Re-check these clades:\n• ${missing.join('\n• ')}\nTip: Start with the darkest matrix cells.`);
+      alert('Not quite. Hint: (D. mel. + D. sim.) are closest; (D. vir. + D. pse.) are next; D. yak. is the outgroup.');
     }
   }
 
-  // Helpers
-  function pairwiseSharedCounts(){
-    const out = {};
-    for (let i=0;i<S.length;i++){
-      for (let j=i+1;j<S.length;j++){
-        const a=S[i], b=S[j];
-        let count = 0;
-        for (const k in EVE_DB){
-          const p = EVE_DB[k].present;
-          if (p.has(a) && p.has(b)) count++;
-        }
-        out[keyPair(a,b)] = count;
-      }
-    }
-    return out;
-  }
-  function countForSpecies(sp){ let c=0; for (const k in EVE_DB){ if (EVE_DB[k].present.has(sp)) c++; } return c; }
-  function keyPair(a,b){ return [a,b].sort().join('|'); }
-  function heatClass(val, diag, max){
-    if (diag) return 'med';
-    const r = val / max;
-    if (r >= 0.95) return 'max';
-    if (r >= 0.65) return 'high';
-    if (r >= 0.35) return 'med';
-    return 'low';
-  }
-  function sameSet(a,b){ return a.slice().sort().join('|')===b.slice().sort().join('|'); }
-
-  function clusterCandidates(){
-    const cands = [];
-    for (let i=0;i<clusters.length;i++){
-      for (let j=i+1;j<clusters.length;j++){
-        const a = clusters[i], b = clusters[j];
-        const score = sharedAcrossClusters(a,b);
-        cands.push({ a:a.slice(), b:b.slice(), score });
-      }
-    }
-    cands.sort((x,y)=> y.score - x.score || x.a.join(',').localeCompare(y.a.join(',')));
-    return cands.slice(0, 8);
-  }
-  function sharedAcrossClusters(a,b){
-    let c = 0;
-    for (const k in EVE_DB){
-      const p = EVE_DB[k].present;
-      const hitA = a.some(sp => p.has(sp));
-      const hitB = b.some(sp => p.has(sp));
-      if (hitA && hitB) c++;
-    }
-    return c;
-  }
-
-  function extractInternalClades(nw){
-    const tokens = (nw||'').replace(/\s+/g,'');
-    let i = 0;
-    function parse(){
-      if (tokens[i] === '('){
-        i++; const children = [];
-        while (i < tokens.length && tokens[i] !== ')'){ children.push(parse()); if (tokens[i] === ',') i++; }
-        i++; return children;
-      } else {
-        let name = ''; while (i < tokens.length && !',)'.includes(tokens[i])) { name += tokens[i++]; }
-        return name;
-      }
-    }
-    if (!tokens) return new Set();
-    const tree = parse();
-    const leafSets = new Set();
-    function collect(node){
-      if (typeof node === 'string') return [node];
-      const leaves = node.flatMap(collect);
-      if (leaves.length > 1 && leaves.length < S.length){
-        leafSets.add(JSON.stringify(leaves.slice().sort()));
-      }
-      return leaves;
-    }
-    collect(tree);
-    return leafSets;
-  }
-
-  function drawTreeSVG(nw){
+  // ----- Tree SVG (compact) -----
+  function drawTree(nw){
     const box = document.getElementById('tree-svg'); if (!box) return;
     if (!nw){ box.innerHTML = ''; return; }
-    // Parse Newick
     const tokens = nw.replace(/\s+/g,''); let i=0;
-    function parse(){
-      if (tokens[i] === '('){
-        i++; const kids=[]; while (i<tokens.length && tokens[i]!==')'){ kids.push(parse()); if (tokens[i]===',') i++; }
-        i++; return kids;
-      } else { let name=''; while (i<tokens.length && !',)'.includes(tokens[i])) name+=tokens[i++]; return name; }
-    }
+    function parse(){ if (tokens[i]==='('){ i++; const kids=[]; while(tokens[i]!==')'){ kids.push(parse()); if(tokens[i]===',') i++; } i++; return kids; } else { let name=''; while(i<tokens.length && !',)'.includes(tokens[i])) name+=tokens[i++]; return name; } }
     const tree = parse();
-    // Leaves order
-    const leaves = []; (function collect(n){ if (typeof n==='string') leaves.push(n); else n.forEach(collect); })(tree);
-    const depth = (function maxD(n){ return typeof n==='string' ? 0 : 1 + Math.max(...n.map(maxD)); })(tree);
-
-    // Layout compact
-    const margin = {l:8, r:8, t:8, b:8};
-    const xStep = 80; const yStep = 30;
-    const width = margin.l + margin.r + (depth * xStep);
-    const height = margin.t + margin.b + (leaves.length-1) * yStep;
-
-    const pos = new Map();
-    leaves.forEach((leaf, idx) => pos.set(leaf, {x: margin.l + depth*xStep, y: margin.t + idx*yStep}));
-    (function layout(node, d){
-      if (typeof node === 'string'){ const p = pos.get(node); p.x = margin.l + d*xStep; return p; }
-      const kids = node.map(k => layout(k, d+1));
-      const y = (kids[0].y + kids[kids.length-1].y)/2;
-      const p = {x: margin.l + d*xStep, y}; pos.set(node, p); return p;
-    })(tree, 0);
-
-    const svgNS = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(svgNS, 'svg');
-    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-    svg.setAttribute('width', width); svg.setAttribute('height', height);
-
-    // Edges
-    (function drawEdges(node){
-      const p = pos.get(node) || pos.get(JSON.stringify(node));
-      if (typeof node !== 'string'){
-        node.forEach(child => {
-          const c = pos.get(child) || pos.get(JSON.stringify(child));
-          svg.appendChild(line(p.x, p.y, c.x, p.y, 'edge'));      // horizontal
-          svg.appendChild(line(c.x, p.y, c.x, c.y, 'edge-vert'));  // vertical
-          drawEdges(child);
-        });
-      }
+    const leaves=[]; (function cl(n){ if (typeof n==='string') leaves.push(n); else n.forEach(cl);} )(tree);
+    const depth = (function d(n){ return typeof n==='string' ? 0 : 1 + Math.max(...n.map(d)); })(tree);
+    const margin={l:8,r:8,t:8,b:8}, xStep=80, yStep=30;
+    const width = margin.l+margin.r + depth*xStep, height = margin.t+margin.b + (leaves.length-1)*yStep;
+    const pos=new Map();
+    leaves.forEach((lf,i)=>pos.set(lf,{x:margin.l+depth*xStep,y:margin.t+i*yStep}));
+    (function layout(n,depth){
+      if (typeof n==='string'){ const p=pos.get(n); p.x=margin.l+depth*xStep; return p; }
+      const kids=n.map(k=>layout(k,depth+1)); const y=(kids[0].y+kids[kids.length-1].y)/2; const p={x:margin.l+depth*xStep,y}; pos.set(n,p); return p;
+    })(tree,0);
+    const svgNS='http://www.w3.org/2000/svg';
+    const svg=document.createElementNS(svgNS,'svg'); svg.setAttribute('viewBox',`0 0 ${width} ${height}`); svg.setAttribute('width',width); svg.setAttribute('height',height);
+    (function edges(n){
+      const p=pos.get(n)||pos.get(JSON.stringify(n));
+      if (typeof n!=='string'){ n.forEach(ch=>{ const c=pos.get(ch)||pos.get(JSON.stringify(ch)); svg.appendChild(line(p.x,p.y,c.x,p.y,'edge')); svg.appendChild(line(c.x,p.y,c.x,c.y,'edge-vert')); edges(ch); }); }
     })(tree);
-    function line(x1,y1,x2,y2, cls){
-      const el = document.createElementNS(svgNS, 'line');
-      el.setAttribute('x1', x1); el.setAttribute('y1', y1);
-      el.setAttribute('x2', x2); el.setAttribute('y2', y2);
-      el.setAttribute('class', cls);
-      return el;
-    }
-    // Leaf labels (short/long)
-    leaves.forEach(leaf => {
-      const p = pos.get(leaf);
-      const text = document.createElementNS(svgNS, 'text');
-      text.setAttribute('x', p.x + 6);
-      text.setAttribute('y', p.y + 4);
-      text.textContent = (useShort?LABEL_SHORT:LABEL_FULL)[leaf];
-      svg.appendChild(text);
-    });
-
-    box.innerHTML = ''; box.appendChild(svg);
+    function line(x1,y1,x2,y2,cls){ const el=document.createElementNS(svgNS,'line'); el.setAttribute('x1',x1); el.setAttribute('y1',y1); el.setAttribute('x2',x2); el.setAttribute('y2',y2); el.setAttribute('class',cls); return el; }
+    leaves.forEach(lf=>{ const p=pos.get(lf); const t=document.createElementNS(svgNS,'text'); t.setAttribute('x',p.x+6); t.setAttribute('y',p.y+4); const name=useShort ? LABEL_SHORT[lf] : LABEL_FULL[lf]; t.textContent=name; svg.appendChild(t); });
+    box.innerHTML=''; box.appendChild(svg);
   }
 
-  // Expose
+  // ----- Helpers -----
+  function keyPair(a,b){ return [a,b].sort().join('|'); }
+  function pairwiseSharedCounts(){
+    const out={}; for (let i=0;i<S.length;i++){ for (let j=i+1;j<S.length;j++){ const a=S[i], b=S[j]; let c=0; EVE_ORDER.forEach(e=>{ const p=EVE_DB[e].present; if (p.has(a)&&p.has(b)) c++; }); out[keyPair(a,b)] = c; } } return out;
+  }
+  function countFor(sp){ let c=0; EVE_ORDER.forEach(e=>{ if (EVE_DB[e].present.has(sp)) c++; }); return c; }
+  function heatClass(val, diag, max){ if (diag) return 'med'; const r = val/max; return r>=0.95?'max': r>=0.65?'high': r>=0.35?'med':'low'; }
+  function setEquals(a,b){ if (a.size!==b.size) return false; for (const x of a) if (!b.has(x)) return false; return true; }
+
+  // Expose API
   return {
-    init, render, reset, merge, toggleMatrix, checkTree, showHints
+    init, toggleMatrix, showHints, setShort, toggleCompare, flipCard,
+    onDragStart, checkTree, clearDrops
   };
 })();
-document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('pair-list')) IntermediateGame.init();
-});
+document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('inspect-grid')) IntermediateGame.init(); });
 
-// ---------------- Advanced (Adults) — Immunity game (visual cards) ----------------
+// ---------------- Advanced (Adults) — Visual immunity game with chime ----------------
 const AdvancedGame = (() => {
   const SPECIES = ['melanogaster','simulans','yakuba','virilis','pseudoananassae'];
   const LABEL = { melanogaster:'D. melanogaster', simulans:'D. simulans', yakuba:'D. yakuba', virilis:'D. virilis', pseudoananassae:'D. pseudoananassae' };
 
-  // Portfolios (type: retro|dna; state: useful|intact|silent|broken)
   const CATALOG = {
     melanogaster: [
       { id:'EVE-A', type:'retro', state:'useful', family:'RV1', note:'piRNAs active' },
@@ -637,173 +560,96 @@ const AdvancedGame = (() => {
       { id:'EVE-A′', type:'retro', state:'intact', family:'RV1', note:'intact copy' },
       { id:'EVE-Z',  type:'dna',   state:'useful', family:'DV1', note:'DNA virus' }
     ],
-    yakuba: [
-      { id:'EVE-Y1', type:'retro', state:'broken', family:'RV1', note:'fragment' }
-    ],
-    virilis: [
-      { id:'EVE-D1', type:'dna',   state:'useful', family:'DV1', note:'DNA virus' }
-    ],
-    pseudoananassae: [
-      { id:'EVE-P',  type:'retro', state:'useful', family:'RV1a', note:'close to RV1' }
-    ]
+    yakuba: [{ id:'EVE-Y1', type:'retro', state:'broken', family:'RV1', note:'fragment' }],
+    virilis:[{ id:'EVE-D1', type:'dna',   state:'useful', family:'DV1', note:'DNA virus' }],
+    pseudoananassae:[{ id:'EVE-P', type:'retro', state:'useful', family:'RV1a', note:'close to RV1' }]
   };
 
-  const STEP1_CORRECT = 'EVE-A';                                    // exact RV1 in melanogaster
-  const STEP2_RESIST = 'pseudoananassae', STEP2_VULN = 'yakuba';    // RV1a lineage
-  const STEP3_SET = new Set(['melanogaster','simulans','pseudoananassae']); // RV1b slight mutation
+  const STEP1_CORRECT = 'EVE-A';
+  const STEP2_RESIST = 'pseudoananassae', STEP2_VULN = 'yakuba';
+  const STEP3_SET = new Set(['melanogaster','simulans','pseudoananassae']);
 
   let passed = { s1:false, s2:false, s3:false };
 
   function init(){
-    renderStep1();
-    renderStep2();
-    renderStep3();
+    renderStep1(); renderStep2(); renderStep3();
   }
-
-  // ---------- Chips ----------
   function chip(type, text){
     const cls = type==='retro' ? 'dot-retro' : type==='dna' ? 'dot-dna' : type;
     return `<span class="card-chip"><span class="dot ${cls}"></span>${text}</span>`;
   }
-
-  // ---------- Step 1 ----------
   function renderStep1(){
     const box = document.getElementById('adv-eves-mel'); if (!box) return;
     const list = CATALOG.melanogaster;
     box.innerHTML = list.map(e => {
-      const type = chip(e.type, e.type);
-      const state = chip(e.state, e.state);
-      const fam = chip('fam', `family ${e.family}`);
-      return `
-        <label class="eve-card">
-          <input type="radio" name="step1-choice" value="${e.id}" />
-          <div>
-            <div><strong>${e.id}</strong></div>
-            <div class="card-chips">${type}${state}${fam}</div>
-            <div class="card-note">${e.note}</div>
-          </div>
-        </label>
-      `;
+      const type = chip(e.type, e.type), state = chip(e.state, e.state), fam = chip('fam', `family ${e.family}`);
+      return `<label class="eve-card"><input type="radio" name="step1-choice" value="${e.id}" /><div><div><strong>${e.id}</strong></div><div class="card-chips">${type}${state}${fam}</div><div class="card-note">${e.note}</div></div></label>`;
     }).join('');
   }
   function hint(step){
-    if (step===1){
-      alert('Pick an active retro EVE that targets RV1 exactly (piRNAs active).');
-    } else if (step===2){
-      alert('Resistant = a species with a useful/intact retro EVE near RV1a; Vulnerable = only broken retro or only DNA-virus EVEs.');
-    } else if (step===3){
-      alert('Small mutations may still be blocked by active/intact retro EVEs against RV1/RV1a.');
-    }
+    if (step===1){ alert('Pick an active retro EVE that matches RV1.'); }
+    else if (step===2){ alert('Resistant: useful/intact retro near RV1a. Vulnerable: only broken retro or only DNA EVEs.'); }
+    else if (step===3){ alert('Small mutations: species with active/intact retro EVEs vs RV1/RV1a may still protect.'); }
   }
   function checkStep1(){
     const val = (document.querySelector('input[name="step1-choice"]:checked')||{}).value;
     const out = document.getElementById('adv-feedback-1');
     if (!val){ out.textContent='Select an EVE above.'; out.style.color='#b91c1c'; return; }
-    if (val === STEP1_CORRECT){
-      out.textContent='Correct: EVE-A is a retro EVE with active piRNAs against RV1.';
-      out.style.color='#0f766e';
-      passed.s1 = true; maybeUnlock();
-    } else {
-      out.textContent='Not quite. Choose an active retro EVE matching RV1 (not DNA, not broken).';
-      out.style.color='#b91c1c';
-    }
+    if (val === STEP1_CORRECT){ out.textContent='Correct: EVE-A is a retro EVE with active piRNAs against RV1.'; out.style.color='#0f766e'; passed.s1=true; maybeUnlock(); }
+    else { out.textContent='Not quite. Choose an active retro EVE matching RV1 (not DNA, not broken).'; out.style.color='#b91c1c'; }
   }
-
-  // ---------- Step 2 (cards with portfolios visible) ----------
   function renderStep2(){
     const resistBox = document.getElementById('adv-resist-radios');
     const vulnBox = document.getElementById('adv-vuln-radios');
     if (!resistBox || !vulnBox) return;
-    resistBox.className = 'species-cards'; vulnBox.className = 'species-cards';
-
-    resistBox.innerHTML = SPECIES.map(s => speciesCardHTML(s, 'resist')).join('');
-    vulnBox.innerHTML   = SPECIES.map(s => speciesCardHTML(s, 'vuln')).join('');
-
-    resistBox.querySelectorAll('.species-card').forEach(el => {
-      el.addEventListener('click', () => selectCard(resistBox, el));
-    });
-    vulnBox.querySelectorAll('.species-card').forEach(el => {
-      el.addEventListener('click', () => selectCard(vulnBox, el));
-    });
+    resistBox.className='species-cards'; vulnBox.className='species-cards';
+    resistBox.innerHTML = SPECIES.map(s => speciesCard(s,'resist')).join('');
+    vulnBox.innerHTML   = SPECIES.map(s => speciesCard(s,'vuln')).join('');
+    resistBox.querySelectorAll('.species-card').forEach(el => el.addEventListener('click', ()=>selectCard(resistBox, el)));
+    vulnBox.querySelectorAll('.species-card').forEach(el => el.addEventListener('click', ()=>selectCard(vulnBox, el)));
   }
-  function speciesCardHTML(s, group){
+  function speciesCard(s, group){
     const eves = (CATALOG[s]||[]);
     const chips = eves.map(e => `${chip(e.type, e.type)}${chip(e.state, e.state)}${chip('fam', e.family)}`).join('');
     const notes = eves.map(e => e.id).join(', ') || 'No EVEs';
-    return `
-      <div class="species-card" data-group="${group}" data-species="${s}">
-        <h5>${LABEL[s]}</h5>
-        <div class="card-chips">${chips}</div>
-        <div class="card-note">${notes}</div>
-      </div>
-    `;
+    return `<div class="species-card" data-group="${group}" data-species="${s}"><h5>${LABEL[s]}</h5><div class="card-chips">${chips}</div><div class="card-note">${notes}</div></div>`;
   }
-  function selectCard(container, el){
-    container.querySelectorAll('.species-card').forEach(x => x.classList.remove('selected'));
-    el.classList.add('selected');
-  }
+  function selectCard(col, el){ col.querySelectorAll('.species-card').forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); }
   function checkStep2(){
     const resist = document.querySelector('#adv-resist-radios .species-card.selected')?.dataset.species;
     const vuln   = document.querySelector('#adv-vuln-radios .species-card.selected')?.dataset.species;
     const out = document.getElementById('adv-feedback-2');
     if (!resist || !vuln){ out.textContent='Select a species in each column.'; out.style.color='#b91c1c'; return; }
     const ok = (resist===STEP2_RESIST) && (vuln===STEP2_VULN);
-    if (ok){
-      out.textContent = `${LABEL[resist]} is most resistant (useful retro EVE to RV1a). ${LABEL[vuln]} is most vulnerable (only broken retro / only DNA EVEs).`;
-      out.style.color='#0f766e';
-      passed.s2 = true; maybeUnlock();
-    } else {
-      out.textContent = 'Try again: look for a useful/intact retro EVE near RV1a (resistant) and species lacking such retro EVEs (vulnerable).';
-      out.style.color='#b91c1c';
-    }
+    if (ok){ out.textContent = `${LABEL[resist]} is most resistant; ${LABEL[vuln]} is most vulnerable.`; out.style.color='#0f766e'; passed.s2=true; maybeUnlock(); }
+    else { out.textContent = 'Try again: look for useful/intact retro near RV1a (resistant) and species lacking such retro EVEs (vulnerable).'; out.style.color='#b91c1c'; }
   }
-
-  // ---------- Step 3 (multi-select species cards) ----------
   function renderStep3(){
     const c = document.getElementById('adv-mutation-checks'); if (!c) return;
-    c.className = 'species-cards';
-    c.innerHTML = SPECIES.map(s => speciesCardHTML(s, 'multi')).join('');
-    c.querySelectorAll('.species-card').forEach(el => {
-      el.addEventListener('click', () => el.classList.toggle('selected'));
-    });
+    c.className='species-cards';
+    c.innerHTML = SPECIES.map(s => `<div class="species-card" data-species="${s}"><h5>${LABEL[s]}</h5><div class="card-chips">${
+      (CATALOG[s]||[]).map(e=>`${chip(e.type,e.type)}${chip(e.state,e.state)}${chip('fam',e.family)}`).join('')
+    }</div></div>`).join('');
+    c.querySelectorAll('.species-card').forEach(el => el.addEventListener('click', ()=>el.classList.toggle('selected')));
   }
   function checkStep3(){
     const chosen = Array.from(document.querySelectorAll('#adv-mutation-checks .species-card.selected')).map(x=>x.dataset.species);
     const out = document.getElementById('adv-feedback-3');
-    if (chosen.length===0){ out.textContent='Select at least one species.'; out.style.color='#b91c1c'; return; }
+    if (!chosen.length){ out.textContent='Select at least one species.'; out.style.color='#b91c1c'; return; }
     const set = new Set(chosen);
     let allOk = true;
     for (const s of STEP3_SET){ if (!set.has(s)) allOk = false; }
     for (const s of set){ if (!STEP3_SET.has(s)) allOk = false; }
-
-    if (allOk){
-      out.textContent = 'Correct: D. mel., D. sim., and D. pse. likely retain protection against RV1b.';
-      out.style.color='#0f766e';
-      passed.s3 = true; maybeUnlock();
-    } else {
-      out.textContent = 'Close—active/intact retro EVEs targeting RV1/RV1a may still recognize RV1b; broken or DNA-virus EVEs won’t.';
-      out.style.color='#b91c1c';
-    }
+    if (allOk){ out.textContent='Correct: D. mel., D. sim., and D. pse. likely retain protection against RV1b.'; out.style.color='#0f766e'; passed.s3=true; maybeUnlock(); }
+    else { out.textContent='Close—active/intact retro EVEs vs RV1/RV1a may still recognize RV1b; broken or DNA EVEs won’t.'; out.style.color='#b91c1c'; }
   }
-
   function maybeUnlock(){
     if (passed.s1 && passed.s2 && passed.s3){
       const s = getState();
-      if (!s.adults){ s.adults = true; setState(s); toast('Advanced badge unlocked!'); if (Timer.timeLeft('adults')>0){ confettiBurst(); claps(); } }
+      if (!s.adults){ s.adults = true; setState(s); toast('Advanced badge unlocked!'); if (Timer.timeLeft('adults')>0){ confettiBurst(); claps(); playChime(); } }
       Timer.stop('adults');
     }
   }
-
-  function reset(){
-    passed = { s1:false, s2:false, s3:false };
-    renderStep1(); renderStep2(); renderStep3();
-    ['adv-feedback-1','adv-feedback-2','adv-feedback-3'].forEach(id => { const el=document.getElementById(id); if (el){ el.textContent=''; } });
-  }
-
-  return {
-    init, hint, checkStep1, checkStep2, checkStep3, reset
-  };
+  return { init, hint, checkStep1, checkStep2, checkStep3 };
 })();
-document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('adv-eves-mel')) AdvancedGame.init();
-});
+document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('adv-eves-mel')) AdvancedGame.init(); });
