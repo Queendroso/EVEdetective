@@ -21,24 +21,42 @@ tabs.forEach(tab => {
   });
 });
 
-// LocalStorage achievements
+// Progress state in localStorage (adds Champion when 3/3 complete)
 const STATE_KEY = 'eveDetectiveProgress';
 function getState(){
-  try { return JSON.parse(localStorage.getItem(STATE_KEY)) || { kids:false, teens:false, adults:false }; }
-  catch { return { kids:false, teens:false, adults:false }; }
+  try { return JSON.parse(localStorage.getItem(STATE_KEY)) || { kids:false, teens:false, adults:false, champion:false }; }
+  catch { return { kids:false, teens:false, adults:false, champion:false }; }
 }
-function setState(s){ localStorage.setItem(STATE_KEY, JSON.stringify(s)); renderProgress(); }
+function setState(s){
+  // If all three complete, unlock champion
+  if (s.kids && s.teens && s.adults) s.champion = true;
+  localStorage.setItem(STATE_KEY, JSON.stringify(s));
+  renderProgress();
+}
 function renderProgress(){
   const s = getState();
-  const total = ['kids','teens','adults'].filter(k => s[k]).length;
-  const pct = (total/3)*100;
-  document.getElementById('progress-bar').style.width = pct + '%';
+  const done = ['kids','teens','adults'].filter(k => s[k]).length;
+  const pct = (done/3)*100;
+  const bar = document.getElementById('progress-bar');
+  if (bar) bar.style.width = pct + '%';
+
   document.querySelectorAll('.badge').forEach(b => {
     const key = b.getAttribute('data-badge');
-    b.style.opacity = s[key] ? 1 : 0.7;
+    if (key === 'champion') {
+      b.classList.toggle('badge-champion', true);
+      b.classList.toggle('unlocked', s.champion);
+      b.style.opacity = s.champion ? 1 : 0.7;
+    } else {
+      b.style.opacity = s[key] ? 1 : 0.9;
+    }
   });
 }
 renderProgress();
+
+function complete(key){
+  const s = getState();
+  if (!s[key]) { s[key] = true; setState(s); }
+}
 
 // Kids challenge
 window.runKids = function(){
@@ -74,7 +92,7 @@ window.runTeens = function(){
   }
 };
 
-// Adults challenge (simplified)
+// Adults challenge (checkboxes)
 window.runAdults = function(){
   const hasLTR = document.getElementById('adults-found-ltr').checked;
   const hasORF = document.getElementById('adults-found-orf').checked;
@@ -89,37 +107,36 @@ window.runAdults = function(){
 function setFeedback(id, msg, ok){
   const el = document.getElementById(id);
   el.textContent = msg;
-  el.style.color = ok ? '#bbf7d0' : '#fca5a5';
-}
-function complete(key){
-  const s = getState();
-  if (!s[key]) { s[key] = true; setState(s); }
+  el.style.color = ok ? '#0f766e' : '#b91c1c';
 }
 
 // Badge download (simple canvas PNG)
 window.downloadBadge = function(key){
   const map = {
-    kids: { label:'DNA Rookie', color:'#60a5fa' },
-    teens:{ label:'Genome Scout', color:'#ffd166' },
-    adults:{ label:'EVE Detective', color:'#22c55e' }
+    kids: { label:'Kids — EVE Detective', color:'#60a5fa' },
+    teens:{ label:'Teens — EVE Evolution Expert', color:'#ffd166' },
+    adults:{ label:'Adults — Viral Immunity Expert', color:'#22c55e' },
+    champion:{ label:'Champion — EVE Champion', color:'#a78bfa' }
   };
   const {label,color} = map[key] || map.kids;
   const c = document.createElement('canvas');
-  c.width = 600; c.height = 300;
+  c.width = 900; c.height = 450;
   const ctx = c.getContext('2d');
-  const grad = ctx.createLinearGradient(0,0,600,300);
-  grad.addColorStop(0, '#0a2740'); grad.addColorStop(1, '#0e8a68');
-  ctx.fillStyle = grad; ctx.fillRect(0,0,600,300);
-  ctx.fillStyle = color;
-  ctx.beginPath(); ctx.arc(120,150,60,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.font = 'bold 28px "Playfair Display"';
-  ctx.fillText(label, 220, 150);
-  ctx.font = '16px Inter';
-  ctx.fillText('EVE Detective', 220, 180);
+  const grad = ctx.createLinearGradient(0,0,900,450);
+  grad.addColorStop(0, '#e8f7f1'); grad.addColorStop(1, '#ffffff');
+  ctx.fillStyle = grad; ctx.fillRect(0,0,900,450);
+  // Medal circle
+  ctx.fillStyle = color; ctx.beginPath(); ctx.arc(160,225,90,0,Math.PI*2); ctx.fill();
+  // Text
+  ctx.fillStyle = '#0a1a2f';
+  ctx.font = 'bold 40px "Playfair Display"';
+  ctx.fillText(label, 320, 230);
+  ctx.font = '20px Inter';
+  ctx.fillText('EVE Detective — Royal Society Summer Science', 320, 270);
+  // Download
   const a = document.createElement('a');
   a.href = c.toDataURL('image/png');
-  a.download = `${key}-badge.png`;
+  a.download = label.replace(/\s+/g,'-').toLowerCase() + '.png';
   a.click();
 };
 
@@ -127,7 +144,9 @@ window.downloadBadge = function(key){
 window.shareProgress = async function(){
   const s = getState();
   const earned = ['kids','teens','adults'].filter(k => s[k]).length;
-  const text = `I earned ${earned}/3 EVE Detective badges!`;
+  const text = s.champion
+    ? 'I earned all EVE Detective badges and unlocked Champion!'
+    : `I earned ${earned}/3 EVE Detective badges!`;
   const url = window.location.href;
   if (navigator.share) {
     try { await navigator.share({ title:'EVE Detective', text, url }); }
