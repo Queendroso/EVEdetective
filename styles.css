@@ -76,6 +76,26 @@ textarea,input{background:#081827;color:var(--white);border:1px solid rgba(255,2
 .site-footer nav ul{list-style:none;display:flex;gap:1rem;margin:.5rem 0 0;padding:0}
 .footer-meta{margin-top:.5rem;color:var(--muted);display:flex;gap:1rem;flex-wrap:wrap}
 
+/* Light theme override */
+:root{
+  --bg:#f7fafc;
+  --ink:#0a1a2f;
+  --white:#0a1a2f;
+  --card:#ffffff;
+  --muted:#4a5568;
+}
+html,body{background:var(--bg);color:#0a1a2f}
+.site-header{background:rgba(255,255,255,.9);border-bottom:1px solid #e2e8f0}
+.brand{color:#0a1a2f}
+a{color:#0e8a68}
+.hero-bg{background:linear-gradient(180deg,rgba(255,255,255,.6),rgba(255,255,255,.85)), url('assets/hero_background.webp'); background-size:cover;background-position:center}
+.scene-card{background:#ffffff;border-color:#e2e8f0}
+.video-wrap{background:#ffffff;border-color:#e2e8f0}
+.panel{background:#ffffff;border-color:#e2e8f0}
+.progress{background:#e6f4ef;border-color:#cce7df}
+.site-footer{background:#ffffff;border-top:1px solid #e2e8f0;color:#334155}
+
+
 /* Responsive nav */
 @media (max-width: 760px){
   .nav{display:none}
