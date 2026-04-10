@@ -54,6 +54,11 @@ a:hover{text-decoration:underline}
 .feature-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-top:1rem}
 .feature{background:#fff;border:1px solid var(--ash-200);border-radius:.75rem;overflow:hidden;display:grid;grid-template-rows:auto 1fr}
 .feature-media img{width:100%;height:180px;object-fit:cover}
+
+/* Optional: if you ever use a vector "video" icon tile instead of an image */
+.feature-icon{display:grid;place-items:center;height:180px;background:var(--ash);border-bottom:1px solid var(--ash-200);color:var(--green)}
+.feature-icon svg{width:56px;height:56px}
+
 .feature-body{padding:1rem}
 
 .video-wrap{margin:1.25rem 0;border:1px solid var(--ash-200);border-radius:.75rem;overflow:hidden;background:#fff}
@@ -70,11 +75,20 @@ textarea,input{background:#fff;color:var(--navy);border:1px solid var(--ash-200)
 
 .badges{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem;margin-top:.75rem}
 .badge{display:flex;gap:1rem;align-items:center;padding:1rem;background:#fff;border:1px solid var(--ash-200);border-radius:.75rem}
+
+/* If you still use the colored medal circles anywhere */
 .medal{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;font-weight:700;color:#fff}
 .medal-kids{background:linear-gradient(135deg,#3b82f6,#60a5fa)}
 .medal-teens{background:linear-gradient(135deg,#d4a017,#ffd166)}
 .medal-adults{background:linear-gradient(135deg,#0e8a68,#22c55e)}
 .medal-champion{background:linear-gradient(135deg,#7c3aed,#a78bfa)}
+
+/* Sticker images inside badges (your new stickers) */
+.sticker{
+  width:52px;height:52px;border-radius:12px;object-fit:cover;
+  border:1px solid var(--ash-200);background:var(--green-100);padding:4px;
+}
+
 .badge-champion{opacity:.7}
 .badge-champion.unlocked{opacity:1}
 
