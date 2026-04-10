@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EVE Detective | Explore Endogenous Viral Elements</title>
+  <meta name="description" content="EVE Detective: Discover endogenous viral elements (EVEs) in DNA through interactive scenes and challenges for kids, teens, and adults." />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="icon" href="assets/eve_logo.webp" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="#home">
+      <img src="assets/eve_logo.webp" alt="EVE Detective logo" />
+      <span>EVE Detective</span>
+    </a>
+    <nav aria-label="Primary">
+      <button class="nav-toggle" aria-expanded="false" aria-controls="navmenu">Menu</button>
+      <ul id="navmenu" class="nav">
+        <li><a href="#explore">Explore</a></li>
+        <li><a href="#challenges">Challenges</a></li>
+        <li><a href="#achievements">Achievements</a></li>
+        <li><a href="#about">About</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="home">
+    <!-- Hero -->
+    <section class="hero" aria-label="Hero">
+      <div class="hero-bg"></div>
+      <div class="hero-content">
+        <h1>Become an EVE Detective</h1>
+        <p>Uncover ancient viral traces inside DNA. Learn what EVEs are, explore our video loop, and test your skills.</p>
+        <div class="hero-cta">
+          <a class="btn btn-primary" href="#explore">Start Exploring</a>
+          <a class="btn" href="#challenges">Try Challenges</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Explore: 90-second video + 10 scenes -->
+    <section id="explore" class="container section">
+      <h2>Explore the EVE Story</h2>
+      <p class="lede">Watch the 90-second loop and browse the scene-by-scene breakdown.</p>
+
+      <figure class="video-wrap">
+        <!-- Use your local video file once you add it to assets/video/eve_loop.mp4 -->
+        <video id="eveVideo" controls loop preload="metadata" poster="assets/eve_definition_intro.webp">
+          <source src="assets/video/eve_loop.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+        <figcaption>Tip: Toggle captions to see key terms highlighted per scene.</figcaption>
+      </figure>
+
+      <div class="scenes" role="list">
+        <!-- Scene 1 -->
+        <article class="scene-card" role="listitem">
+          <img src="assets/eve_definition_intro.webp" alt="Timeline of viral integrations forming part of the DNA helix" />
+          <div>
+            <h3>Scene 1 — What are EVEs?</h3>
+            <p>Ancient viral infections left genetic footprints in host DNA. These Endogenous Viral Elements (EVEs) can be millions of years old.</p>
+            <ul class="tags"><li>Definition</li><li>Timeline</li><li>Integration</li></ul>
+          </div>
+        </article>
+        <!-- Scene 2 -->
+        <article class="scene-card" role="listitem">
+          <img src="assets/eve_logo.webp" alt="EVE Detective logo badge" />
+          <div>
+            <h3>Scene 2 — Drosophila as a model</h3>
+            <p>Fruit flies help us study EVEs—fast generation time and powerful genetics.</p>
+            <ul class="tags"><li>Model Organism</li><li>Genetics</li></ul>
+          </div>
+        </article>
+        <!-- Scene 3 -->
+        <article class="scene-card" role="listitem">
+          <img src="assets/hero_background.webp" alt="DNA double helix glowing over deep blue background" />
+          <div>
+            <h3>Scene 3 — Viral integration</h3>
+            <p>Retroviruses insert genetic material into host genomes; some insertions become inherited.</p>
+            <ul class="tags"><li>Retrovirus</li><li>Insertion</li></ul>
+          </div>
+        </article>
+        <!-- Scene 4 -->
+        <article class="scene-card" role="listitem">
+          <img src="assets/eve_logo.webp" alt="EVE Detective emblem" />
+          <div>
+            <h3>Scene 4 — Detection methods</h3>
+            <p>We scan genomes for telltale signatures: LTRs, target site duplications, and conserved ORFs.</p>
+            <ul class="tags"><li>LTR</li><li>TSD</li><li>ORF</li></ul>
+          </div>
+        </article>
+        <!-- Scene 5 -->
+        <article class="scene-card" role="listitem">
+          <img src="assets/hero_background.webp" alt="Microscopy-inspired abstract image" />
+          <div>
+            <h3>Scene 5 — Evolutionary timelines</h3>
+            <p>By comparing species, we can estimate when EVEs integrated—sometimes tens of millions of years ago.</p>
+            <ul class="tags"><li>Phylogeny</li><li>Dating</li></ul>
+          </div>
+        </article>
+        <!-- Scene 6 -->
+        <article class="scene-card" role="listitem">
+          <img src="assets/eve_logo.webp" alt="Genome analysis badge" />
+          <div>
+            <h3>Scene 6 — Host defenses</h3>
+            <p>Small RNAs and immune pathways interact with EVEs, sometimes repurposing them for defense.</p>
+            <ul class="tags"><li>Immunity</li><li>Small RNA</li></ul>
+          </div>
+        </article>
+        <!-- Scene 7 -->
+        <article class="scene-card" role="listitem">
+          <img src="assets/hero_background.webp" alt="Double helix close-up" />
+          <div>
+            <h3>Scene 7 — EVE expression</h3>
+            <p>Some EVEs are still transcribed, creating genetic “echoes” of ancient viruses.</p>
+            <ul class="tags"><li>Transcription</li><li>Regulation</li></ul>
+          </div>
+        </article>
+        <!-- Scene 8 -->
+        <article class="scene-card" role="listitem">
+          <img src="assets/eve_logo.webp" alt="Analysis motif" />
+          <div>
+            <h3>Scene 8 — From junk to function?</h3>
+            <p>Occasionally EVEs gain new roles—affecting development, immunity, or gene regulation.</p>
+            <ul class="tags"><li>Exaptation</li><li>Function</li></ul>
+          </div>
+        </article>
+        <!-- Scene 9 -->
+        <article class="scene-card" role="listitem">
+          <img src="assets/hero_background.webp" alt="Timeline graphic abstract" />
+          <div>
+            <h3>Scene 9 — Comparative genomics</h3>
+            <p>By aligning genomes across species, we map shared vs. lineage-specific EVE insertions.</p>
+            <ul class="tags"><li>Alignment</li><li>Comparative</li></ul>
+          </div>
+        </article>
+        <!-- Scene 10 -->
+        <article class="scene-card" role="listitem">
+          <img src="assets/eve_logo.webp" alt="Finish badge" />
+          <div>
+            <h3>Scene 10 — You as the detective</h3>
+            <p>Use the challenges below to practice spotting DNA features and simplified EVE signatures.</p>
+            <ul class="tags"><li>Interactive</li><li>Practice</li></ul>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Interactive Challenges -->
+    <section id="challenges" class="container section">
+      <h2>Interactive Challenges</h2>
+      <p class="lede">Choose your level. Get instant feedback. Earn badges.</p>
+
+      <div class="tabs" role="tablist" aria-label="Challenge Levels">
+        <button role="tab" aria-selected="true" aria-controls="kids" id="tab-kids" class="tab">Kids</button>
+        <button role="tab" aria-selected="false" aria-controls="teens" id="tab-teens" class="tab">Teens</button>
+        <button role="tab" aria-selected="false" aria-controls="adults" id="tab-adults" class="tab">Adults</button>
+      </div>
+
+      <div id="kids" role="tabpanel" aria-labelledby="tab-kids" class="panel is-active">
+        <h3>Kids: Spot the DNA letters</h3>
+        <p>Which letters belong in DNA? Type or paste a short string below. Valid letters: A, C, G, T.</p>
+        <div class="challenge">
+          <input id="kids-seq" type="text" placeholder="e.g. AATCGXZ" />
+          <button class="btn btn-primary" onclick="runKids()">Check</button>
+          <p id="kids-feedback" class="feedback" aria-live="polite"></p>
+        </div>
+      </div>
+
+      <div id="teens" role="tabpanel" aria-labelledby="tab-teens" class="panel">
+        <h3>Teens: Find a start and stop</h3>
+        <p>Does the sequence contain a start codon (ATG) and a stop (TAA/TAG/TGA) in-frame?</p>
+        <div class="challenge">
+          <textarea id="teens-seq" rows="3" placeholder="Paste DNA sequence"></textarea>
+          <button class="btn btn-primary" onclick="runTeens()">Analyze</button>
+          <p id="teens-feedback" class="feedback" aria-live="polite"></p>
+        </div>
+      </div>
+
+      <div id="adults" role="tabpanel" aria-labelledby="tab-adults" class="panel">
+        <h3>Adults: EVE signature hunt</h3>
+        <p>Look for simplified EVE-like signatures (e.g., long terminal repeats “LTR” labels or target site duplications) in the mock sequence below.</p>
+        <div class="challenge">
+          <textarea id="adults-seq" rows="4">TTGAC...ATG... [LTR] ...GAG... [LTR] ...TAA</textarea>
+          <label><input type="checkbox" id="adults-found-ltr" /> I can locate paired LTR labels</label>
+          <label><input type="checkbox" id="adults-found-orf" /> I can identify a plausible ORF (ATG..TAA/TAG/TGA)</label>
+          <button class="btn btn-primary" onclick="runAdults()">Submit</button>
+          <p id="adults-feedback" class="feedback" aria-live="polite"></p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Achievements -->
+    <section id="achievements" class="container section">
+      <h2>Your Achievements</h2>
+      <div class="badges">
+        <div class="badge" data-badge="kids">
+          <div class="medal medal-kids" aria-hidden="true">K</div>
+          <div>
+            <strong>DNA Rookie</strong>
+            <p>Complete the Kids challenge</p>
+            <button class="btn small" onclick="downloadBadge('kids')">Download Badge</button>
+          </div>
+        </div>
+        <div class="badge" data-badge="teens">
+          <div class="medal medal-teens" aria-hidden="true">T</div>
+          <div>
+            <strong>Genome Scout</strong>
+            <p>Complete the Teens challenge</p>
+            <button class="btn small" onclick="downloadBadge('teens')">Download Badge</button>
+          </div>
+        </div>
+        <div class="badge" data-badge="adults">
+          <div class="medal medal-adults" aria-hidden="true">A</div>
+          <div>
+            <strong>EVE Detective</strong>
+            <p>Complete the Adults challenge</p>
+            <button class="btn small" onclick="downloadBadge('adults')">Download Badge</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress" aria-label="Progress towards all badges">
+          <div id="progress-bar" class="progress-bar" style="width:0%"></div>
+        </div>
+        <button class="btn" onclick="shareProgress()">Share</button>
+      </div>
+    </section>
+
+    <section id="about" class="container section">
+      <h2>About</h2>
+      <p>This exhibit explains Endogenous Viral Elements using model organisms and interactive tasks suitable for all ages.</p>
+      <p class="note">Content created for the Royal Society exhibit. Educational use only.</p>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <!-- Replace with Royal Society logo if you have permission -->
+      <span class="footer-title">EVE Detective</span>
+      <small>Scientific Elegance palette: deep ocean blue, amber gold, emerald green.</small>
+    </div>
+    <nav aria-label="Footer">
+      <ul>
+        <li><a href="#home">Top</a></li>
+        <li><a href="#explore">Explore</a></li>
+        <li><a href="#challenges">Challenges</a></li>
+        <li><a href="#achievements">Achievements</a></li>
+      </ul>
+    </nav>
+    <div class="footer-meta">
+      <small>&copy; 2026 EVE Detective. All rights reserved.</small>
+      <small>Built for GitHub Pages. No personal data collected. Progress stored in your browser only.</small>
+    </div>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
