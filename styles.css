@@ -113,3 +113,13 @@ textarea,input{background:#fff;color:var(--navy);border:1px solid var(--ash-200)
   .nav.is-open{display:flex;flex-direction:column;gap:.5rem;position:absolute;right:1rem;top:56px;background:#fff;padding:.75rem;border-radius:.5rem;border:1px solid var(--ash-200)}
   .nav-toggle{display:inline-flex;gap:.25rem;align-items:center;background:#fff;color:var(--navy);border:1px solid var(--ash-200);border-radius:.5rem;padding:.4rem .6rem}
 }
+
+/* Thumbnail images inside small cards in Explore */
+.card-media{
+  width:100%;
+  height:140px;
+  object-fit:cover;
+  border-radius:.5rem;
+  border:1px solid var(--ash-200);
+  margin-bottom:.5rem;
+}
