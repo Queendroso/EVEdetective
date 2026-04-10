@@ -20,13 +20,13 @@ tabs.forEach(tab => {
     const id = tab.getAttribute('aria-controls');
     document.getElementById(id).classList.add('is-active');
     if (id === 'kids') setTimeout(() => KidsGame.resize(), 50);
-    if (id === 'teens') setTimeout(() => IntermediateGame.render(), 50);
-    if (id === 'adults') setTimeout(() => AdvancedGame.init(), 50);
+    if (id === 'teens') setTimeout(() => { IntermediateGame.render(); Timer.start('teens', 60); }, 50);
+    if (id === 'adults') setTimeout(() => { AdvancedGame.init(); Timer.start('adults', 60); }, 50);
   });
 });
 
 // ---------------- Progress / badges ----------------
-const GATE_BADGE_DOWNLOADS = true; // set to false to allow sticker downloads anytime
+const GATE_BADGE_DOWNLOADS = true;
 const STATE_KEY = 'eveDetectiveProgress';
 function getState(){
   try { return JSON.parse(localStorage.getItem(STATE_KEY)) || { kids:false, teens:false, adults:false, champion:false }; }
@@ -68,6 +68,39 @@ function toast(msg, parent){
   t.textContent = msg;
   w.appendChild(t);
   setTimeout(()=>{ t.remove(); }, 1800);
+}
+
+// ---------- Confetti + Claps ----------
+function confettiBurst(){
+  let c = document.getElementById('confetti-canvas');
+  if (!c){ c = document.createElement('canvas'); c.id='confetti-canvas'; document.body.appendChild(c); }
+  const ctx = c.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const W = c.width = innerWidth*dpr, H = c.height = innerHeight*dpr;
+  c.style.width = innerWidth+'px'; c.style.height = innerHeight+'px';
+  const N = 150, parts=[];
+  for(let i=0;i<N;i++){
+    parts.push({
+      x: Math.random()*W, y: -Math.random()*H*0.2, vy: 2+Math.random()*4, vx: (Math.random()-0.5)*2,
+      w: 6*dpr, h: 10*dpr, r: Math.random()*Math.PI,
+      col: ['#60a5fa','#34d399','#f472b6','#facc15','#a78bfa'][Math.floor(Math.random()*5)]
+    });
+  }
+  let t=0; const T=90;
+  function step(){
+    ctx.clearRect(0,0,W,H);
+    parts.forEach(p=>{
+      p.x+=p.vx; p.y+=p.vy; p.r+=0.1;
+      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r);
+      ctx.fillStyle=p.col; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore();
+    });
+    if (++t<T) requestAnimationFrame(step); else c.remove();
+  }
+  step();
+}
+function claps(){
+  let e=document.querySelector('.claps'); if(!e){ e=document.createElement('div'); e.className='claps'; e.textContent='👏👏👏'; document.body.appendChild(e); }
+  e.style.opacity=1; setTimeout(()=>{ e.style.opacity=0; }, 1200);
 }
 
 // ---------------- Sticker downloads ----------------
@@ -122,9 +155,51 @@ window.shareProgress = async function(){
   else { await navigator.clipboard.writeText(`${text} ${url}`); alert('Progress link copied to clipboard!'); }
 };
 
+// ---------------- Timer ----------------
+const Timer = (() => {
+  let timers = {};
+  function ensureBar(panelId){
+    const panel = document.getElementById(panelId);
+    if (!panel) return null;
+    let wrap = panel.querySelector('.timer-wrap');
+    if (!wrap){
+      wrap = document.createElement('div');
+      wrap.className='timer-wrap';
+      wrap.innerHTML = '<div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div><strong class="tleft">60s</strong>';
+      panel.insertBefore(wrap, panel.firstElementChild.nextSibling);
+    }
+    return wrap;
+  }
+  function start(panelId, seconds){
+    const wrap = ensureBar(panelId);
+    if (!wrap) return;
+    stop(panelId);
+    const fill = wrap.querySelector('.timer-fill');
+    const tleft = wrap.querySelector('.tleft');
+    let t = seconds;
+    fill.style.width = '100%'; tleft.textContent = t+'s';
+    timers[panelId] = setInterval(()=>{
+      t = Math.max(0, t-1);
+      const pct = (t/seconds)*100;
+      fill.style.width = pct+'%';
+      tleft.textContent = t+'s';
+      if (t===0) stop(panelId);
+    }, 1000);
+  }
+  function stop(panelId){
+    if (timers[panelId]){ clearInterval(timers[panelId]); delete timers[panelId]; }
+  }
+  function timeLeft(panelId){
+    const wrap = document.getElementById(panelId)?.querySelector('.tleft');
+    if (!wrap) return 0;
+    const v = parseInt(wrap.textContent||'0',10);
+    return isNaN(v)?0:v;
+  }
+  return { start, stop, timeLeft };
+})();
+
 // ---------------- Beginner (Kids) — Magnifier Game ----------------
 const KidsGame = (() => {
-  const colors = { intact:'#22c55e', useful:'#ef4444', broken:'#6b7280', unique:'#d4a017' };
   const speciesConfigs = {
     melanogaster: { region: 'piRNA cluster 3R‑TAS (telomere‑associated sequence)',
       eves:[{x:.15,y:.35,type:'intact'},{x:.30,y:.55,type:'useful'},{x:.55,y:.25,type:'broken'},{x:.72,y:.60,type:'unique'},{x:.85,y:.40,type:'intact'}]},
@@ -168,7 +243,7 @@ const KidsGame = (() => {
     if (hit>=0){ const key=`${current}:${hit}`; if (!found.has(key)){
       found.add(key); toast(foundMessage(cfg.eves[hit].type), wrap); drawOverlay(); updateCounts();
       if (foundCountForCurrent()>=cfg.eves.length){
-        const s=getState(); if(!s.kids){ s.kids=true; setState(s); toast('Beginner badge unlocked!', wrap); }
+        const s=getState(); if(!s.kids){ s.kids=true; setState(s); toast('Beginner badge unlocked!', wrap); confettiBurst(); claps(); }
       }
     }} else { toast('No EVE here—keep scanning!', wrap); }
   }
@@ -194,7 +269,7 @@ const KidsGame = (() => {
   function giveHint(){ const cfg=speciesConfigs[current]; const idx=cfg.eves.findIndex((_,i)=>!found.has(`${current}:${i}`));
     if(idx===-1){ toast('All EVEs found!', wrap); return; }
     const ev=cfg.eves[idx]; const x=ev.x*w, y=ev.y*h; setMask(x,y);
-    const ring=document.getElementById('lens-ring'); ring.style.transition='transform .15s ease, box-shadow .3s ease';
+    ring.style.transition='transform .15s ease, box-shadow .3s ease';
     ring.style.transform='translate(-50%,-50%) scale(1.1)'; ring.style.boxShadow='0 0 0 6px rgba(212,160,23,.25) inset, 0 10px 24px rgba(2,6,23,.1)';
     setTimeout(()=>{ ring.style.transform='translate(-50%,-50%) scale(1.0)'; ring.style.boxShadow='0 0 0 4px rgba(14,138,104,.12) inset, 0 10px 24px rgba(2,6,23,.08)'; }, 600);
   }
@@ -203,14 +278,8 @@ const KidsGame = (() => {
     current=name;
     const sel=document.getElementById('species-select'); if (sel && sel.value!==name) sel.value=name;
     const reg=document.getElementById('kids-region');
-    const regions = {
-      melanogaster: speciesConfigs.melanogaster.region,
-      simulans: speciesConfigs.simulans.region,
-      yakuba: speciesConfigs.yakuba.region,
-      virilis: speciesConfigs.virilis.region,
-      pseudoananassae: speciesConfigs.pseudoananassae.region
-    };
-    if (reg) reg.textContent='Genomic Region: '+(regions[name] || '');
+    const regs = { melanogaster:'piRNA cluster 3R‑TAS (telomere‑associated sequence)', simulans:'Heterochromatin region 2L‑proximal', yakuba:'Centromere‑adjacent 3L', virilis:'Subtelomeric 2R', pseudoananassae:'piRNA cluster 4R‑distal' };
+    if (reg) reg.textContent='Genomic Region: '+(regs[name] || '');
     resize(); updateCounts();
   }
   function toggleReveal(on){ revealAll=!!on; drawOverlay(); }
@@ -221,13 +290,9 @@ document.addEventListener('DOMContentLoaded', () => { if (document.getElementByI
 // ---------------- Intermediate (Teens) — Phylogeny Builder ----------------
 const IntermediateGame = (() => {
   const S = ['melanogaster','simulans','yakuba','virilis','pseudoananassae'];
-  const LABEL = {
-    melanogaster:'melanogaster',
-    simulans:'simulans',
-    yakuba:'yakuba',
-    virilis:'virilis',
-    pseudoananassae:'pseudoananassae'
-  };
+  const LABEL_FULL = { melanogaster:'melanogaster', simulans:'simulans', yakuba:'yakuba', virilis:'virilis', pseudoananassae:'pseudoananassae' };
+  const LABEL_SHORT= { melanogaster:'D. mel.', simulans:'D. sim.', yakuba:'D. yak.', virilis:'D. vir.', pseudoananassae:'D. pse.' };
+  let useShort = true;
 
   const EVE_DB = {
     E1:{ state:'broken',  present:new Set(S) },
@@ -260,31 +325,36 @@ const IntermediateGame = (() => {
     steps = [];
     treeMap = new Map();
     S.forEach(sp => { treeMap.set(sp, sp); });
-    renderPairs();
-    renderTree();
-    const m = document.getElementById('matrix');
-    if (m) m.setAttribute('hidden','');
-  }
-
-  function render(){
     renderMatrix();
     renderPairs();
     renderTree();
+    ensureUIControls();
   }
 
+  function ensureUIControls(){
+    const head = document.querySelector('#teens .matrix-head');
+    if (head && !head.querySelector('.lbl-toggle')){
+      const wrap = document.createElement('label');
+      wrap.className='lbl-toggle';
+      wrap.style.marginLeft='auto';
+      wrap.innerHTML = `<input type="checkbox" ${useShort?'checked':''} /> Short labels`;
+      head.appendChild(wrap);
+      wrap.querySelector('input').addEventListener('change', e => { useShort = e.target.checked; render(); });
+    }
+  }
+
+  function render(){ renderMatrix(); renderPairs(); renderTree(); }
+
   function renderMatrix(){
-    const el = document.getElementById('matrix');
-    if (!el) return;
+    const el = document.getElementById('matrix'); if (!el) return;
     const shared = pairwiseSharedCounts();
     const species = S.slice();
-    const maxShared = maxSharedValue(shared);
-
+    const maxShared = Math.max(1, ...Object.values(shared));
     let html = '<table><thead><tr><th></th>';
-    species.forEach(sp => html += `<th>${LABEL[sp]}</th>`);
+    species.forEach(sp => html += `<th>${(useShort?LABEL_SHORT:LABEL_FULL)[sp]}</th>`);
     html += '</tr></thead><tbody>';
-
     species.forEach(rsp => {
-      html += `<tr><th>${LABEL[rsp]}</th>`;
+      html += `<tr><th>${(useShort?LABEL_SHORT:LABEL_FULL)[rsp]}</th>`;
       species.forEach(csp => {
         const val = rsp===csp ? countForSpecies(rsp) : (shared[keyPair(rsp,csp)]||0);
         const cls = heatClass(val, rsp===csp, maxShared);
@@ -304,17 +374,14 @@ const IntermediateGame = (() => {
   function showHints(){
     alert([
       'Hints:',
-      '• Darker matrix cells = more shared EVEs (closer relatives).',
-      '• Broken EVEs are older (shared deeper in the tree).',
-      '• Unique EVEs arose after splits (tips).',
-      '• Start by merging the pair with the highest shared count.',
-      '• Then merge the next-most similar clades.'
+      '• Darker cells = more shared EVEs (closer relatives).',
+      '• Broken EVEs are older (shared deeper). Unique EVEs are recent (tips).',
+      '• Merge the most similar pair first, then repeat.'
     ].join('\n'));
   }
 
   function renderPairs(){
-    const el = document.getElementById('pair-list');
-    if (!el) return;
+    const el = document.getElementById('pair-list'); if (!el) return;
     const candidates = clusterCandidates();
     if (candidates.length===0){
       el.innerHTML = '<div class="muted">All merges complete. Click “Check my tree”.</div>';
@@ -322,7 +389,7 @@ const IntermediateGame = (() => {
     }
     let html = '';
     candidates.forEach(c => {
-      const label = `{ ${c.a.join(', ')} } + { ${c.b.join(', ')} }`;
+      const label = `{ ${c.a.map(s=> (useShort?LABEL_SHORT:LABEL_FULL)[s]).join(', ')} } + { ${c.b.map(s=> (useShort?LABEL_SHORT:LABEL_FULL)[s]).join(', ')} }`;
       html += `<div class="pair"><span>${label}</span><span class="score">Shared: ${c.score}</span><button class="btn small" onclick="IntermediateGame.merge('${c.a.join('|')}','${c.b.join('|')}')">Merge</button></div>`;
     });
     el.innerHTML = html;
@@ -331,20 +398,21 @@ const IntermediateGame = (() => {
   function renderTree(){
     const el = document.getElementById('your-tree');
     const stepsEl = document.getElementById('build-steps');
-    if (!el || !stepsEl) return;
+    const svgBox = document.getElementById('tree-svg');
+    if (!el || !stepsEl || !svgBox) return;
 
     const keys = clusters.map(c => c.slice().sort().join('|'));
     const currentTrees = keys.map(k => treeMap.get(k) || `[${k}]`);
     if (currentTrees.length === 1) {
       el.textContent = currentTrees[0] + ';';
-      drawTreeSVG(currentTrees[0]); // pretty tree
+      drawTreeSVG(currentTrees[0]);
     } else {
       el.textContent = currentTrees.map(t => t).join('  |  ');
-      drawTreeSVG(null); // clear
+      svgBox.innerHTML = '';
     }
 
     stepsEl.textContent = steps.length
-      ? `Merges: ${steps.map(s => `{${s[0].join(', ')}}+{${s[1].join(', ')}}`).join(' → ')}`
+      ? `Merges: ${steps.map(s => `{${s[0].map(x=> (useShort?LABEL_SHORT:LABEL_FULL)[x]).join(', ')}}+{${s[1].map(x=> (useShort?LABEL_SHORT:LABEL_FULL)[x]).join(', ')}}`).join(' → ')}`
       : 'No merges yet';
   }
 
@@ -387,14 +455,16 @@ const IntermediateGame = (() => {
     if (correct === GOLD_CLADE_STRS.size){
       toast('Excellent! Your tree matches the EVE evidence.');
       const s = getState(); if (!s.teens){ s.teens = true; setState(s); toast('Intermediate badge unlocked!'); }
+      if (Timer.timeLeft('teens')>0){ confettiBurst(); claps(); }
+      Timer.stop('teens');
     } else {
       const missing = [];
-      GOLD_CLADE_STRS.forEach(k => { if (!leafSets.has(k)) missing.push(JSON.parse(k).join(' + ')); });
+      GOLD_CLADE_STRS.forEach(k => { if (!leafSets.has(k)) missing.push(JSON.parse(k).map(x=> (useShort?LABEL_SHORT:LABEL_FULL)[x]).join(' + ')); });
       alert(`Not quite. Re-check these clades:\n• ${missing.join('\n• ')}\nTip: Start with the darkest matrix cells.`);
     }
   }
 
-  // ---- Helpers for matrix ----
+  // Helpers
   function pairwiseSharedCounts(){
     const out = {};
     for (let i=0;i<S.length;i++){
@@ -410,15 +480,8 @@ const IntermediateGame = (() => {
     }
     return out;
   }
-  function countForSpecies(sp){
-    let c=0;
-    for (const k in EVE_DB){
-      if (EVE_DB[k].present.has(sp)) c++;
-    }
-    return c;
-  }
+  function countForSpecies(sp){ let c=0; for (const k in EVE_DB){ if (EVE_DB[k].present.has(sp)) c++; } return c; }
   function keyPair(a,b){ return [a,b].sort().join('|'); }
-  function maxSharedValue(shared){ let m = 0; Object.values(shared).forEach(v => { if (v>m) m=v; }); return Math.max(m, 1); }
   function heatClass(val, diag, max){
     if (diag) return 'med';
     const r = val / max;
@@ -427,7 +490,8 @@ const IntermediateGame = (() => {
     if (r >= 0.35) return 'med';
     return 'low';
   }
-  function sameSet(a,b){ if (a.length !== b.length) return false; return a.slice().sort().join('|') === b.slice().sort().join('|'); }
+  function sameSet(a,b){ return a.slice().sort().join('|')===b.slice().sort().join('|'); }
+
   function clusterCandidates(){
     const cands = [];
     for (let i=0;i<clusters.length;i++){
@@ -451,21 +515,16 @@ const IntermediateGame = (() => {
     return c;
   }
 
-  // ---- Newick parsing + SVG tree ----
   function extractInternalClades(nw){
     const tokens = (nw||'').replace(/\s+/g,'');
     let i = 0;
     function parse(){
       if (tokens[i] === '('){
         i++; const children = [];
-        while (i < tokens.length && tokens[i] !== ')'){
-          children.push(parse());
-          if (tokens[i] === ',') i++;
-        }
+        while (i < tokens.length && tokens[i] !== ')'){ children.push(parse()); if (tokens[i] === ',') i++; }
         i++; return children;
       } else {
-        let name = '';
-        while (i < tokens.length && !',)'.includes(tokens[i])) { name += tokens[i++]; }
+        let name = ''; while (i < tokens.length && !',)'.includes(tokens[i])) { name += tokens[i++]; }
         return name;
       }
     }
@@ -485,299 +544,244 @@ const IntermediateGame = (() => {
   }
 
   function drawTreeSVG(nw){
-    const box = document.getElementById('tree-svg');
-    if (!box) return;
+    const box = document.getElementById('tree-svg'); if (!box) return;
     if (!nw){ box.innerHTML = ''; return; }
-    // Parse Newick into nested arrays
-    const tokens = nw.replace(/\s+/g,'');
-    let i=0;
+    // Parse Newick
+    const tokens = nw.replace(/\s+/g,''); let i=0;
     function parse(){
       if (tokens[i] === '('){
-        i++; const kids=[];
-        while (i<tokens.length && tokens[i]!==')'){ kids.push(parse()); if (tokens[i]===',') i++; }
+        i++; const kids=[]; while (i<tokens.length && tokens[i]!==')'){ kids.push(parse()); if (tokens[i]===',') i++; }
         i++; return kids;
-      } else {
-        let name=''; while (i<tokens.length && !',)'.includes(tokens[i])) name+=tokens[i++];
-        return name;
-      }
+      } else { let name=''; while (i<tokens.length && !',)'.includes(tokens[i])) name+=tokens[i++]; return name; }
     }
     const tree = parse();
-    // Collect leaves (tip order)
-    const leaves = [];
-    function collectLeaves(n){ if (typeof n==='string'){ leaves.push(n); } else { n.forEach(collectLeaves); } }
-    collectLeaves(tree);
-    const depth = maxDepth(tree);
-    const margin = {l:12, r:12, t:12, b:12};
-    const xStep = 110, yStep = 34;
+    // Leaves order
+    const leaves = []; (function collect(n){ if (typeof n==='string') leaves.push(n); else n.forEach(collect); })(tree);
+    const depth = (function maxD(n){ return typeof n==='string' ? 0 : 1 + Math.max(...n.map(maxD)); })(tree);
+
+    // Layout compact
+    const margin = {l:8, r:8, t:8, b:8};
+    const xStep = 80; const yStep = 30;
     const width = margin.l + margin.r + (depth * xStep);
     const height = margin.t + margin.b + (leaves.length-1) * yStep;
 
-    // Layout: assign y to leaves, x by depth
     const pos = new Map();
     leaves.forEach((leaf, idx) => pos.set(leaf, {x: margin.l + depth*xStep, y: margin.t + idx*yStep}));
-    function layout(node, d){
-      if (typeof node === 'string'){
-        const p = pos.get(node); p.x = margin.l + d*xStep; return p;
-      } else {
-        const kids = node.map(k => layout(k, d+1));
-        const y = (kids[0].y + kids[kids.length-1].y)/2;
-        const p = {x: margin.l + d*xStep, y};
-        pos.set(node, p);
-        return p;
-      }
-    }
-    layout(tree, 0);
+    (function layout(node, d){
+      if (typeof node === 'string'){ const p = pos.get(node); p.x = margin.l + d*xStep; return p; }
+      const kids = node.map(k => layout(k, d+1));
+      const y = (kids[0].y + kids[kids.length-1].y)/2;
+      const p = {x: margin.l + d*xStep, y}; pos.set(node, p); return p;
+    })(tree, 0);
 
-    // Render SVG
     const svgNS = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(svgNS, 'svg');
     svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-    svg.setAttribute('width', width);
-    svg.setAttribute('height', height);
+    svg.setAttribute('width', width); svg.setAttribute('height', height);
 
     // Edges
-    function drawEdges(node){
+    (function drawEdges(node){
       const p = pos.get(node) || pos.get(JSON.stringify(node));
       if (typeof node !== 'string'){
         node.forEach(child => {
           const c = pos.get(child) || pos.get(JSON.stringify(child));
-          // elbow: horizontal from parent to child.x, then vertical to child.y
-          const hline = line(p.x, p.y, c.x, p.y);
-          const vline = line(c.x, p.y, c.x, c.y);
-          svg.appendChild(hline); svg.appendChild(vline);
+          svg.appendChild(line(p.x, p.y, c.x, p.y, 'edge'));      // horizontal
+          svg.appendChild(line(c.x, p.y, c.x, c.y, 'edge-vert'));  // vertical
           drawEdges(child);
         });
       }
-    }
-    function line(x1,y1,x2,y2){
+    })(tree);
+    function line(x1,y1,x2,y2, cls){
       const el = document.createElementNS(svgNS, 'line');
       el.setAttribute('x1', x1); el.setAttribute('y1', y1);
       el.setAttribute('x2', x2); el.setAttribute('y2', y2);
-      el.setAttribute('stroke', '#94a3b8'); el.setAttribute('stroke-width', '2');
+      el.setAttribute('class', cls);
       return el;
     }
-    drawEdges(tree);
-    // Leaf labels
+    // Leaf labels (short/long)
     leaves.forEach(leaf => {
       const p = pos.get(leaf);
       const text = document.createElementNS(svgNS, 'text');
       text.setAttribute('x', p.x + 6);
       text.setAttribute('y', p.y + 4);
-      text.setAttribute('fill', '#0a1a2f');
-      text.setAttribute('font-size', '12');
-      text.textContent = leaf;
+      text.textContent = (useShort?LABEL_SHORT:LABEL_FULL)[leaf];
       svg.appendChild(text);
     });
 
-    box.innerHTML = '';
-    box.appendChild(svg);
-
-    function maxDepth(n){ return typeof n==='string' ? 0 : 1 + Math.max(...n.map(maxDepth)); }
+    box.innerHTML = ''; box.appendChild(svg);
   }
 
+  // Expose
   return {
-    init,
-    render,
-    reset,
-    merge,
-    toggleMatrix,
-    checkTree,
-    showHints
+    init, render, reset, merge, toggleMatrix, checkTree, showHints
   };
 })();
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('pair-list')) IntermediateGame.init();
 });
 
-// ---------------- Advanced (Adults) — Immunity game ----------------
+// ---------------- Advanced (Adults) — Immunity game (visual cards) ----------------
 const AdvancedGame = (() => {
   const SPECIES = ['melanogaster','simulans','yakuba','virilis','pseudoananassae'];
-  const LABEL = {
-    melanogaster:'D. melanogaster',
-    simulans:'D. simulans',
-    yakuba:'D. yakuba',
-    virilis:'D. virilis',
-    pseudoananassae:'D. pseudoananassae'
-  };
+  const LABEL = { melanogaster:'D. melanogaster', simulans:'D. simulans', yakuba:'D. yakuba', virilis:'D. virilis', pseudoananassae:'D. pseudoananassae' };
 
-  // EVE portfolios per species
-  // type: 'retro' | 'dna'; state: 'useful' (piRNA active), 'intact' (present, maybe silent), 'silent' (potential), 'broken' (no help)
+  // Portfolios (type: retro|dna; state: useful|intact|silent|broken)
   const CATALOG = {
     melanogaster: [
-      { id:'EVE-A', type:'retro', state:'useful', family:'RV1', note:'piRNAs active (retrovirus RV1)' },
-      { id:'EVE-C', type:'retro', state:'broken', family:'RV0', note:'old, degraded' },
-      { id:'EVE-D', type:'retro', state:'silent', family:'RV1', note:'silent copy; could re-activate' },
-      { id:'EVE-X', type:'dna',   state:'useful', family:'DV2', note:'DNA virus DV2' }
+      { id:'EVE-A', type:'retro', state:'useful', family:'RV1', note:'piRNAs active' },
+      { id:'EVE-D', type:'retro', state:'silent', family:'RV1', note:'may re-activate' },
+      { id:'EVE-C', type:'retro', state:'broken', family:'RV0', note:'degraded' },
+      { id:'EVE-X', type:'dna',   state:'useful', family:'DV2', note:'DNA virus' }
     ],
     simulans: [
-      { id:'EVE-A′', type:'retro', state:'intact', family:'RV1', note:'intact retroviral copy' },
-      { id:'EVE-Z',  type:'dna',   state:'useful', family:'DV1', note:'DNA virus DV1' }
+      { id:'EVE-A′', type:'retro', state:'intact', family:'RV1', note:'intact copy' },
+      { id:'EVE-Z',  type:'dna',   state:'useful', family:'DV1', note:'DNA virus' }
     ],
     yakuba: [
-      { id:'EVE-Y1', type:'retro', state:'broken', family:'RV1', note:'degraded retroviral fragment' }
+      { id:'EVE-Y1', type:'retro', state:'broken', family:'RV1', note:'fragment' }
     ],
     virilis: [
-      { id:'EVE-D1', type:'dna',   state:'useful', family:'DV1', note:'DNA virus DV1' }
+      { id:'EVE-D1', type:'dna',   state:'useful', family:'DV1', note:'DNA virus' }
     ],
     pseudoananassae: [
-      { id:'EVE-P',  type:'retro', state:'useful', family:'RV1a', note:'piRNAs active (close to RV1)' }
+      { id:'EVE-P',  type:'retro', state:'useful', family:'RV1a', note:'close to RV1' }
     ]
   };
 
-  // Scenario answers
-  // Step 1: exact match RV1 in melanogaster => EVE-A (retro, useful, RV1)
-  const STEP1_CORRECT = 'EVE-A';
-  // Step 2: new retrovirus RV1a spreading => most resistant pseudoananassae (EVE-P useful to RV1a); most vulnerable yakuba (only broken retro)
-  const STEP2_RESIST = 'pseudoananassae';
-  const STEP2_VULN   = 'yakuba';
-  // Step 3: mutated variant RV1b => likely protection in species with retro useful/intact to RV1/RV1a: melanogaster (EVE-A), simulans (EVE-A′ maybe), pseudoananassae (EVE-P)
-  const STEP3_SET = new Set(['melanogaster','simulans','pseudoananassae']);
+  const STEP1_CORRECT = 'EVE-A';                                    // exact RV1 in melanogaster
+  const STEP2_RESIST = 'pseudoananassae', STEP2_VULN = 'yakuba';    // RV1a lineage
+  const STEP3_SET = new Set(['melanogaster','simulans','pseudoananassae']); // RV1b slight mutation
 
   let passed = { s1:false, s2:false, s3:false };
 
   function init(){
-    // Render step 1 EVE cards for mel
-    renderMelEves();
-    // Render step 2 radios
-    renderStep2Radios();
-    // Render step 3 checks
-    renderStep3Checks();
-    // Render portfolios (hidden by default)
-    renderPortfolios();
+    renderStep1();
+    renderStep2();
+    renderStep3();
   }
 
-  function renderMelEves(){
-    const box = document.getElementById('adv-eves-mel');
-    if (!box) return;
+  // ---------- Chips ----------
+  function chip(type, text){
+    const cls = type==='retro' ? 'dot-retro' : type==='dna' ? 'dot-dna' : type;
+    return `<span class="card-chip"><span class="dot ${cls}"></span>${text}</span>`;
+  }
+
+  // ---------- Step 1 ----------
+  function renderStep1(){
+    const box = document.getElementById('adv-eves-mel'); if (!box) return;
     const list = CATALOG.melanogaster;
-    box.innerHTML = list.map((e,idx) => eveCardHTML(e, 'step1', idx)).join('');
-    // radio names per step
-  }
-
-  function eveCardHTML(e, group, idx){
-    const typeDot = e.type==='retro' ? 'dot-retro' : 'dot-dna';
-    const stateDot = {
-      useful:'dot-useful',
-      intact:'dot-intact',
-      broken:'dot-broken',
-      silent:'dot-silent'
-    }[e.state] || 'dot-intact';
-
-    return `
-      <label class="eve-card">
-        <input type="radio" name="${group}-choice" value="${e.id}" />
-        <div>
-          <div><strong>${e.id}</strong></div>
-          <div class="eve-meta">
-            <span class="eve-chip"><span class="dot ${typeDot}"></span>${e.type}</span>
-            <span class="eve-chip"><span class="dot ${stateDot}"></span>${e.state}</span>
-            <span class="eve-chip">family: ${e.family}</span>
-          </div>
-          <div class="eve-meta">${e.note}</div>
-        </div>
-      </label>
-    `;
-  }
-
-  function renderStep2Radios(){
-    const r = document.getElementById('adv-resist-radios');
-    const v = document.getElementById('adv-vuln-radios');
-    if (!r || !v) return;
-    r.innerHTML = SPECIES.map(s => `
-      <label><input type="radio" name="adv-resist" value="${s}" /> ${LABEL[s]}</label>
-    `).join('');
-    v.innerHTML = SPECIES.map(s => `
-      <label><input type="radio" name="adv-vuln" value="${s}" /> ${LABEL[s]}</label>
-    `).join('');
-  }
-
-  function renderStep3Checks(){
-    const c = document.getElementById('adv-mutation-checks');
-    if (!c) return;
-    c.innerHTML = SPECIES.map(s => `
-      <label><input type="checkbox" name="adv-muta" value="${s}" /> ${LABEL[s]}</label>
-    `).join('');
-  }
-
-  function togglePortfolios(){
-    const p = document.getElementById('adv-portfolios');
-    if (!p) return;
-    const hidden = p.hasAttribute('hidden');
-    if (hidden) p.removeAttribute('hidden'); else p.setAttribute('hidden','');
-  }
-
-  function renderPortfolios(){
-    const p = document.getElementById('adv-portfolios');
-    if (!p) return;
-    p.innerHTML = SPECIES.map(s => {
-      const rows = (CATALOG[s]||[]).map(e => {
-        return `• ${e.id} — ${e.type}, ${e.state}, family ${e.family}${e.note?` (${e.note})`:''}`;
-      }).join('<br>');
+    box.innerHTML = list.map(e => {
+      const type = chip(e.type, e.type);
+      const state = chip(e.state, e.state);
+      const fam = chip('fam', `family ${e.family}`);
       return `
-        <div class="portfolio">
-          <h5>${LABEL[s]}</h5>
-          <div class="eve-meta">${rows || 'No EVEs recorded'}</div>
-        </div>
+        <label class="eve-card">
+          <input type="radio" name="step1-choice" value="${e.id}" />
+          <div>
+            <div><strong>${e.id}</strong></div>
+            <div class="card-chips">${type}${state}${fam}</div>
+            <div class="card-note">${e.note}</div>
+          </div>
+        </label>
       `;
     }).join('');
   }
-
   function hint(step){
     if (step===1){
-      alert('Match type and sequence: a retrovirus identical to RV1 is best blocked by a retro EVE that is active (piRNAs) and targets RV1.');
+      alert('Pick an active retro EVE that targets RV1 exactly (piRNAs active).');
     } else if (step===2){
-      alert('Most resistant: species with a useful retro EVE matching the new lineage (RV1a). Most vulnerable: species with only broken retro EVEs or only DNA-virus EVEs.');
+      alert('Resistant = a species with a useful/intact retro EVE near RV1a; Vulnerable = only broken retro or only DNA-virus EVEs.');
     } else if (step===3){
-      alert('Small mutations may still be recognized by piRNAs if the EVE is close (RV1 or RV1a) and active/intact. Broken EVEs won’t help; DNA-virus EVEs won’t help against a retrovirus.');
+      alert('Small mutations may still be blocked by active/intact retro EVEs against RV1/RV1a.');
     }
   }
-
   function checkStep1(){
     const val = (document.querySelector('input[name="step1-choice"]:checked')||{}).value;
     const out = document.getElementById('adv-feedback-1');
     if (!val){ out.textContent='Select an EVE above.'; out.style.color='#b91c1c'; return; }
     if (val === STEP1_CORRECT){
-      out.textContent='Correct: EVE-A is a retro EVE with active piRNAs against RV1 (exact match).';
+      out.textContent='Correct: EVE-A is a retro EVE with active piRNAs against RV1.';
       out.style.color='#0f766e';
       passed.s1 = true; maybeUnlock();
     } else {
-      out.textContent='Not quite. Choose an active retro EVE that matches RV1 (not DNA virus, not broken).';
+      out.textContent='Not quite. Choose an active retro EVE matching RV1 (not DNA, not broken).';
       out.style.color='#b91c1c';
     }
   }
 
+  // ---------- Step 2 (cards with portfolios visible) ----------
+  function renderStep2(){
+    const resistBox = document.getElementById('adv-resist-radios');
+    const vulnBox = document.getElementById('adv-vuln-radios');
+    if (!resistBox || !vulnBox) return;
+    resistBox.className = 'species-cards'; vulnBox.className = 'species-cards';
+
+    resistBox.innerHTML = SPECIES.map(s => speciesCardHTML(s, 'resist')).join('');
+    vulnBox.innerHTML   = SPECIES.map(s => speciesCardHTML(s, 'vuln')).join('');
+
+    resistBox.querySelectorAll('.species-card').forEach(el => {
+      el.addEventListener('click', () => selectCard(resistBox, el));
+    });
+    vulnBox.querySelectorAll('.species-card').forEach(el => {
+      el.addEventListener('click', () => selectCard(vulnBox, el));
+    });
+  }
+  function speciesCardHTML(s, group){
+    const eves = (CATALOG[s]||[]);
+    const chips = eves.map(e => `${chip(e.type, e.type)}${chip(e.state, e.state)}${chip('fam', e.family)}`).join('');
+    const notes = eves.map(e => e.id).join(', ') || 'No EVEs';
+    return `
+      <div class="species-card" data-group="${group}" data-species="${s}">
+        <h5>${LABEL[s]}</h5>
+        <div class="card-chips">${chips}</div>
+        <div class="card-note">${notes}</div>
+      </div>
+    `;
+  }
+  function selectCard(container, el){
+    container.querySelectorAll('.species-card').forEach(x => x.classList.remove('selected'));
+    el.classList.add('selected');
+  }
   function checkStep2(){
-    const resist = (document.querySelector('input[name="adv-resist"]:checked')||{}).value;
-    const vuln = (document.querySelector('input[name="adv-vuln"]:checked')||{}).value;
+    const resist = document.querySelector('#adv-resist-radios .species-card.selected')?.dataset.species;
+    const vuln   = document.querySelector('#adv-vuln-radios .species-card.selected')?.dataset.species;
     const out = document.getElementById('adv-feedback-2');
-    if (!resist || !vuln){ out.textContent='Pick one species for each: most resistant and most vulnerable.'; out.style.color='#b91c1c'; return; }
+    if (!resist || !vuln){ out.textContent='Select a species in each column.'; out.style.color='#b91c1c'; return; }
     const ok = (resist===STEP2_RESIST) && (vuln===STEP2_VULN);
     if (ok){
-      out.textContent = `Correct: ${LABEL[resist]} is most resistant (useful retro EVE to RV1a). ${LABEL[vuln]} is most vulnerable (only broken retro or only DNA-virus EVEs).`;
+      out.textContent = `${LABEL[resist]} is most resistant (useful retro EVE to RV1a). ${LABEL[vuln]} is most vulnerable (only broken retro / only DNA EVEs).`;
       out.style.color='#0f766e';
       passed.s2 = true; maybeUnlock();
     } else {
-      out.textContent = 'Not quite. Look for a species with a useful/intact retro EVE close to RV1a (resistant) and one with only broken retro or only DNA-virus EVEs (vulnerable).';
+      out.textContent = 'Try again: look for a useful/intact retro EVE near RV1a (resistant) and species lacking such retro EVEs (vulnerable).';
       out.style.color='#b91c1c';
     }
   }
 
+  // ---------- Step 3 (multi-select species cards) ----------
+  function renderStep3(){
+    const c = document.getElementById('adv-mutation-checks'); if (!c) return;
+    c.className = 'species-cards';
+    c.innerHTML = SPECIES.map(s => speciesCardHTML(s, 'multi')).join('');
+    c.querySelectorAll('.species-card').forEach(el => {
+      el.addEventListener('click', () => el.classList.toggle('selected'));
+    });
+  }
   function checkStep3(){
-    const chosen = Array.from(document.querySelectorAll('input[name="adv-muta"]:checked')).map(x=>x.value);
+    const chosen = Array.from(document.querySelectorAll('#adv-mutation-checks .species-card.selected')).map(x=>x.dataset.species);
     const out = document.getElementById('adv-feedback-3');
     if (chosen.length===0){ out.textContent='Select at least one species.'; out.style.color='#b91c1c'; return; }
     const set = new Set(chosen);
     let allOk = true;
-    // Must include all expected and no unexpected
     for (const s of STEP3_SET){ if (!set.has(s)) allOk = false; }
     for (const s of set){ if (!STEP3_SET.has(s)) allOk = false; }
 
     if (allOk){
-      out.textContent = 'Correct: melanogaster (EVE-A), pseudoananassae (EVE-P), and simulans (EVE-A′) likely retain some protection against RV1b.';
+      out.textContent = 'Correct: D. mel., D. sim., and D. pse. likely retain protection against RV1b.';
       out.style.color='#0f766e';
       passed.s3 = true; maybeUnlock();
     } else {
-      out.textContent = 'Close. Think: active/intact retro EVEs targeting RV1 or RV1a may still recognize RV1b. Broken EVEs or DNA-virus EVEs won’t help.';
+      out.textContent = 'Close—active/intact retro EVEs targeting RV1/RV1a may still recognize RV1b; broken or DNA-virus EVEs won’t.';
       out.style.color='#b91c1c';
     }
   }
@@ -785,28 +789,19 @@ const AdvancedGame = (() => {
   function maybeUnlock(){
     if (passed.s1 && passed.s2 && passed.s3){
       const s = getState();
-      if (!s.adults){ s.adults = true; setState(s); toast('Advanced badge unlocked!'); }
+      if (!s.adults){ s.adults = true; setState(s); toast('Advanced badge unlocked!'); if (Timer.timeLeft('adults')>0){ confettiBurst(); claps(); } }
+      Timer.stop('adults');
     }
   }
 
   function reset(){
     passed = { s1:false, s2:false, s3:false };
-    // Clear selections and feedback
-    document.querySelectorAll('input[name="step1-choice"]').forEach(x => x.checked=false);
-    document.querySelectorAll('input[name="adv-resist"]').forEach(x => x.checked=false);
-    document.querySelectorAll('input[name="adv-vuln"]').forEach(x => x.checked=false);
-    document.querySelectorAll('input[name="adv-muta"]').forEach(x => x.checked=false);
+    renderStep1(); renderStep2(); renderStep3();
     ['adv-feedback-1','adv-feedback-2','adv-feedback-3'].forEach(id => { const el=document.getElementById(id); if (el){ el.textContent=''; } });
   }
 
   return {
-    init,
-    hint,
-    checkStep1,
-    checkStep2,
-    checkStep3,
-    togglePortfolios,
-    reset
+    init, hint, checkStep1, checkStep2, checkStep3, reset
   };
 })();
 document.addEventListener('DOMContentLoaded', () => {
