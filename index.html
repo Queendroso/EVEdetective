@@ -141,14 +141,69 @@
         </div>
 
         <div id="kids" role="tabpanel" aria-labelledby="tab-kids" class="panel is-active">
-          <h3>Kids: Spot the DNA letters</h3>
-          <p>Which letters belong in DNA? Type or paste a short string below. Valid letters: A, C, G, T.</p>
-          <div class="challenge">
-            <input id="kids-seq" type="text" placeholder="e.g. AATCGXZ" />
-            <button class="btn btn-primary" onclick="runKids()">Check</button>
-            <p id="kids-feedback" class="feedback" aria-live="polite"></p>
-          </div>
-        </div>
+  <h3>Beginner Level: Detective Droso!</h3>
+  <p>Your mission should you choose to accept: Search for the EVEs hidden in the DNA. Use the magnifying glass to reveal EVEs and click them to collect.</p>
+
+  <div class="kids-controls">
+    <label>
+      Species:
+      <select id="species-select" onchange="KidsGame.loadSpecies(this.value)">
+        <option value="melanogaster">Drosophila melanogaster</option>
+        <option value="simulans">Drosophila simulans</option>
+        <option value="yakuba">Drosophila yakuba</option>
+        <option value="virilis">Drosophila virilis</option>
+        <option value="pseudoananassae">Drosophila pseudoananassae</option>
+      </select>
+    </label>
+    <span id="kids-region" class="kids-region">Genomic Region: piRNA cluster 3R‑TAS (telomere‑associated sequence)</span>
+  </div>
+
+  <div class="kids-legend">
+    <span class="chip chip-intact" title="Intact EVE">Intact EVE</span>
+    <span class="chip chip-useful" title="Useful EVE">Useful EVE</span>
+    <span class="chip chip-broken" title="Broken/Degraded EVE">Broken EVE</span>
+    <span class="chip chip-unique" title="Unique EVE">Unique EVE</span>
+  </div>
+
+  <div class="kids-hint">
+    <strong>🔍 Hint:</strong>
+    - Intact EVE (green)
+    - Useful EVE (red round)
+    - Broken EVE (grey/black)
+    - Unique EVE (gold)
+    These are viral fossils from ancient infections!
+  </div>
+
+  <!-- Optional DNA text (for flavour) -->
+  <pre class="dna-seq" aria-hidden="true">TACGTAGCTAGCATCGATCGTACGTAGCTAGCATCGATGTACGTAGCTAGCATCGATCGTACGTAGCTAGCATCGATCGTACGTAGCTAGCATCGATCGTACGTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGA</pre>
+
+  <!-- Game board -->
+  <div id="kids-game" class="game-wrap">
+    <!-- Background layer (just a soft grid/texture via CSS) -->
+    <canvas id="bg-canvas" class="game-bg" aria-hidden="true"></canvas>
+    <!-- EVE overlay layer (masked by the lens) -->
+    <canvas id="eve-overlay" class="eve-overlay"></canvas>
+    <!-- Lens ring for visual feedback -->
+    <div id="lens-ring" class="lens-ring" aria-hidden="true"></div>
+  </div>
+
+  <div class="kids-bar">
+    <div class="kids-status">
+      <span id="kids-found">Found: 0</span>
+      <span id="kids-total">of 0 EVEs</span>
+    </div>
+    <div class="kids-actions">
+      <button class="btn" onclick="KidsGame.giveHint()">Hint</button>
+      <button class="btn" onclick="KidsGame.reset()">Reset</button>
+      <label class="toggle">
+        <input type="checkbox" id="reveal-toggle" onchange="KidsGame.toggleReveal(this.checked)" />
+        <span>Reveal all (accessibility)</span>
+      </label>
+    </div>
+  </div>
+
+  <p class="lede">Found EVEs? Show a volunteer for your EVE DETECTIVE sticker!</p>
+</div>
 
         <div id="teens" role="tabpanel" aria-labelledby="tab-teens" class="panel">
           <h3>Teens: Find a start and stop</h3>
