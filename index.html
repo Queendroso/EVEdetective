@@ -135,10 +135,10 @@
         <p class="lede">Choose your level. Get instant feedback. Earn badges.</p>
 
         <div class="tabs" role="tablist" aria-label="Challenge Levels">
-          <button role="tab" aria-selected="true" aria-controls="kids" id="tab-kids" class="tab">Kids</button>
-          <button role="tab" aria-selected="false" aria-controls="teens" id="tab-teens" class="tab">Teens</button>
-          <button role="tab" aria-selected="false" aria-controls="adults" id="tab-adults" class="tab">Adults</button>
-        </div>
+  <button role="tab" aria-selected="true" aria-controls="kids" id="tab-kids" class="tab">Beginner (Kids)</button>
+  <button role="tab" aria-selected="false" aria-controls="teens" id="tab-teens" class="tab">Intermediate (Teens)</button>
+  <button role="tab" aria-selected="false" aria-controls="adults" id="tab-adults" class="tab">Advanced (Adults)</button>
+</div>
 
         <div id="kids" role="tabpanel" aria-labelledby="tab-kids" class="panel is-active">
   <h3>Beginner Level: Detective Droso!</h3>
@@ -202,18 +202,51 @@
     </div>
   </div>
 
-  <p class="lede">Found EVEs? Show a volunteer for your EVE DETECTIVE sticker!</p>
+  
 </div>
 
         <div id="teens" role="tabpanel" aria-labelledby="tab-teens" class="panel">
-          <h3>Teens: Find a start and stop</h3>
-          <p>Does the sequence contain a start codon (ATG) and a stop (TAA/TAG/TGA) in-frame?</p>
-          <div class="challenge">
-            <textarea id="teens-seq" rows="3" placeholder="Paste DNA sequence"></textarea>
-            <button class="btn btn-primary" onclick="runTeens()">Analyze</button>
-            <p id="teens-feedback" class="feedback" aria-live="polite"></p>
-          </div>
-        </div>
+  <h3>Intermediate Level: Create the EVE Family Tree!</h3>
+  <p>Compare EVE “barcodes” across species, then build a phylogenetic tree. Shared EVEs = common ancestry; degraded EVEs are older; unique EVEs came after a split.</p>
+
+  <div class="kids-controls" style="margin-top:.25rem">
+    <span class="kids-region">Species: D. melanogaster, D. simulans, D. yakuba, D. virilis, D. pseudoananassae</span>
+  </div>
+
+  <!-- Step 1: shared EVE matrix -->
+  <div class="matrix-wrap">
+    <div class="matrix-head">
+      <h4>Step 1 — Study shared EVEs</h4>
+      <button class="btn small" onclick="IntermediateGame.toggleMatrix()">Show/Hide Matrix</button>
+      <button class="btn small" onclick="IntermediateGame.showHints()">Hints</button>
+    </div>
+    <div id="matrix" class="matrix" hidden aria-live="polite"></div>
+    <p class="muted">Darker cells = more shared EVEs. Use this to spot the closest relatives.</p>
+  </div>
+
+  <!-- Step 2: merge closest pairs to build a tree -->
+  <div class="build-wrap">
+    <h4>Step 2 — Build the tree by merging closest clades</h4>
+    <div id="pair-list" class="pair-list" aria-live="polite"></div>
+    <div class="build-actions">
+      <button class="btn" onclick="IntermediateGame.reset()">Reset</button>
+      <button class="btn btn-primary" onclick="IntermediateGame.checkTree()">Check my tree</button>
+    </div>
+    <div class="tree-wrap">
+      <h4>Your tree</h4>
+      <div id="your-tree" class="tree">No merges yet</div>
+      <div id="build-steps" class="muted" style="margin-top:.25rem"></div>
+    </div>
+  </div>
+
+  <!-- Legend -->
+  <div class="kids-legend" style="margin-top:.75rem">
+    <span class="chip chip-intact" title="Intact EVE">Intact</span>
+    <span class="chip chip-useful" title="Useful EVE (piRNAs)">Useful</span>
+    <span class="chip chip-broken" title="Broken/Degraded EVE">Broken</span>
+    <span class="chip chip-unique" title="Unique EVE (lineage‑specific)">Unique</span>
+  </div>
+</div>
 
         <div id="adults" role="tabpanel" aria-labelledby="tab-adults" class="panel">
           <h3>Adults: EVE signature hunt</h3>
