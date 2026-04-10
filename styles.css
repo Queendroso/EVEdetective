@@ -208,3 +208,39 @@ textarea,input{background:#fff;color:var(--navy);border:1px solid var(--ash-200)
 .portfolio-wrap{margin-top:.5rem;border:1px solid var(--ash-200);border-radius:.5rem;padding:.6rem;background:#fff}
 .portfolio{display:grid;gap:.25rem;margin:.5rem 0;padding:.5rem;border:1px dashed var(--ash-200);border-radius:.5rem}
 .portfolio h5{margin:.1rem 0}
+
+/* Colorful heatmap and tree tweaks */
+.matrix td.heat.low{background:#f0fdf4}    /* pale green */
+.matrix td.heat.med{background:#dcfce7}
+.matrix td.heat.high{background:#bbf7d0}
+.matrix td.heat.max{background:#86efac}
+.matrix td.heat{color:#064e3b}
+
+.tree-svg{margin-top:.5rem;border:1px solid var(--ash-200);border-radius:.5rem;background:#fff;overflow:auto;max-height:360px}
+.tree-svg svg text{font-size:12px;fill:#0a1a2f}
+.tree-svg .edge{stroke:#60a5fa;stroke-width:2}      /* blue branches */
+.tree-svg .edge-vert{stroke:#34d399;stroke-width:2} /* green elbows */
+
+/* Timer */
+.timer-wrap{display:flex;align-items:center;gap:.5rem;margin:.5rem 0}
+.timer-bar{flex:1;height:10px;background:#e6f4ef;border-radius:999px;overflow:hidden;border:1px solid var(--ring)}
+.timer-fill{height:100%;background:linear-gradient(90deg,#22c55e,#16a34a);width:100%}
+
+/* Confetti layer */
+#confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:9999}
+.claps{position:fixed;left:50%;top:15%;transform:translateX(-50%);font-size:42px;opacity:0;transition:opacity .2s ease;z-index:9999}
+
+/* Advanced species cards */
+.species-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.6rem}
+.species-card{background:#fff;border:2px solid var(--ash-200);border-radius:.65rem;padding:.6rem;cursor:pointer;transition:transform .08s ease, border-color .2s ease, box-shadow .2s ease}
+.species-card:hover{transform:translateY(-1px);box-shadow:0 10px 22px rgba(2,6,23,.06)}
+.species-card.selected{border-color:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.18) inset}
+.species-card h5{margin:.1rem 0}
+.card-chips{display:flex;flex-wrap:wrap;gap:.25rem;margin-top:.25rem}
+.card-chip{display:inline-flex;gap:.3rem;align-items:center;border:1px solid var(--ash-200);border-radius:999px;padding:.1rem .4rem;font-size:.76rem;background:#f8fafc}
+.card-chip .dot{width:8px;height:8px;border-radius:50%}
+.card-note{font-size:.85rem;color:var(--muted);margin-top:.2rem}
+
+/* Inline EVEs list (Step 1) improvements */
+.eves-list .eve-card{border-width:2px}
+.eves-list .eve-card input{accent-color:#22c55e}
