@@ -161,18 +161,25 @@
           <p>Your mission should you choose to accept: Search for the EVEs hidden in the DNA. Use the magnifying glass to reveal EVEs and click them to collect.</p>
 
           <div class="kids-controls">
-            <label>
-              Species:
-              <select id="species-select" onchange="KidsGame.loadSpecies(this.value)">
-                <option value="melanogaster">Drosophila melanogaster</option>
-                <option value="simulans">Drosophila simulans</option>
-                <option value="yakuba">Drosophila yakuba</option>
-                <option value="virilis">Drosophila virilis</option>
-                <option value="pseudoananassae">Drosophila pseudoananassae</option>
-              </select>
-            </label>
-            <span id="kids-region" class="kids-region">Genomic Region: piRNA cluster 3R‑TAS (telomere‑associated sequence)</span>
-          </div>
+  <label>
+    Species:
+    <select id="species-select" onchange="KidsGame.loadSpecies(this.value)">
+      <option value="melanogaster">Drosophila melanogaster</option>
+      <option value="simulans">Drosophila simulans</option>
+      <option value="yakuba">Drosophila yakuba</option>
+      <option value="virilis">Drosophila virilis</option>
+      <option value="pseudoananassae">Drosophila pseudoananassae</option>
+    </select>
+  </label>
+
+  <!-- New: Next species button + species progress -->
+  <button class="btn small" id="kids-next" onclick="KidsGame.next()">Next species →</button>
+  <span id="kids-species-progress" class="kids-region">Species complete: 0/5</span>
+
+  <span id="kids-region" class="kids-region" style="margin-left:auto">
+    Genomic Region: piRNA cluster 3R‑TAS (telomere‑associated sequence)
+  </span>
+</div>
 
           <div class="kids-legend">
             <span class="chip chip-intact" title="Intact EVE">Intact EVE</span>
@@ -286,6 +293,13 @@
           <h3>Advanced Level: Antiviral Immunity Challenge</h3>
           <p>Use EVE type and state to predict protection against invading viruses. Functional EVEs provide sequence-specific immunity; matching type matters (retrovirus EVEs protect against retroviruses). Degraded EVEs offer no protection; silent EVEs can be reactivated; EVE evolution mirrors host evolution, but function can be lost or gained.</p>
 
+          <div class="timer-wrap">
+  <div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div>
+  <strong class="tleft">60s</strong>
+  <button class="btn small" onclick="Timer.start('adults', 60)">Start 60s</button>
+  <button class="btn small" onclick="AdvancedGame.restart()">Restart 60s</button>
+  <button class="btn small" onclick="AdvancedGame.reset()">Reset</button>
+</div>
           <div class="adv-step">
             <h4>Step 1 — Exact match (retrovirus “RV1” infects D. melanogaster)</h4>
             <p>Which EVE will help the fly fight the virus, and why?</p>
