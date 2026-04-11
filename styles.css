@@ -293,3 +293,27 @@ textarea,input{background:#fff;color:var(--navy);border:1px solid var(--ash-200)
 .timer-fill{height:100%;background:linear-gradient(90deg,#22c55e,#16a34a);width:100%}
 #confetti-canvas{position:fixed;inset:0;pointer-events:none;z-index:9999}
 .claps{position:fixed;left:50%;top:15%;transform:translateX(-50%);font-size:42px;opacity:0;transition:opacity .2s ease;z-index:9999}
+
+<section id="team">
+  <h2>Team</h2>
+  <article class="team-card">
+    <img
+      class="team-avatar"
+      src="assets/team-queen.webp"
+      alt="Queen — EVE Detective"
+      width="72" height="72"
+      loading="lazy" decoding="async"
+    >
+    <h3>Queen</h3>
+    <p>Founder & EVE detective</p>
+    <!-- Optional socials/links here -->
+  </article>
+
+  <!-- If you have no photo for others, just omit the <img>. The card will still look fine. -->
+  <!--
+  <article class="team-card">
+    <h3>Another Teammate</h3>
+    <p>Role / short bio</p>
+  </article>
+  -->
+</section>
