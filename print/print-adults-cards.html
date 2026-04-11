@@ -5,49 +5,79 @@
 <title>EVE Detective — Adults Cards (Print)</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
+  /* A4 portrait; change to 'Letter' if needed */
   @page { size: A4; margin: 10mm; }
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .screen-note { display:none !important; }
+    .screen-note, .toolbar { display:none !important }
   }
-  body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0a1a2f;margin:0;padding:10mm;background:#f6f7fb}
-  h1,h2{font-family:"Playfair Display",Georgia,serif;margin:.2rem 0}
-  .screen-note{background:#eef2ff;border:1px solid #c7d2fe;padding:.6rem;border-radius:.5rem;margin:0 0 8px;font-size:.95rem}
 
-  .sheet{display:grid;grid-template-columns:repeat(3,1fr);gap:8mm;page-break-after:always}
-  .sheet:last-of-type{page-break-after:auto}
-  .card{width:63mm;height:88mm;border-radius:4mm;background:#fff;box-shadow:0 0 0 0.5pt #e5e7eb inset;position:relative;overflow:hidden;break-inside:avoid}
-  .pad{position:absolute;inset:6mm}
-  .hdr{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3mm}
-  .title{font-size:12pt;font-weight:700}
-  .species{font-size:10pt;color:#334155}
-  .sub{font-size:9pt;color:#64748b}
-  .list{margin:3mm 0 0 0;padding-left:14px;font-size:10pt}
-  .list li{margin:1.5mm 0}
+  body{
+    font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+    color:#0a1a2f; margin:0; padding:10mm; background:#f6f7fb;
+  }
+  .screen-note{
+    background:#eef2ff; border:1px solid #c7d2fe;
+    padding:.6rem; border-radius:.5rem; margin:0 0 8px; font-size:.95rem;
+  }
+  .toolbar{ display:flex; gap:.5rem; align-items:center; margin:0 0 8px }
+  .toolbar button{ padding:.45rem .8rem; border:1px solid #cbd5e1; border-radius:6px; background:#fff; cursor:pointer }
+  .toolbar button:hover{ border-color:#94a3b8 }
 
-  /* Color tokens and chips */
+  /* 3×3 grid per sheet */
+  .sheet{
+    display:grid; grid-template-columns:repeat(3,1fr);
+    gap:8mm; page-break-after:always;
+  }
+  .sheet:last-of-type{ page-break-after:auto }
+
+  /* Poker-size card: 63×88 mm */
+  .card{
+    width:63mm; height:88mm; border-radius:4mm; background:#fff;
+    box-shadow:0 0 0 0.5pt #e5e7eb inset; position:relative; overflow:hidden;
+    break-inside:avoid;
+  }
+  .pad{ position:absolute; inset:6mm }
+  .hdr{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:3mm }
+  .title{ font-size:12pt; font-weight:700 }
+  .species{ font-size:10pt; color:#334155 }
+  .sub{ font-size:9pt; color:#64748b }
+  .list{ margin:3mm 0 0 0; padding-left:14px; font-size:10pt }
+  .list li{ margin:1.5mm 0 }
+
   :root{
-    --intact:#16a34a;
-    --useful:#22c55e;
-    --broken:#6b7280;
-    --silent:#f59e0b;
-    --retro:#0ea5e9;
-    --dna:#a16207;
-    --ink:#0a1a2f;
+    --intact:#16a34a; --useful:#22c55e; --broken:#6b7280; --silent:#f59e0b;
+    --retro:#0ea5e9; --dna:#a16207; --ink:#0a1a2f;
   }
-  .chip{display:inline-flex;gap:4px;align-items:center;border:1px solid #e5e7eb;border-radius:999px;padding:2px 6px;font-size:8.5pt;background:#fff;color:#0f172a}
-  .dot{width:9px;height:9px;border-radius:50%}
+  .chip{
+    display:inline-flex; gap:4px; align-items:center; border:1px solid #e5e7eb;
+    border-radius:999px; padding:2px 6px; font-size:8.5pt; background:#fff; color:#0f172a
+  }
+  .dot{ width:9px; height:9px; border-radius:50% }
 
-  /* Token sheet */
-  .token{width:40mm;height:40mm;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2pt solid #e5e7eb;break-inside:avoid}
-  .token.prot{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none}
-  .token.vuln{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none}
+  /* Tokens page */
+  .token{
+    width:40mm; height:40mm; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    border:2pt solid #e5e7eb; break-inside:avoid;
+    font-weight:800; letter-spacing:0.2px; text-transform:uppercase;
+  }
+  .token.prot{ background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; border:none }
+  .token.vuln{ background:linear-gradient(135deg,#ef4444,#dc2626); color:#fff; border:none }
+
+  /* Optional light cut marks around tokens (uncomment to show)
+  .token{ box-shadow:0 0 0 0.5pt #e5e7eb inset }
+  */
 </style>
 </head>
 <body>
 
 <div class="screen-note">
-  Adults pack: Page 1 = Scenario cards, Page 2 = Portfolio cards, Page 3 = Yes/No tokens, Page 4 = Answer Key. Print single‑sided or choose page ranges as needed.
+  Adults pack: Page 1 = Scenario cards, Page 2 = Portfolio cards, Page 3 = Tokens (Protected/Vulnerable), Page 4 = How to Play & Answer Key.
+  Print tips: A4, Scale 100% (no “Fit to page”), Margins None/Minimum, Duplex Off (single-sided).
+</div>
+<div class="toolbar">
+  <button onclick="window.print()">Print</button>
 </div>
 
 <!-- Page 1: Scenario cards -->
@@ -59,21 +89,23 @@
 <!-- Page 3: Tokens -->
 <section class="sheet" id="tokens"></section>
 
-<!-- Page 4: Answer key -->
+<!-- Page 4: How to Play + Answer Key -->
 <section class="sheet" id="answers"></section>
 
 <script>
 /*
   EVE Detective — Adults (Immunity)
-  - Scenario cards describe the invading virus + question
-  - Portfolio cards list each species' EVE portfolio (type + state)
-  - Tokens: "Protected" and "Vulnerable"
-  - Answer Key page resolves each scenario
-  Simple rules:
-    • Only matching virus type protects (retro EVEs → retrovirus; DNA EVEs → DNA virus).
-    • Useful or Intact = protection; Broken = no protection; Silent = uncertain/no.
+  Tabletop flow:
+  1) Lay 5 Portfolio cards (one per species).
+  2) Draw/read a Scenario card (virus + question).
+  3) Place "Protected" or "Vulnerable" tokens on species:
+       - matching virus type (retro ↔ retrovirus; DNA ↔ DNA virus),
+       - EVE state: Useful/Intact = protection; Broken/Silent = no protection.
+  4) Discuss; check answers on last page.
+  Optional: Sleeve cards and use dry‑erase pens to circle/write notes on sleeves (not on paper).
 */
 
+/* === Data === */
 const portfolios = [
   { key:'mel',  short:'D. mel.', full:'Drosophila melanogaster',
     eves:[ {type:'retro', state:'useful'}, {type:'dna', state:'broken'} ] },
@@ -92,46 +124,42 @@ const scenarios = [
     id:1, title:'Step 1 — Exact match',
     virus:'Retrovirus “RV1”',
     prompt:'RV1 infects D. melanogaster. Which EVE helps the fly fight it, and why?',
-    ask:['Pick the protective EVE on the mel. portfolio','Explain: must match virus type; useful/intact provide protection'],
-    answer:`mel: retro (useful) protects. dna(broken) does not.`
+    ask:[
+      'Find matching virus type (retrovirus ↔ retro EVE)',
+      'Useful/Intact = protection; Broken/Silent = no protection'
+    ],
+    answer:`mel protected by retro(useful). dna(broken) is not a type match.`
   },
   {
     id:2, title:'Step 2 — Same ancestor variant',
     virus:'Retrovirus “RV1a”',
     prompt:'Which species is most resistant, and which is most vulnerable?',
-    ask:['Use portfolios: who has retro useful/intact?','Most resistant = strongest/most active match','Most vulnerable = no matching protective EVE'],
+    ask:[
+      'Compare portfolios: who has retro Useful/Intact?',
+      'Most vulnerable = no matching protective EVE'
+    ],
     answer:`Resistant: mel (retro useful), sim (retro intact). Vulnerable: yak (retro broken).`
   },
   {
     id:3, title:'Step 3 — Mutated variant',
     virus:'Retrovirus “RV1b” (slightly mutated)',
     prompt:'Which species might still have protection? (Select all that apply.)',
-    ask:['Useful/intact retro EVEs often tolerate small mutations','Broken/silent unlikely to protect'],
-    answer:`mel (retro useful) and sim (retro intact) still likely protected; pse (retro useful) may also protect; vir (retro broken) unlikely; yak (retro broken) unlikely.`
+    ask:[
+      'Useful/Intact retro often tolerate small mutations',
+      'Broken/Silent: unlikely to protect'
+    ],
+    answer:`mel, sim, and often pse protected; vir/yak unlikely.`
   }
 ];
 
+/* === Helpers === */
 function icon(type,state){
-  const labels = {
-    retro:'Retro (RNA)',
-    dna:'DNA virus',
-    intact:'Intact',
-    useful:'Useful',
-    broken:'Broken',
-    silent:'Silent'
-  };
+  const labels = { retro:'Retro (RNA)', dna:'DNA virus', intact:'Intact', useful:'Useful', broken:'Broken', silent:'Silent' };
   const typeDot = type==='retro' ? 'var(--retro)' : 'var(--dna)';
-  const stateDot = state==='intact' ? 'var(--intact)'
-                 : state==='useful' ? 'var(--useful)'
-                 : state==='broken' ? 'var(--broken)'
-                 : 'var(--silent)';
+  const stateDot = state==='intact' ? 'var(--intact)' : state==='useful' ? 'var(--useful)' : state==='broken' ? 'var(--broken)' : 'var(--silent)';
   return `
-    <span class="chip" title="${labels[type]}">
-      <span class="dot" style="background:${typeDot}"></span>${labels[type]}
-    </span>
-    <span class="chip" title="${labels[state]}">
-      <span class="dot" style="background:${stateDot}"></span>${labels[state]}
-    </span>`;
+    <span class="chip" title="${labels[type]}"><span class="dot" style="background:${typeDot}"></span>${labels[type]}</span>
+    <span class="chip" title="${labels[state]}"><span class="dot" style="background:${stateDot}"></span>${labels[state]}</span>`;
 }
 
 function scenarioCard(s){
@@ -143,9 +171,8 @@ function scenarioCard(s){
           <div class="species">${s.virus}</div>
         </div>
         <div class="sub">${s.prompt}</div>
-        <ul class="list">
-          ${s.ask.map(a=>`<li>${a}</li>`).join('')}
-        </ul>
+        <ul class="list">${s.ask.map(a=>`<li>${a}</li>`).join('')}</ul>
+        <div class="sub" style="margin-top:4mm">Place tokens on portfolio cards for this scenario.</div>
       </div>
     </div>`;
 }
@@ -162,44 +189,46 @@ function portfolioCard(p){
         <div style="margin-top:3mm; display:flex; flex-direction:column; gap:4px">
           ${p.eves.map(e => `<div>${icon(e.type,e.state)}</div>`).join('')}
         </div>
+        <div class="sub" style="margin-top:4mm">Tokens here →</div>
       </div>
     </div>`;
 }
 
-function token(label, cls){
-  return `<div class="token ${cls}"><strong>${label}</strong></div>`;
-}
+function token(label, cls){ return `<div class="token ${cls}"><strong>${label}</strong></div>`; }
 
-// Render
-document.getElementById('scenarios').innerHTML = scenarios.map(scenarioCard).join('');
+/* === Render === */
+document.getElementById('scenarios').innerHTML  = scenarios.map(scenarioCard).join('');
 document.getElementById('portfolios').innerHTML = portfolios.map(portfolioCard).join('');
 
-// Tokens: 6 protected + 6 vulnerable
-const t = [];
-for(let i=0;i<6;i++) t.push(token('Protected','prot'));
-for(let i=0;i<6;i++) t.push(token('Vulnerable','vuln'));
+// 12 tokens (6 Protected + 6 Vulnerable)
+const t=[]; for(let i=0;i<6;i++) t.push(token('Protected','prot')); for(let i=0;i<6;i++) t.push(token('Vulnerable','vuln'));
 document.getElementById('tokens').innerHTML = t.join('');
 
-// Answers
+// How to Play + Answer Key
 document.getElementById('answers').innerHTML = `
   <div class="card" style="grid-column: span 3; width:auto; height:auto">
     <div class="pad">
-      <div class="hdr">
-        <div class="title">Answer Key</div>
-        <div class="species">Adults — Immunity</div>
-      </div>
+      <div class="hdr"><div class="title">How to Play (Adults)</div><div class="species">Immunity & EVEs</div></div>
       <ol class="list">
-        <li><strong>Step 1:</strong> D. melanogaster protected by <em>retro (useful)</em>. DNA(broken) ≠ match → no protection.</li>
-        <li><strong>Step 2:</strong> Most resistant: <em>mel (retro useful)</em> and <em>sim (retro intact)</em>. Most vulnerable: <em>yak (retro broken)</em>.</li>
-        <li><strong>Step 3:</strong> Still protected: <em>mel</em>, <em>sim</em>, and often <em>pse</em> (retro useful). Unlikely: <em>vir</em>, <em>yak</em> (broken).</li>
+        <li>Lay out the 5 Portfolio cards face up (one per species).</li>
+        <li>Draw/read one Scenario card.</li>
+        <li>Place “Protected” or “Vulnerable” tokens on species by rule:
+          <ul class="list" style="margin-top:2mm">
+            <li>Matching virus type (retro ↔ retrovirus; DNA ↔ DNA virus)</li>
+            <li>EVE state: Useful/Intact = protection; Broken/Silent = no protection</li>
+          </ul>
+        </li>
+        <li>Discuss why. Check answers below.</li>
+        <li>Optional: Sleeve cards and use dry‑erase pens to circle/write notes (on sleeves only).</li>
       </ol>
-      <div style="margin-top:4mm" class="sub">
-        Rule of thumb: Matching type + useful/intact → protection. Broken/silent → no protection.
-      </div>
+      <div class="sub" style="margin-top:4mm"><strong>Answer Key:</strong></div>
+      <ol class="list">
+        <li><strong>Step 1:</strong> D. melanogaster protected by <em>retro (useful)</em>. DNA(broken) ≠ match.</li>
+        <li><strong>Step 2:</strong> Most resistant: <em>mel (retro useful)</em> and <em>sim (retro intact)</em>. Most vulnerable: <em>yak (retro broken)</em>.</li>
+        <li><strong>Step 3:</strong> Still protected: <em>mel</em>, <em>sim</em>, and often <em>pse</em>. Unlikely: <em>vir</em>, <em>yak</em>.</li>
+      </ol>
     </div>
   </div>`;
 </script>
-
 </body>
 </html>
-
