@@ -429,3 +429,24 @@ html { scroll-behavior: smooth; }
 /* Prevent sticky header from hiding section headings when using anchor links */
 section, .section { scroll-margin-top: 80px; }
 html { scroll-behavior:smooth }
+
+/* Achievements gating visuals */
+.badge.locked { opacity:.7; filter:grayscale(.3) }
+.badge.unlocked { opacity:1; filter:none }
+
+.badge-champion { opacity:.7 }
+.badge-champion.unlocked { opacity:1 }
+
+.btn[disabled], .btn:disabled {
+  opacity:.5; cursor:not-allowed; pointer-events:none;
+}
+
+/* Small toast for messages near Achievements */
+#achv-toast {
+  position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+  background:#0a1a2f; color:#fff; padding:.5rem .75rem; border-radius:.5rem;
+  box-shadow:0 10px 24px rgba(2,6,23,.18);
+  font-size:.9rem; z-index:9999; display:none;
+}
+#achv-toast.show { display:block; animation:fadeout 2.2s ease 0s 1 forwards }
+@keyframes fadeout { 0%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
