@@ -309,3 +309,55 @@ textarea,input{background:#fff;color:var(--navy);border:1px solid var(--ash-200)
   <p>Founder & EVE detective</p>
 </article>
 
+/* ===== Team card + avatar ===== */
+.team-card{
+  display:grid;
+  grid-template-columns:72px 1fr;
+  gap:.75rem;
+  align-items:start;
+  background:#fff;
+  border:1px solid var(--ash-200);
+  border-radius:.75rem;
+  padding:.75rem;
+  max-width:520px;
+}
+.team-avatar{
+  width:72px; height:72px; border-radius:50%;
+  object-fit:cover;
+  border:1px solid var(--ash-200);
+  grid-row:span 2;
+}
+
+/* Hide broken/empty images safely */
+.team-avatar:not([src]), .team-avatar[src=""] { display:none }
+
+/* ===== Tree container + labels (responsive) ===== */
+/* This block supersedes any earlier .tree-svg rules */
+.tree-svg{
+  margin-top:.5rem;
+  border:1px solid var(--ash-200);
+  border-radius:.5rem;
+  background:#fff;
+  overflow:auto;                 /* scroll if it still overflows */
+  max-height:min(65vh, 480px);   /* keep it in view */
+}
+.tree-svg svg{
+  display:block;
+  width:100%;
+  height:auto;
+  min-width:0 !important;        /* override older min-widths */
+}
+/* Label readability and scaling */
+.tree-svg svg text{
+  font-size:clamp(10px, 1.2vw, 14px);
+  fill:var(--ink, #0a1a2f);
+  paint-order:stroke;
+  stroke:#fff;                   /* halo for contrast */
+  stroke-width:2px;
+}
+
+/* Prefer short labels on small screens (opt-in via JS below) */
+@media (max-width: 768px){
+  .prefer-short-labels .label-long { display:none }
+  .prefer-short-labels .label-short { display:inline }
+}
