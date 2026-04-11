@@ -263,7 +263,7 @@ function toast(msg, parent){
   setTimeout(()=>{ t.remove(); }, 1800);
 }
 
-// ---------------- Beginner (Kids) — Magnifier ----------------
+// ---------------- Beginner (Kids) — Magnifier (gated across 5 species) ----------------
 const KidsGame = (() => {
   const speciesConfigs = {
     melanogaster: { region: 'piRNA cluster 3R‑TAS (telomere‑associated sequence)',
@@ -277,9 +277,13 @@ const KidsGame = (() => {
     pseudoananassae: { region: 'piRNA cluster 4R‑distal',
       eves:[{x:.10,y:.32,type:'intact'},{x:.27,y:.57,type:'intact'},{x:.49,y:.38,type:'useful'},{x:.66,y:.22,type:'broken'},{x:.84,y:.58,type:'unique'}]}
   };
+  const SPECIES = ['melanogaster','simulans','yakuba','virilis','pseudoananassae'];
 
   let overlay, bg, ctxO, ctxB, ring, wrap;
-  let w=0,h=0; let current='melanogaster'; let found=new Set(); let revealAll=false;
+  let w=0,h=0; let current='melanogaster';
+  let found=new Set();               // holds keys like "species:index"
+  let completed = new Set();         // species completed
+  let revealAll=false;
 
   function init(){
     wrap = document.getElementById('kids-game');
@@ -293,6 +297,7 @@ const KidsGame = (() => {
     wrap.addEventListener('mouseenter', () => { ring.style.opacity=.9; });
     wrap.addEventListener('click', onClick);
     window.addEventListener('resize', resize);
+    updateSpeciesProgress();
     loadSpecies(current);
   }
   function resize(){ if (!wrap) return;
@@ -303,16 +308,26 @@ const KidsGame = (() => {
   function onMove(e){ const r=wrap.getBoundingClientRect(); setMask(e.clientX-r.left, e.clientY-r.top); }
   function onClick(e){
     const r=wrap.getBoundingClientRect(); const x=e.clientX-r.left, y=e.clientY-r.top;
-    const cfg=speciesConfigs[current];
+    const cfg=speciesConfigs[current]; if (!cfg) return;
     const hit=cfg.eves.findIndex((ev,i)=>Math.hypot(ev.x*w-x, ev.y*h-y)<=16);
     if (hit>=0){ const key=`${current}:${hit}`; if (!found.has(key)){
       found.add(key); toast(foundMessage(cfg.eves[hit].type), wrap); drawOverlay(); updateCounts();
       if (foundCountForCurrent()>=cfg.eves.length){
-        if (!KidsGame._won){
-          KidsGame._won = true;
-          window.Achievements?.markComplete('kids');
-          toast('Beginner badge unlocked!', wrap);
-          confettiBurst(); claps(); playChime();
+        if (!completed.has(current)){
+          completed.add(current);
+          updateSpeciesProgress();
+          // If all species are done -> unlock kids badge
+          if (completed.size === SPECIES.length && !KidsGame._won){
+            KidsGame._won = true;
+            window.Achievements?.markComplete('kids');
+            toast('Great work! All 5 species complete — Kids badge unlocked!', wrap);
+            confettiBurst(); claps(); playChime();
+          } else {
+            // Nudge to go to next species
+            toast(`Nice! ${completed.size}/${SPECIES.length} species complete — click “Next species →”`, wrap);
+            document.getElementById('kids-next')?.classList.add('pulse-once');
+            setTimeout(()=>document.getElementById('kids-next')?.classList.remove('pulse-once'), 1500);
+          }
         }
       }
     }} else { toast('No EVE here—keep scanning!', wrap); }
@@ -335,12 +350,33 @@ const KidsGame = (() => {
   }
   function updateCounts(){ const cfg=speciesConfigs[current], f=document.getElementById('kids-found'), t=document.getElementById('kids-total');
     if (f) f.textContent=`Found: ${foundCountForCurrent()}`; if (t) t.textContent=`of ${cfg.eves.length} EVEs`; }
+  function updateSpeciesProgress(){
+    const sp = document.getElementById('kids-species-progress');
+    if (sp) sp.textContent = `Species complete: ${completed.size}/${SPECIES.length}`;
+  }
   function foundCountForCurrent(){ let c=0; const cfg=speciesConfigs[current]; cfg.eves.forEach((_,i)=>{ if(found.has(`${current}:${i}`)) c++; }); return c; }
   function giveHint(){ /* optional visual hint */ }
-  function reset(){ Array.from(found).forEach(k=>{ if(k.startsWith(current+':')) found.delete(k); }); drawOverlay(); updateCounts(); }
-  function loadSpecies(name){ current=name; const reg=document.getElementById('kids-region'); if(reg) reg.textContent=''; resize(); updateCounts(); }
+  function resetCurrent(){ // clear finds only for current species
+    Array.from(found).forEach(k=>{ if(k.startsWith(current+':')) found.delete(k); });
+    drawOverlay(); updateCounts();
+  }
+  function resetAll(){ found.clear(); completed.clear(); updateSpeciesProgress(); drawOverlay(); updateCounts(); }
+  function loadSpecies(name){
+    if (!speciesConfigs[name]) return;
+    current = name;
+    const sel = document.getElementById('species-select');
+    if (sel && sel.value !== name) sel.value = name;
+    const reg=document.getElementById('kids-region');
+    if(reg) reg.textContent = speciesConfigs[current].region || '';
+    resize(); updateCounts();
+  }
+  function next(){
+    const i = SPECIES.indexOf(current);
+    const nextIdx = (i >= 0) ? (i+1) % SPECIES.length : 0;
+    loadSpecies(SPECIES[nextIdx]);
+  }
   function toggleReveal(on){ revealAll=!!on; drawOverlay(); }
-  return { init, resize, giveHint, reset, loadSpecies, toggleReveal };
+  return { init, resize, giveHint, reset: resetCurrent, loadSpecies, toggleReveal, next };
 })();
 document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('kids-game')) KidsGame.init(); });
 
@@ -602,10 +638,11 @@ const IntermediateGame = (() => {
 })();
 document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('inspect-grid')) IntermediateGame.init(); });
 
-// ---------------- Advanced (Adults) — Visual immunity game with chime ----------------
+// ---------------- Advanced (Adults) — with Restart and optional reshuffle ----------------
 const AdvancedGame = (() => {
   const SPECIES = ['melanogaster','simulans','yakuba','virilis','pseudoananassae'];
   const LABEL = { melanogaster:'D. melanogaster', simulans:'D. simulans', yakuba:'D. yakuba', virilis:'D. virilis', pseudoananassae:'D. pseudoananassae' };
+  const RESHUFFLE_ON_RESET = true; // set to false to keep order stable
 
   const CATALOG = {
     melanogaster: [
@@ -628,9 +665,20 @@ const AdvancedGame = (() => {
   const STEP3_SET = new Set(['melanogaster','simulans','pseudoananassae']);
 
   let passed = { s1:false, s2:false, s3:false };
+  let orderStep2 = [...SPECIES];
+  let orderStep3 = [...SPECIES];
+
+  function shuffled(arr){ return [...arr].sort(()=>Math.random()-0.5); }
 
   function init(){
+    if (RESHUFFLE_ON_RESET){ orderStep2 = shuffled(SPECIES); orderStep3 = shuffled(SPECIES); }
     renderStep1(); renderStep2(); renderStep3();
+    clearFeedback();
+  }
+  function clearFeedback(){
+    const o1 = document.getElementById('adv-feedback-1'); if (o1) o1.textContent='';
+    const o2 = document.getElementById('adv-feedback-2'); if (o2) o2.textContent='';
+    const o3 = document.getElementById('adv-feedback-3'); if (o3) o3.textContent='';
   }
   function chip(type, text){
     const cls = type==='retro' ? 'dot-retro' : type==='dna' ? 'dot-dna' : type;
@@ -647,7 +695,7 @@ const AdvancedGame = (() => {
   function hint(step){
     if (step===1){ alert('Pick an active retro EVE that matches RV1.'); }
     else if (step===2){ alert('Resistant: useful/intact retro near RV1a. Vulnerable: only broken retro or only DNA EVEs.'); }
-    else if (step===3){ alert('Small mutations: species with active/intact retro EVEs vs RV1/RV1a may still protect.'); }
+    else if (step===3){ alert('Active/intact retro vs RV1/RV1a may still recognize RV1b.'); }
   }
   function checkStep1(){
     const val = (document.querySelector('input[name="step1-choice"]:checked')||{}).value;
@@ -661,16 +709,17 @@ const AdvancedGame = (() => {
     const vulnBox = document.getElementById('adv-vuln-radios');
     if (!resistBox || !vulnBox) return;
     resistBox.className='species-cards'; vulnBox.className='species-cards';
-    resistBox.innerHTML = SPECIES.map(s => speciesCard(s,'resist')).join('');
-    vulnBox.innerHTML   = SPECIES.map(s => speciesCard(s,'vuln')).join('');
+    const cards2 = (RESHUFFLE_ON_RESET ? orderStep2 : SPECIES).map(s => speciesCard(s));
+    resistBox.innerHTML = cards2.join('');
+    vulnBox.innerHTML   = cards2.join('');
     resistBox.querySelectorAll('.species-card').forEach(el => el.addEventListener('click', ()=>selectCard(resistBox, el)));
     vulnBox.querySelectorAll('.species-card').forEach(el => el.addEventListener('click', ()=>selectCard(vulnBox, el)));
   }
-  function speciesCard(s, group){
+  function speciesCard(s){
     const eves = (CATALOG[s]||[]);
     const chips = eves.map(e => `${chip(e.type, e.type)}${chip(e.state, e.state)}${chip('fam', e.family)}`).join('');
     const notes = eves.map(e => e.id).join(', ') || 'No EVEs';
-    return `<div class="species-card" data-group="${group}" data-species="${s}"><h5>${LABEL[s]}</h5><div class="card-chips">${chips}</div><div class="card-note">${notes}</div></div>`;
+    return `<div class="species-card" data-species="${s}"><h5>${LABEL[s]}</h5><div class="card-chips">${chips}</div><div class="card-note">${notes}</div></div>`;
   }
   function selectCard(col, el){ col.querySelectorAll('.species-card').forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); }
   function checkStep2(){
@@ -685,9 +734,10 @@ const AdvancedGame = (() => {
   function renderStep3(){
     const c = document.getElementById('adv-mutation-checks'); if (!c) return;
     c.className='species-cards';
-    c.innerHTML = SPECIES.map(s => `<div class="species-card" data-species="${s}"><h5>${LABEL[s]}</h5><div class="card-chips">${
+    const cards3 = (RESHUFFLE_ON_RESET ? orderStep3 : SPECIES).map(s => `<div class="species-card" data-species="${s}"><h5>${LABEL[s]}</h5><div class="card-chips">${
       (CATALOG[s]||[]).map(e=>`${chip(e.type,e.type)}${chip(e.state,e.state)}${chip('fam',e.family)}`).join('')
-    }</div></div>`).join('');
+    }</div></div>`);
+    c.innerHTML = cards3.join('');
     c.querySelectorAll('.species-card').forEach(el => el.addEventListener('click', ()=>el.classList.toggle('selected')));
   }
   function checkStep3(){
@@ -712,6 +762,23 @@ const AdvancedGame = (() => {
       }
     }
   }
-  return { init, hint, checkStep1, checkStep2, checkStep3 };
+  // New: full reset and restart
+  function reset(){
+    // clear flags
+    passed = { s1:false, s2:false, s3:false };
+    AdvancedGame._won = false;
+    // (Re)shuffle orders if desired
+    if (RESHUFFLE_ON_RESET){ orderStep2 = shuffled(SPECIES); orderStep3 = shuffled(SPECIES); }
+    // Clear selections and re-render
+    renderStep1(); renderStep2(); renderStep3(); clearFeedback();
+    // Stop timer (kept separate from restart)
+    Timer.stop('adults');
+  }
+  function restart(){
+    reset();
+    Timer.start('adults', 60);
+  }
+
+  return { init, hint, checkStep1, checkStep2, checkStep3, reset, restart };
 })();
 document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('adv-eves-mel')) AdvancedGame.init(); });
