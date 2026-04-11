@@ -361,3 +361,10 @@ textarea,input{background:#fff;color:var(--navy);border:1px solid var(--ash-200)
   .prefer-short-labels .label-long { display:none }
   .prefer-short-labels .label-short { display:inline }
 }
+
+
+/* Ensure anchor targets are visible below the sticky header */
+section, .section { scroll-margin-top: 80px; }
+
+/* Optional: smooth scrolling for in-page links */
+html { scroll-behavior: smooth; }
