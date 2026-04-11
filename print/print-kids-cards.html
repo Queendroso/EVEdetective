@@ -4,54 +4,32 @@
 <meta charset="utf-8" />
 <title>EVE Detective — Kids Cards (Print)</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-
 <style>
-  /* Page setup */
-  @page { size: A4; margin: 10mm; }     /* Change to 'Letter' for US Letter */
-  @media print {
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  }
+  @page { size: A4; margin: 10mm; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .toolbar{ display:none !important } .screen-note{ display:none !important } }
   body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0a1a2f;margin:0;padding:10mm;background:#f6f7fb}
-  h1,h2{font-family:"Playfair Display",Georgia,serif;margin:.2rem 0}
-  .note{color:#4b5563;font-size:.95rem;margin:0 0 8px}
-
-  /* 3×3 grid per sheet */
+  .screen-note{background:#fff7ed;border:1px solid #fed7aa;padding:.6rem;border-radius:.5rem;margin:0 0 8px}
+  .toolbar{display:flex;gap:.5rem;align-items:center;margin:0 0 8px}
   .sheet{display:grid;grid-template-columns:repeat(3, 1fr);gap:8mm;page-break-after:always}
   .sheet:last-of-type{page-break-after:auto}
-
-  /* Poker-size card: 63×88 mm */
   .card{width:63mm;height:88mm;border-radius:4mm;background:#fff;box-shadow:0 0 0 0.5pt #e5e7eb inset;position:relative;overflow:hidden;break-inside:avoid}
-  .card .pad{position:absolute;inset:6mm}
-
+  .pad{position:absolute;inset:6mm}
   .hdr{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3mm}
   .title{font-size:12pt;font-weight:700}
   .species{font-size:10pt;color:#334155}
   .sub{font-size:9pt;color:#64748b}
-
-  /* Legend on backs */
   .legend{display:flex;gap:6px;flex-wrap:wrap;margin-top:3mm}
   .chip{display:inline-flex;gap:4px;align-items:center;border:1px solid #e5e7eb;border-radius:999px;padding:2px 6px;font-size:8.5pt;background:#fff;color:#0f172a}
   .dot{width:9px;height:9px;border-radius:50%}
-
-  /* Colors (aligned to your site) */
   :root{
-    --intact:#16a34a;   /* green */
-    --useful:#ef4444;   /* red */
-    --broken:#6b7280;   /* gray */
-    --unique:#d4a017;   /* gold */
-    --grid:#e5e7eb;
-    --ink:#0a1a2f;
+    --intact:#16a34a; --useful:#ef4444; --broken:#6b7280; --unique:#d4a017;
+    --grid:#e5e7eb; --ink:#0a1a2f;
+    --front-eve-opacity: 0.10; /* tweak live with slider if needed */
   }
-
-  /* Fronts: make EVEs faint so kids need a lens/close look */
-  .front .eve{opacity:.18}      /* adjust to .12–.22 after a test print */
-  .front .grid line{stroke:#eef2f7}
-
-  /* Backs: full contrast answer key */
+  .front .eve{opacity:var(--front-eve-opacity)}
+  .front .grid line{stroke:#f1f5f9}
   .back .eve{opacity:.95}
   .back .grid line{stroke:#e5e7eb}
-
-  /* Crop/cut marks (optional, for home trimming) */
   .cutmarks{position:absolute;inset:0;pointer-events:none}
   .cutmarks svg{position:absolute;inset:-6mm;width:calc(100% + 12mm);height:calc(100% + 12mm)}
   .cutmarks line{stroke:#94a3b8;stroke-width:.2pt;opacity:.7}
@@ -59,176 +37,90 @@
 </head>
 <body>
 
+<div class="screen-note">Tip: Use the slider to make front EVEs fainter or darker before you print. Test one sheet first.</div>
+<div class="toolbar">
+  <label>Front visibility:
+    <input type="range" id="vis" min="4" max="25" value="10" />
+  </label>
+  <button onclick="window.print()">Print</button>
+</div>
+
 <section class="sheet" id="fronts"></section>
 <section class="sheet" id="backs"></section>
 
 <script>
-/*
-  EVE Detective — Kids Cards (front/back)
-  - One card per species
-  - Front: faint EVEs over a soft grid
-  - Back: answer key + legend
-  Adjust positions or add more species below.
-*/
-
+// Same dataset as before (positions are illustrative)
 const speciesData = [
-  {
-    key:'melanogaster', short:'D. mel.', full:'Drosophila melanogaster',
-    region:'piRNA cluster 3R‑TAS',
-    // x,y in a 300×420 logical box
-    intact:[ [40,60],[150,100],[260,70] ],
-    useful:[ [100,180],[210,210] ],
-    broken:[ [70,280],[200,320],[260,260] ],
-    unique:[ [130,60] ]
-  },
-  {
-    key:'simulans', short:'D. sim.', full:'Drosophila simulans',
-    region:'piRNA cluster 2L‑TAS',
-    intact:[ [60,90],[220,120] ],
-    useful:[ [120,220],[250,200] ],
-    broken:[ [80,300],[150,330],[230,290] ],
-    unique:[ [180,70] ]
-  },
-  {
-    key:'yakuba', short:'D. yak.', full:'Drosophila yakuba',
-    region:'Heterochromatin island H3',
-    intact:[ [70,80] ],
-    useful:[ [160,220] ],
-    broken:[ [100,310],[200,300],[240,250] ],
-    unique:[ [220,80] ]
-  },
-  {
-    key:'virilis', short:'D. vir.', full:'Drosophila virilis',
-    region:'piRNA cluster 3L‑TAS',
-    intact:[ [50,110],[200,100] ],
-    useful:[ [140,200] ],
-    broken:[ [90,310],[170,320] ],
-    unique:[ [240,90] ]
-  },
-  {
-    key:'pseudoananassae', short:'D. pse.', full:'Drosophila pseudoananassae',
-    region:'Subtelomeric repeat S1',
-    intact:[ [80,80],[180,110] ],
-    useful:[ [210,210] ],
-    broken:[ [100,300],[220,290] ],
-    unique:[ [140,60] ]
-  }
+  { key:'melanogaster', short:'D. mel.', full:'Drosophila melanogaster', region:'piRNA cluster 3R‑TAS',
+    intact:[[40,60],[150,100],[260,70]], useful:[[100,180],[210,210]], broken:[[70,280],[200,320],[260,260]], unique:[[130,60]] },
+  { key:'simulans', short:'D. sim.', full:'Drosophila simulans', region:'piRNA cluster 2L‑TAS',
+    intact:[[60,90],[220,120]], useful:[[120,220],[250,200]], broken:[[80,300],[150,330],[230,290]], unique:[[180,70]] },
+  { key:'yakuba', short:'D. yak.', full:'Drosophila yakuba', region:'Heterochromatin island H3',
+    intact:[[70,80]], useful:[[160,220]], broken:[[100,310],[200,300],[240,250]], unique:[[220,80]] },
+  { key:'virilis', short:'D. vir.', full:'Drosophila virilis', region:'piRNA cluster 3L‑TAS',
+    intact:[[50,110],[200,100]], useful:[[140,200]], broken:[[90,310],[170,320]], unique:[[240,90]] },
+  { key:'pseudoananassae', short:'D. pse.', full:'Drosophila pseudoananassae', region:'Subtelomeric repeat S1',
+    intact:[[80,80],[180,110]], useful:[[210,210]], broken:[[100,300],[220,290]], unique:[[140,60]] }
 ];
 
-// Drawing helpers
-function gridSVG(w=300,h=420, step=24){
+function gridSVG(w=300,h=420,step=24){
   const lines=[];
   for(let x=0;x<=w;x+=step){ lines.push(`<line x1="${x}" y1="0" x2="${x}" y2="${h}" />`); }
   for(let y=0;y<=h;y+=step){ lines.push(`<line x1="0" y1="${y}" x2="${w}" y2="${y}" />`); }
-  return `<g class="grid">${lines.join('')}</g>`;
+  return `<g class="grid" stroke-width="1">${lines.join('')}</g>`;
 }
 function shape(type,x,y){
-  // Icons: intact=circle(green), useful=diamond(red), broken=cross(gray), unique=star(gold)
-  if(type==='intact'){
-    return `<circle class="eve" cx="${x}" cy="${y}" r="6" fill="var(--intact)" />`;
-  }
-  if(type==='useful'){
-    return `<rect class="eve" x="${x-5}" y="${y-5}" width="10" height="10" fill="var(--useful)" transform="rotate(45 ${x} ${y})" rx="1" />`;
-  }
-  if(type==='broken'){
-    return `<g class="eve" stroke="var(--broken)" stroke-width="2">
-      <line x1="${x-6}" y1="${y-6}" x2="${x+6}" y2="${y+6}" />
-      <line x1="${x-6}" y1="${y+6}" x2="${x+6}" y2="${y-6}" />
-    </g>`;
-  }
-  // five-point star
+  if(type==='intact') return `<circle class="eve" cx="${x}" cy="${y}" r="6" fill="var(--intact)" />`;
+  if(type==='useful') return `<rect class="eve" x="${x-5}" y="${y-5}" width="10" height="10" fill="var(--useful)" transform="rotate(45 ${x} ${y})" rx="1" />`;
+  if(type==='broken') return `<g class="eve" stroke="var(--broken)" stroke-width="2"><line x1="${x-6}" y1="${y-6}" x2="${x+6}" y2="${y+6}" /><line x1="${x-6}" y1="${y+6}" x2="${x+6}" y2="${y-6}" /></g>`;
   if(type==='unique'){
-    const r=7, k=0.381966; // golden ratio-ish
-    let pts=[];
-    for(let i=0;i<10;i++){
-      const ang = -Math.PI/2 + i*(Math.PI/5);
-      const rad = (i%2===0)? r : r*k;
-      pts.push([x+rad*Math.cos(ang), y+rad*Math.sin(ang)]);
-    }
+    const r=7,k=0.381966; let pts=[];
+    for(let i=0;i<10;i++){ const ang=-Math.PI/2+i*(Math.PI/5); const rad=(i%2===0)?r:r*k; pts.push([x+rad*Math.cos(ang),y+rad*Math.sin(ang)]); }
     return `<polygon class="eve" points="${pts.map(p=>p.join(',')).join(' ')}" fill="var(--unique)" />`;
   }
   return '';
 }
-function cardFront(data){
-  const {short, full, region} = data;
-  // Build faint icons
+function cardFace(data,mode){
   const parts=[];
-  for(const t of ['intact','useful','broken','unique']){
-    (data[t]||[]).forEach(([x,y]) => parts.push(shape(t,x,y)));
-  }
+  for(const t of ['intact','useful','broken','unique']) (data[t]||[]).forEach(([x,y])=>parts.push(shape(t,x,y)));
   return `
-    <div class="card front">
-      <div class="pad">
-        <div class="hdr">
-          <div class="title">Find the EVEs</div>
-          <div class="species">${short}</div>
-        </div>
-        <div class="sub">${full} — ${region}</div>
-        <svg viewBox="0 0 300 420" width="100%" height="100%">
-          ${gridSVG()}
-          ${parts.join('')}
-        </svg>
+  <div class="card ${mode}">
+    <div class="pad">
+      <div class="hdr">
+        <div class="title">${mode==='front'?'Find the EVEs':'Answer Key'}</div>
+        <div class="species">${data.short}</div>
       </div>
-      <div class="cutmarks" aria-hidden="true">
-        <svg>
-          <line x1="6mm" y1="0" x2="6mm" y2="4mm" />
-          <line x1="0" y1="6mm" x2="4mm" y2="6mm" />
-          <line x1="calc(100% - 6mm)" y1="0" x2="calc(100% - 6mm)" y2="4mm" />
-          <line x1="calc(100% - 0)" y1="6mm" x2="calc(100% - 4mm)" y2="6mm" />
-          <line x1="6mm" y1="calc(100% - 0)" x2="6mm" y2="calc(100% - 4mm)" />
-          <line x1="0" y1="calc(100% - 6mm)" x2="4mm" y2="calc(100% - 6mm)" />
-          <line x1="calc(100% - 6mm)" y1="calc(100% - 0)" x2="calc(100% - 6mm)" y2="calc(100% - 4mm)" />
-          <line x1="calc(100% - 0)" y1="calc(100% - 6mm)" x2="calc(100% - 4mm)" y2="calc(100% - 6mm)" />
-        </svg>
-      </div>
-    </div>`;
+      <div class="sub">${data.full} — ${data.region}</div>
+      <svg viewBox="0 0 300 420" width="100%" height="100%">${gridSVG()}${parts.join('')}</svg>
+      ${mode==='back'?`<div class="legend">
+        <span class="chip"><span class="dot" style="background:var(--intact)"></span> Intact</span>
+        <span class="chip"><span class="dot" style="background:var(--useful)"></span> Useful</span>
+        <span class="chip"><span class="dot" style="background:var(--broken)"></span> Broken</span>
+        <span class="chip"><span class="dot" style="background:var(--unique)"></span> Unique</span>
+      </div>`:''}
+    </div>
+    <div class="cutmarks" aria-hidden="true">
+      <svg>
+        <line x1="6mm" y1="0" x2="6mm" y2="4mm" />
+        <line x1="0" y1="6mm" x2="4mm" y2="6mm" />
+        <line x1="calc(100% - 6mm)" y1="0" x2="calc(100% - 6mm)" y2="4mm" />
+        <line x1="calc(100% - 0)" y1="6mm" x2="calc(100% - 4mm)" y2="6mm" />
+        <line x1="6mm" y1="calc(100% - 0)" x2="6mm" y2="calc(100% - 4mm)" />
+        <line x1="0" y1="calc(100% - 6mm)" x2="4mm" y2="calc(100% - 6mm)" />
+        <line x1="calc(100% - 6mm)" y1="calc(100% - 0)" x2="calc(100% - 6mm)" y2="calc(100% - 4mm)" />
+        <line x1="calc(100% - 0)" y1="calc(100% - 6mm)" x2="calc(100% - 4mm)" y2="calc(100% - 6mm)" />
+      </svg>
+    </div>
+  </div>`;
 }
-function cardBack(data){
-  const {short, full, region} = data;
-  const parts=[];
-  for(const t of ['intact','useful','broken','unique']){
-    (data[t]||[]).forEach(([x,y]) => parts.push(shape(t,x,y)));
-  }
-  return `
-    <div class="card back">
-      <div class="pad">
-        <div class="hdr">
-          <div class="title">Answer Key</div>
-          <div class="species">${short}</div>
-        </div>
-        <div class="sub">${full} — ${region}</div>
-        <svg viewBox="0 0 300 420" width="100%" height="100%">
-          ${gridSVG()}
-          ${parts.join('')}
-        </svg>
-        <div class="legend">
-          <span class="chip"><span class="dot" style="background:var(--intact)"></span> Intact</span>
-          <span class="chip"><span class="dot" style="background:var(--useful)"></span> Useful</span>
-          <span class="chip"><span class="dot" style="background:var(--broken)"></span> Broken</span>
-          <span class="chip"><span class="dot" style="background:var(--unique)"></span> Unique</span>
-        </div>
-      </div>
-      <div class="cutmarks" aria-hidden="true">
-        <svg>
-          <line x1="6mm" y1="0" x2="6mm" y2="4mm" />
-          <line x1="0" y1="6mm" x2="4mm" y2="6mm" />
-          <line x1="calc(100% - 6mm)" y1="0" x2="calc(100% - 6mm)" y2="4mm" />
-          <line x1="calc(100% - 0)" y1="6mm" x2="calc(100% - 4mm)" y2="6mm" />
-          <line x1="6mm" y1="calc(100% - 0)" x2="6mm" y2="calc(100% - 4mm)" />
-          <line x1="0" y1="calc(100% - 6mm)" x2="4mm" y2="calc(100% - 6mm)" />
-          <line x1="calc(100% - 6mm)" y1="calc(100% - 0)" x2="calc(100% - 6mm)" y2="calc(100% - 4mm)" />
-          <line x1="calc(100% - 0)" y1="calc(100% - 6mm)" x2="calc(100% - 4mm)" y2="calc(100% - 6mm)" />
-        </svg>
-      </div>
-    </div>`;
-}
+document.getElementById('fronts').innerHTML = speciesData.map(s=>cardFace(s,'front')).join('');
+document.getElementById('backs').innerHTML  = speciesData.map(s=>cardFace(s,'back')).join('');
 
-// Render
-const fronts = document.getElementById('fronts');
-const backs  = document.getElementById('backs');
-fronts.innerHTML = speciesData.map(cardFront).join('');
-backs.innerHTML  = speciesData.map(cardBack).join('');
-
+// Live adjust front visibility
+const vis = document.getElementById('vis');
+vis.addEventListener('input', () => {
+  document.documentElement.style.setProperty('--front-eve-opacity', (vis.value/100).toFixed(2));
+});
 </script>
 </body>
 </html>
