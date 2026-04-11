@@ -1,4 +1,6 @@
-// ---------------- Nav toggle ----------------
+// ---------------------------------
+// Nav toggle + close on anchor tap
+// ---------------------------------
 const toggle = document.querySelector('.nav-toggle');
 const nav = document.querySelector('.nav');
 if (toggle) {
@@ -8,6 +10,15 @@ if (toggle) {
     nav.classList.toggle('is-open');
   });
 }
+// Close mobile nav when clicking any in-page anchor link
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', () => {
+    if (nav && nav.classList.contains('is-open')) {
+      nav.classList.remove('is-open');
+      toggle?.setAttribute('aria-expanded','false');
+    }
+  });
+});
 
 // ---------------- Tabs ----------------
 const tabs = document.querySelectorAll('.tab');
@@ -25,50 +36,131 @@ tabs.forEach(tab => {
   });
 });
 
-// ---------------- Progress / badges ----------------
-const GATE_BADGE_DOWNLOADS = true;
-const STATE_KEY = 'eveDetectiveProgress';
-function getState(){
-  try { return JSON.parse(localStorage.getItem(STATE_KEY)) || { kids:false, teens:false, adults:false, champion:false }; }
-  catch { return { kids:false, teens:false, adults:false, champion:false }; }
+// ---------------- Achievements (badges) ----------------
+// Small toast for bottom notifications (needs a <div id="achv-toast"> in HTML)
+function achvToast(msg){
+  const el = document.getElementById('achv-toast');
+  if(!el) { alert(msg); return; }
+  el.textContent = msg;
+  el.classList.remove('show');
+  void el.offsetWidth; // restart CSS animation
+  el.classList.add('show');
 }
-function setState(s){
-  if (s.kids && s.teens && s.adults) s.champion = true;
-  localStorage.setItem(STATE_KEY, JSON.stringify(s));
-  renderProgress();
-}
-function renderProgress(){
-  const s = getState();
-  const done = ['kids','teens','adults'].filter(k => s[k]).length;
-  const pct = (done/3)*100;
-  const bar = document.getElementById('progress-bar');
-  if (bar) bar.style.width = pct + '%';
-  document.querySelectorAll('.badge').forEach(b => {
-    const key = b.getAttribute('data-badge');
-    const btn = b.querySelector('button');
-    if (key === 'champion') {
-      b.classList.add('badge-champion');
-      b.classList.toggle('unlocked', s.champion);
-      b.style.opacity = s.champion ? 1 : 0.7;
-      if (btn && GATE_BADGE_DOWNLOADS) btn.disabled = !s.champion;
-      if (btn) btn.setAttribute('aria-disabled', btn && btn.disabled ? 'true' : 'false');
-    } else {
-      b.style.opacity = s[key] ? 1 : 0.95;
-      if (btn && GATE_BADGE_DOWNLOADS) btn.disabled = !s[key];
-      if (btn) btn.setAttribute('aria-disabled', btn && btn.disabled ? 'true' : 'false');
-    }
-  });
-}
-renderProgress();
 
-function toast(msg, parent){
-  const w = parent || document.body;
-  const t = document.createElement('div');
-  t.className = 'toast';
-  t.textContent = msg;
-  w.appendChild(t);
-  setTimeout(()=>{ t.remove(); }, 1800);
-}
+(function(){
+  const STORAGE_KEY = 'eveDetective.achievements.v1';
+  // Preferred filenames (with hyphen); fallback to “space” variants if needed
+  const BADGE_FILES = {
+    kids:     ['assets/Beginner-sticker.jpeg',     'assets/Beginner sticker.jpeg'],
+    teens:    ['assets/Intermediate-sticker.jpeg', 'assets/Intermediate sticker.jpeg'],
+    adults:   ['assets/Advanced-sticker.jpeg',     'assets/Advanced sticker.jpeg'],
+    champion: ['assets/Champion-sticker.jpeg',     'assets/Champion sticker.jpeg']
+  };
+
+  const Achievements = {
+    state: { kids:false, teens:false, adults:false },
+    load(){
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(raw){
+          const p = JSON.parse(raw);
+          this.state = { kids:!!p.kids, teens:!!p.teens, adults:!!p.adults };
+        }
+      }catch(_){}
+    },
+    save(){
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+    },
+    isUnlocked(level){
+      if(level==='champion') return (this.state.kids && this.state.teens && this.state.adults);
+      return !!this.state[level];
+    },
+    markComplete(level){
+      if(!['kids','teens','adults'].includes(level)) return;
+      if(!this.state[level]){
+        this.state[level] = true;
+        this.save();
+        this.render();
+        achvToast(`Unlocked: ${level.charAt(0).toUpperCase()+level.slice(1)} badge!`);
+      }
+    },
+    async _fetchFirstOk(urls){
+      for (const u of urls){
+        try{
+          const res = await fetch(u, { cache:'no-store' });
+          if (res.ok) return await res.blob();
+        }catch(_){}
+      }
+      throw new Error('not-found');
+    },
+    async download(level){
+      if(!['kids','teens','adults','champion'].includes(level)) return;
+      if(!this.isUnlocked(level)){
+        achvToast(`Play the ${level} challenge to unlock this sticker.`);
+        return;
+      }
+      const candidates = BADGE_FILES[level] || [];
+      try{
+        const blob = await this._fetchFirstOk(candidates);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const nice = level === 'kids' ? 'Kids' : level === 'teens' ? 'Teens' : level === 'adults' ? 'Adults' : 'Champion';
+        a.href = url; a.download = `EVE-Detective-${nice}-Sticker.jpeg`;
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      }catch(_){
+        // Fallback: open first candidate in new tab
+        const a = document.createElement('a');
+        a.href = candidates[0] || '#';
+        a.target = '_blank'; a.rel = 'noopener';
+        document.body.appendChild(a); a.click(); a.remove();
+      }
+    },
+    render(){
+      // Update lock visuals and buttons
+      ['kids','teens','adults','champion'].forEach(level => {
+        const card = document.querySelector(`.badge[data-badge="${level}"]`);
+        if(!card) return;
+        const btn = card.querySelector('button');
+        const unlocked = this.isUnlocked(level);
+        if(level === 'champion'){
+          card.classList.toggle('unlocked', unlocked);
+          card.style.opacity = unlocked ? 1 : 0.7;
+          if (btn) btn.disabled = !unlocked;
+          if (btn) btn.setAttribute('aria-disabled', btn.disabled ? 'true' : 'false');
+        } else {
+          card.classList.toggle('locked', !unlocked);
+          card.classList.toggle('unlocked', unlocked);
+          card.style.opacity = unlocked ? 1 : 0.95;
+          if (btn) btn.disabled = !unlocked;
+          if (btn) btn.setAttribute('aria-disabled', btn.disabled ? 'true' : 'false');
+        }
+      });
+      // Progress
+      const done = ['kids','teens','adults'].filter(k => this.state[k]).length;
+      const pct = Math.round((done/3)*100);
+      const bar = document.getElementById('progress-bar');
+      if (bar) bar.style.width = pct + '%';
+    }
+  };
+
+  // Expose globally for games and buttons
+  window.Achievements = Achievements;
+  window.downloadBadge = (level) => Achievements.download(level);
+  window.shareProgress = async function(){
+    const s = Achievements.state;
+    const earned = ['kids','teens','adults'].filter(k => s[k]).length;
+    const text = (earned===3) ? 'I earned all EVE Detective badges and unlocked Champion!' : `I earned ${earned}/3 EVE Detective badges!`;
+    const url = window.location.href;
+    if (navigator.share) { try { await navigator.share({ title:'EVE Detective', text, url }); } catch(_){} }
+    else { await navigator.clipboard?.writeText(`${text} ${url}`); achvToast('Progress copied to clipboard!'); }
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    Achievements.load();
+    Achievements.render();
+  });
+})();
 
 // ---------- Confetti + Claps + Sound ----------
 function confettiBurst(){
@@ -118,58 +210,6 @@ function playChime(){
   }catch(e){}
 }
 
-// ---------------- Sticker downloads ----------------
-window.downloadBadge = async function(key){
-  const fileMap = {
-    kids:     ['assets/Beginner-sticker.jpeg',     'assets/Beginner sticker.jpeg'],
-    teens:    ['assets/Intermediate-sticker.jpeg', 'assets/Intermediate sticker.jpeg'],
-    adults:   ['assets/Advanced-sticker.jpeg',     'assets/Advanced sticker.jpeg'],
-    champion: ['assets/Champion-sticker.jpeg',     'assets/Champion sticker.jpeg']
-  };
-  const nameMap = {
-    kids:     'Kids — EVE Detective.jpeg',
-    teens:    'Teens — EVE Evolution Expert.jpeg',
-    adults:   'Adults — Viral Immunity Expert.jpeg',
-    champion: 'Champion — EVE Champion.jpeg'
-  };
-  if (GATE_BADGE_DOWNLOADS) {
-    const s = getState();
-    if (key === 'champion' && !s.champion) { alert('Unlock Champion by earning all three badges first.'); return; }
-    if (['kids','teens','adults'].includes(key) && !s[key]) { alert('Complete this level to unlock the sticker.'); return; }
-  }
-  const candidates = fileMap[key];
-  if (!candidates) return;
-  try{
-    const blob = await fetchFirstOk(candidates);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = nameMap[key] || 'sticker.jpeg';
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
-  }catch(e){
-    window.open(candidates[0], '_blank');
-  }
-};
-async function fetchFirstOk(candidates){
-  for (const url of candidates){
-    try{
-      const res = await fetch(url, { cache:'no-store' });
-      if (res.ok) return await res.blob();
-    }catch(e){}
-  }
-  throw new Error('Not found');
-}
-
-// ---------------- Share ----------------
-window.shareProgress = async function(){
-  const s = getState();
-  const earned = ['kids','teens','adults'].filter(k => s[k]).length;
-  const text = s.champion ? 'I earned all EVE Detective badges and unlocked Champion!' : `I earned ${earned}/3 EVE Detective badges!`;
-  const url = window.location.href;
-  if (navigator.share) { try { await navigator.share({ title:'EVE Detective', text, url }); } catch(e){} }
-  else { await navigator.clipboard.writeText(`${text} ${url}`); alert('Progress link copied to clipboard!'); }
-};
-
 // ---------------- Timer ----------------
 const Timer = (() => {
   let timers = {};
@@ -212,6 +252,16 @@ const Timer = (() => {
   }
   return { start, stop, timeLeft };
 })();
+
+// ---------------- Toast helper for in-game messages ----------------
+function toast(msg, parent){
+  const w = parent || document.body;
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  w.appendChild(t);
+  setTimeout(()=>{ t.remove(); }, 1800);
+}
 
 // ---------------- Beginner (Kids) — Magnifier ----------------
 const KidsGame = (() => {
@@ -258,7 +308,12 @@ const KidsGame = (() => {
     if (hit>=0){ const key=`${current}:${hit}`; if (!found.has(key)){
       found.add(key); toast(foundMessage(cfg.eves[hit].type), wrap); drawOverlay(); updateCounts();
       if (foundCountForCurrent()>=cfg.eves.length){
-        const s=getState(); if(!s.kids){ s.kids=true; setState(s); toast('Beginner badge unlocked!', wrap); confettiBurst(); claps(); playChime(); }
+        if (!KidsGame._won){
+          KidsGame._won = true;
+          window.Achievements?.markComplete('kids');
+          toast('Beginner badge unlocked!', wrap);
+          confettiBurst(); claps(); playChime();
+        }
       }
     }} else { toast('No EVE here—keep scanning!', wrap); }
   }
@@ -281,7 +336,7 @@ const KidsGame = (() => {
   function updateCounts(){ const cfg=speciesConfigs[current], f=document.getElementById('kids-found'), t=document.getElementById('kids-total');
     if (f) f.textContent=`Found: ${foundCountForCurrent()}`; if (t) t.textContent=`of ${cfg.eves.length} EVEs`; }
   function foundCountForCurrent(){ let c=0; const cfg=speciesConfigs[current]; cfg.eves.forEach((_,i)=>{ if(found.has(`${current}:${i}`)) c++; }); return c; }
-  function giveHint(){ /* optional pulse lens implementation in prior version */ }
+  function giveHint(){ /* optional visual hint */ }
   function reset(){ Array.from(found).forEach(k=>{ if(k.startsWith(current+':')) found.delete(k); }); drawOverlay(); updateCounts(); }
   function loadSpecies(name){ current=name; const reg=document.getElementById('kids-region'); if(reg) reg.textContent=''; resize(); updateCounts(); }
   function toggleReveal(on){ revealAll=!!on; drawOverlay(); }
@@ -309,7 +364,7 @@ const IntermediateGame = (() => {
   };
   const EVE_ORDER = ['E1','E2','E3','E4','E5','E6','E7','E8'];
 
-  // Gold solution: ((mel,sim),yak),(vir,pseudo)
+  // Gold solution: Pair A (mel+sim), Pair B (vir+pse), Outgroup yak
   const GOLD = {
     pairA: new Set(['melanogaster','simulans']),
     pairB: new Set(['virilis','pseudoananassae']),
@@ -485,15 +540,18 @@ const IntermediateGame = (() => {
     const steps = document.getElementById('build-steps');
 
     const newick = `((${A.join(',')}),(${B.join(',')}),${O})`;
-    txt.textContent = newick + ';';
+    if (txt) txt.textContent = newick + ';';
     drawTree(newick);
 
     if (okA && okB && okO){
       toast('Excellent! Your tree matches the EVE evidence.');
-      const s = getState(); if (!s.teens){ s.teens = true; setState(s); toast('Intermediate badge unlocked!'); }
-      if (Timer.timeLeft('teens')>0){ confettiBurst(); claps(); playChime(); }
-      Timer.stop('teens');
-      steps.textContent = `Pairs: {${A.join(', ')}} and {${B.join(', ')}}, Outgroup: ${O}`;
+      if (!IntermediateGame._won){
+        IntermediateGame._won = true;
+        window.Achievements?.markComplete('teens');
+        if (Timer.timeLeft('teens')>0){ confettiBurst(); claps(); playChime(); }
+        Timer.stop('teens');
+      }
+      if (steps) steps.textContent = `Pairs: {${A.join(', ')}} and {${B.join(', ')}}, Outgroup: ${O}`;
     } else {
       alert('Not quite. Hint: (D. mel. + D. sim.) are closest; (D. vir. + D. pse.) are next; D. yak. is the outgroup.');
     }
@@ -645,9 +703,13 @@ const AdvancedGame = (() => {
   }
   function maybeUnlock(){
     if (passed.s1 && passed.s2 && passed.s3){
-      const s = getState();
-      if (!s.adults){ s.adults = true; setState(s); toast('Advanced badge unlocked!'); if (Timer.timeLeft('adults')>0){ confettiBurst(); claps(); playChime(); } }
-      Timer.stop('adults');
+      if (!AdvancedGame._won){
+        AdvancedGame._won = true;
+        window.Achievements?.markComplete('adults');
+        toast('Advanced badge unlocked!');
+        if (Timer.timeLeft('adults')>0){ confettiBurst(); claps(); playChime(); }
+        Timer.stop('adults');
+      }
     }
   }
   return { init, hint, checkStep1, checkStep2, checkStep3 };
