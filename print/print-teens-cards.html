@@ -5,44 +5,30 @@
 <title>EVE Detective — Teens Cards (Print)</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-  /* Page setup */
-  @page { size: A4; margin: 10mm; }
-  @media print {
-    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .screen-note { display:none !important; }
-  }
+  /* Landscape for the Mat page to avoid overflow */
+  @page { size: A4 landscape; margin: 10mm; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .screen-note{ display:none !important } .toolbar{ display:none !important } }
   body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0a1a2f;margin:0;padding:10mm;background:#f6f7fb}
-  h1,h2{font-family:"Playfair Display",Georgia,serif;margin:.2rem 0}
-  .screen-note{background:#fff7ed;border:1px solid #fed7aa;padding:.6rem;border-radius:.5rem;margin:0 0 8px;font-size:.95rem}
+  .screen-note{background:#eef2ff;border:1px solid #c7d2fe;padding:.6rem;border-radius:.5rem;margin:0 0 8px}
+  .toolbar{display:flex;gap:.5rem;align-items:center;margin:0 0 8px}
   .sheet{display:grid;grid-template-columns:repeat(3,1fr);gap:8mm;page-break-after:always}
+  .sheet.full{grid-template-columns:1fr}
   .sheet:last-of-type{page-break-after:auto}
 
-  /* Poker-size card: 63×88 mm */
   .card{width:63mm;height:88mm;border-radius:4mm;background:#fff;box-shadow:0 0 0 0.5pt #e5e7eb inset;position:relative;overflow:hidden;break-inside:avoid}
   .pad{position:absolute;inset:6mm}
-
   .hdr{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3mm}
   .title{font-size:12pt;font-weight:700}
   .species{font-size:10pt;color:#334155}
   .sub{font-size:9pt;color:#64748b}
 
-  /* Legend */
-  .legend{display:flex;gap:6px;flex-wrap:wrap;margin-top:3mm}
+  :root{
+    --intact:#16a34a; --useful:#ef4444; --broken:#6b7280; --unique:#d4a017; --ink:#0a1a2f;
+  }
   .chip{display:inline-flex;gap:4px;align-items:center;border:1px solid #e5e7eb;border-radius:999px;padding:2px 6px;font-size:8.5pt;background:#fff;color:#0f172a}
   .dot{width:9px;height:9px;border-radius:50%}
 
-  /* Colors */
-  :root{
-    --intact:#16a34a;   /* green */
-    --useful:#ef4444;   /* red */
-    --broken:#6b7280;   /* gray */
-    --unique:#d4a017;   /* gold */
-    --ink:#0a1a2f;
-    --grid:#e5e7eb;
-    --barBg:#e5e7eb;
-  }
-
-  /* Barcode styling */
+  /* Barcode visuals */
   .barcode .bg rect{fill:#eef2f7}
   .barcode .bar{rx:2}
   .front .barcode .bar.missing{fill:#dbe4ee;opacity:.55}
@@ -50,34 +36,33 @@
   .front .barcode .bar.has.useful{fill:var(--useful)}
   .front .barcode .bar.has.broken{fill:var(--broken)}
   .front .barcode .bar.has.unique{fill:var(--unique)}
-
   .back .barcode .bar.missing{fill:#e5e7eb;opacity:.45}
   .back .barcode .bar.has.intact{fill:var(--intact)}
   .back .barcode .bar.has.useful{fill:var(--useful)}
   .back .barcode .bar.has.broken{fill:var(--broken)}
   .back .barcode .bar.has.unique{fill:var(--unique)}
 
-  /* Mat page (A4) */
-  .mat{width:100%;height:260mm;border-radius:6mm;background:#fff;box-shadow:0 0 0 0.8pt #e5e7eb inset;position:relative;break-inside:avoid;padding:10mm}
+  /* Landscape Mat (single page) */
+  .mat{width:100%;height:160mm;border-radius:6mm;background:#fff;box-shadow:0 0 0 0.8pt #e5e7eb inset;position:relative;break-inside:avoid;padding:10mm}
   .mat h2{margin:0 0 4mm}
-  .mat .row{display:flex;gap:10mm;margin:6mm 0;flex-wrap:wrap}
+  .mat .row{display:flex;gap:10mm;margin:8mm 0;flex-wrap:wrap}
   .slot{
-    width:70mm;height:96mm;border:2pt dashed #94a3b8;border-radius:6mm;display:flex;align-items:center;justify-content:center;
+    height:96mm;border:2pt dashed #94a3b8;border-radius:6mm;display:flex;align-items:center;justify-content:center;
     color:#334155;background:repeating-linear-gradient(45deg,#f8fafc,#f8fafc 6mm,#f1f5f9 6mm,#f1f5f9 12mm);
+    text-align:center;padding:4mm
   }
+  .slot.two{width:140mm} /* fits two 63×88 mm cards side-by-side */
+  .slot.one{width:70mm}
   .slot small{display:block;color:#64748b;margin-top:2mm}
-  .mat .hint{color:#475569;font-size:10.5pt;margin-top:2mm}
-
-  /* Cut marks (for manual trimming if needed) */
-  .cutmarks{position:absolute;inset:0;pointer-events:none}
-  .cutmarks svg{position:absolute;inset:-6mm;width:calc(100% + 12mm);height:calc(100% + 12mm)}
-  .cutmarks line{stroke:#94a3b8;stroke-width:.2pt;opacity:.7}
 </style>
 </head>
 <body>
 
 <div class="screen-note">
-  Printing: Page 1 = fronts, Page 2 = backs (same order). For duplex printing, use “Flip on long edge”. Page 3 is the Tree Mat (print single‑sided). Page 4 is the Answer Key.
+  Printing: Page 1 = Fronts, Page 2 = Backs (same order). Use duplex “Flip on long edge” or print pages separately. Page 3 = Tree Mat (landscape). Page 4 = How to Play & Answers.
+</div>
+<div class="toolbar">
+  <button onclick="window.print()">Print</button>
 </div>
 
 <!-- Page 1: Fronts -->
@@ -86,86 +71,24 @@
 <!-- Page 2: Backs -->
 <section class="sheet" id="backs"></section>
 
-<!-- Page 3: Tree Mat -->
-<section class="sheet" id="mat-sheet">
+<!-- Page 3: Landscape Tree Mat -->
+<section class="sheet full">
   <div class="mat">
     <h2>Family Tree Mat</h2>
-    <p class="hint">Compare barcode cards to find the closest relatives. Place the closest pair in Pair A, the next closest in Pair B, and the odd one out in Outgroup.</p>
+    <p class="sub">Compare barcode cards to find closest relatives. Place two cards in each Pair box; put the odd one in Outgroup.</p>
     <div class="row">
-      <div class="slot"><div><strong>Pair A</strong><small>(closest)</small></div></div>
-      <div class="slot"><div><strong>Pair B</strong><small>(next closest)</small></div></div>
-      <div class="slot"><div><strong>Outgroup</strong><small>(oldest)</small></div></div>
-    </div>
-    <p class="hint">Tip: matching colors in the bars = shared EVEs → recent common ancestry.</p>
-    <div class="cutmarks" aria-hidden="true">
-      <svg>
-        <line x1="6mm" y1="0" x2="6mm" y2="4mm" />
-        <line x1="0" y1="6mm" x2="4mm" y2="6mm" />
-        <line x1="calc(100% - 6mm)" y1="0" x2="calc(100% - 6mm)" y2="4mm" />
-        <line x1="calc(100% - 0)" y1="6mm" x2="calc(100% - 4mm)" y2="6mm" />
-        <line x1="6mm" y1="calc(100% - 0)" x2="6mm" y2="calc(100% - 4mm)" />
-        <line x1="0" y1="calc(100% - 6mm)" x2="4mm" y2="calc(100% - 6mm)" />
-        <line x1="calc(100% - 6mm)" y1="calc(100% - 0)" x2="calc(100% - 6mm)" y2="calc(100% - 4mm)" />
-        <line x1="calc(100% - 0)" y1="calc(100% - 6mm)" x2="calc(100% - 4mm)" y2="calc(100% - 6mm)" />
-      </svg>
+      <div class="slot two"><div><strong>Pair A</strong><small>(closest — most matching bars)</small></div></div>
+      <div class="slot two"><div><strong>Pair B</strong><small>(next closest)</small></div></div>
+      <div class="slot one"><div><strong>Outgroup</strong><small>(oldest)</small></div></div>
     </div>
   </div>
 </section>
 
-<!-- Page 4: Answer Key -->
-<section class="sheet" id="answers">
-  <div class="card" style="grid-column: span 3; width:auto; height:auto">
-    <div class="pad">
-      <div class="hdr">
-        <div class="title">Answer Key</div>
-        <div class="species">Teens — Family Tree</div>
-      </div>
-      <div class="sub">Correct placement and tree</div>
-      <div style="margin-top:4mm">
-        <strong>Pairs:</strong> {melanogaster, simulans} and {pseudoananassae, virilis}<br>
-        <strong>Outgroup:</strong> yakuba
-      </div>
-      <svg viewBox="0 0 520 200" width="100%" height="auto" style="margin-top:6mm">
-        <g stroke="#334155" stroke-width="3" fill="none">
-          <!-- Tree scaffold -->
-          <line x1="80" y1="40" x2="80" y2="160" />
-          <line x1="80" y1="60" x2="240" y2="60" />
-          <line x1="80" y1="140" x2="240" y2="140" />
-          <!-- Pair A split -->
-          <line x1="240" y1="60" x2="300" y2="40" />
-          <line x1="240" y1="60" x2="300" y2="80" />
-          <!-- Pair B split -->
-          <line x1="240" y1="140" x2="300" y2="120" />
-          <line x1="240" y1="140" x2="300" y2="160" />
-        </g>
-        <g font-family="Inter,Arial,sans-serif" font-size="13" fill="#0a1a2f" stroke="#fff" stroke-width="3" paint-order="stroke">
-          <text x="315" y="45">D. mel.</text>
-          <text x="315" y="85">D. sim.</text>
-          <text x="315" y="125">D. pse.</text>
-          <text x="315" y="165">D. vir.</text>
-          <text x="40" y="100">D. yak.</text>
-        </g>
-      </svg>
-      <div style="margin-top:4mm" class="legend">
-        <span class="chip"><span class="dot" style="background:var(--intact)"></span> Intact</span>
-        <span class="chip"><span class="dot" style="background:var(--useful)"></span> Useful</span>
-        <span class="chip"><span class="dot" style="background:var(--broken)"></span> Broken</span>
-        <span class="chip"><span class="dot" style="background:var(--unique)"></span> Unique</span>
-      </div>
-    </div>
-  </div>
-</section>
+<!-- Page 4: How to Play + Answers -->
+<section class="sheet" id="answers"></section>
 
 <script>
-/*
-  EVE Detective — Teens (Family Tree) cards
-  - Front: species + barcode (colored bars)
-  - Back: species + barcode + legend
-  - Dataset tuned so mel~sim are closest; pse~vir next; yak outgroup.
-*/
-
 const BAR_COUNT = 12;
-
 const speciesData = [
   { key:'melanogaster', short:'D. mel.', full:'Drosophila melanogaster',
     intact:[1,5,9], useful:[3,7], broken:[10,11], unique:[2] },
@@ -179,96 +102,7 @@ const speciesData = [
     intact:[5], useful:[7,8], broken:[1,2,10], unique:[0] }
 ];
 
-// Build a per-index map to a class
 function buildBarClasses(sp){
   const cls = Array(BAR_COUNT).fill('missing');
-  const order = ['unique','broken','intact','useful']; // later ones can override earlier if same index
-  for(const t of order){
-    (sp[t]||[]).forEach(i => { if (i>=0 && i<BAR_COUNT) cls[i] = 'has ' + t; });
-  }
-  return cls;
-}
-
-// Draw the barcode as SVG bars
-function barcodeSVG(classes){
-  const W=260, H=100, pad=6, gap=4;
-  const bw = (W - pad*2 - gap*(BAR_COUNT-1)) / BAR_COUNT;
-  const rects=[];
-  for(let i=0;i<BAR_COUNT;i++){
-    const x = pad + i*(bw+gap);
-    rects.push(`<rect class="bar ${classes[i]}" x="${x.toFixed(2)}" y="${pad}" width="${bw.toFixed(2)}" height="${H-pad*2}" />`);
-  }
-  return `<svg class="barcode" viewBox="0 0 ${W} ${H}" width="100%" height="auto">
-    <g class="bg"><rect x="0" y="0" width="${W}" height="${H}" rx="8"/></g>
-    ${rects.join('')}
-  </svg>`;
-}
-
-function cardFront(sp){
-  const cls = buildBarClasses(sp);
-  return `
-    <div class="card front">
-      <div class="pad">
-        <div class="hdr">
-          <div class="title">Compare Barcodes</div>
-          <div class="species">${sp.short}</div>
-        </div>
-        <div class="sub">${sp.full}</div>
-        ${barcodeSVG(cls)}
-        <div class="sub" style="margin-top:3mm">Match colors = shared EVEs</div>
-      </div>
-      <div class="cutmarks" aria-hidden="true">
-        <svg>
-          <line x1="6mm" y1="0" x2="6mm" y2="4mm" />
-          <line x1="0" y1="6mm" x2="4mm" y2="6mm" />
-          <line x1="calc(100% - 6mm)" y1="0" x2="calc(100% - 6mm)" y2="4mm" />
-          <line x1="calc(100% - 0)" y1="6mm" x2="calc(100% - 4mm)" y2="6mm" />
-          <line x1="6mm" y1="calc(100% - 0)" x2="6mm" y2="calc(100% - 4mm)" />
-          <line x1="0" y1="calc(100% - 6mm)" x2="4mm" y2="calc(100% - 6mm)" />
-          <line x1="calc(100% - 6mm)" y1="calc(100% - 0)" x2="calc(100% - 6mm)" y2="calc(100% - 4mm)" />
-          <line x1="calc(100% - 0)" y1="calc(100% - 6mm)" x2="calc(100% - 4mm)" y2="calc(100% - 6mm)" />
-        </svg>
-      </div>
-    </div>`;
-}
-
-function cardBack(sp){
-  const cls = buildBarClasses(sp);
-  return `
-    <div class="card back">
-      <div class="pad">
-        <div class="hdr">
-          <div class="title">Answer Hints</div>
-          <div class="species">${sp.short}</div>
-        </div>
-        <div class="sub">${sp.full}</div>
-        ${barcodeSVG(cls)}
-        <div class="legend">
-          <span class="chip"><span class="dot" style="background:var(--intact)"></span> Intact</span>
-          <span class="chip"><span class="dot" style="background:var(--useful)"></span> Useful</span>
-          <span class="chip"><span class="dot" style="background:var(--broken)"></span> Broken</span>
-          <span class="chip"><span class="dot" style="background:var(--unique)"></span> Unique</span>
-        </div>
-      </div>
-      <div class="cutmarks" aria-hidden="true">
-        <svg>
-          <line x1="6mm" y1="0" x2="6mm" y2="4mm" />
-          <line x1="0" y1="6mm" x2="4mm" y2="6mm" />
-          <line x1="calc(100% - 6mm)" y1="0" x2="calc(100% - 6mm)" y2="4mm" />
-          <line x1="calc(100% - 0)" y1="6mm" x2="calc(100% - 4mm)" y2="6mm" />
-          <line x1="6mm" y1="calc(100% - 0)" x2="6mm" y2="calc(100% - 4mm)" />
-          <line x1="0" y1="calc(100% - 6mm)" x2="4mm" y2="calc(100% - 6mm)" />
-          <line x1="calc(100% - 6mm)" y1="calc(100% - 0)" x2="calc(100% - 6mm)" y2="calc(100% - 4mm)" />
-          <line x1="calc(100% - 0)" y1="calc(100% - 6mm)" x2="calc(100% - 4mm)" y2="calc(100% - 6mm)" />
-        </svg>
-      </div>
-    </div>`;
-}
-
-// Render
-document.getElementById('fronts').innerHTML = speciesData.map(cardFront).join('');
-document.getElementById('backs').innerHTML  = speciesData.map(cardBack).join('');
-</script>
-
-</body>
-</html>
+  const order = ['unique','broken','intact','useful'];
+  for(const t of order){ (sp[t]||[]).forEach(i => { if (i>=0 && i<BAR_COUNT) cls[i]
