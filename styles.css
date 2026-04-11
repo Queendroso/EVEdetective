@@ -450,3 +450,11 @@ html { scroll-behavior:smooth }
 }
 #achv-toast.show { display:block; animation:fadeout 2.2s ease 0s 1 forwards }
 @keyframes fadeout { 0%{opacity:1} 80%{opacity:1} 100%{opacity:0} }
+
+/* Kids: one-time pulse for the “Next species” button */
+.pulse-once { animation: pulseOnce .8s ease-in-out 1 }
+@keyframes pulseOnce {
+  0%   { transform: scale(1) }
+  40%  { transform: scale(1.06) }
+  100% { transform: scale(1) }
+}
