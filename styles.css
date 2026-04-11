@@ -368,3 +368,64 @@ section, .section { scroll-margin-top: 80px; }
 
 /* Optional: smooth scrolling for in-page links */
 html { scroll-behavior: smooth; }
+
+/* Learn → Glossary cards */
+.glossary-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:1rem;
+  margin-top:.75rem;
+}
+.glossary-card {
+  background:#fff;
+  border:1px solid var(--ash-200, #e5e9ef);
+  border-radius:.75rem;
+  padding:1rem;
+}
+.glossary-card h4 { margin:.25rem 0 .5rem; }
+.glossary-card p { margin:.25rem 0; color:var(--muted, #4a5568) }
+
+/* Learn → Research papers list */
+.paper-list {
+  display:grid;
+  grid-template-columns:1fr;
+  gap:.6rem;
+  margin:.75rem 0 0 0;
+  padding:0; list-style:none;
+}
+.paper {
+  background:#fff;
+  border:1px solid var(--ash-200, #e5e9ef);
+  border-radius:.65rem;
+  padding:.75rem;
+}
+.paper a.title {
+  color:var(--navy, #0a1a2f);
+  font-weight:700;
+  text-decoration:none;
+}
+.paper a.title:hover { text-decoration:underline }
+.paper .meta {
+  display:flex; flex-wrap:wrap; gap:.5rem;
+  color:var(--muted, #4a5568);
+  font-size:.9rem; margin-top:.25rem;
+}
+.badge-oa {
+  display:inline-block; padding:.1rem .4rem; border-radius:.4rem;
+  background:#e6f4ef; color:#065f46; border:1px solid #b7e4cf; font-size:.75rem;
+}
+
+/* Team → contact row inside a card */
+.contact-row {
+  display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; margin-top:.4rem;
+}
+.chip-link {
+  display:inline-flex; align-items:center; gap:.35rem;
+  padding:.25rem .55rem; border-radius:999px; border:1px solid var(--ash-200, #e5e9ef);
+  background:#fff; color:var(--navy, #0a1a2f); text-decoration:none; font-weight:600;
+}
+.chip-link:hover { border-color:var(--green, #0e8a68); color:var(--green, #0e8a68) }
+
+/* Prevent sticky header from hiding section headings when using anchor links */
+section, .section { scroll-margin-top: 80px; }
+html { scroll-behavior:smooth }
