@@ -1040,3 +1040,107 @@ if (typeof AdvancedGame !== 'undefined' && !AdvancedGame.togglePortfolios) {
     };
   }
 })();
+
+// ==================== FIX: PREVENT DOWNLOADING UNLOCKED BADGES ====================
+(function fixBadgeDownloads() {
+  // Store which badges are actually earned
+  let earnedBadges = {
+    kids: false,
+    teens: false,
+    adults: false
+  };
+  
+  // Load earned status from localStorage
+  try {
+    const saved = localStorage.getItem('eve_earned_badges');
+    if (saved) earnedBadges = JSON.parse(saved);
+  } catch(e) {}
+  
+  // Save function
+  function saveEarned() {
+    localStorage.setItem('eve_earned_badges', JSON.stringify(earnedBadges));
+  }
+  
+  // Mark a badge as earned (call this when player completes a level)
+  window.markBadgeEarned = function(level) {
+    if (earnedBadges[level] === false) {
+      earnedBadges[level] = true;
+      saveEarned();
+      // Also update the achievements system
+      if (typeof Achievements !== 'undefined' && Achievements.markComplete) {
+        Achievements.markComplete(level);
+      }
+    }
+  };
+  
+  // Check if badge can be downloaded
+  window.canDownloadBadge = function(level) {
+    return earnedBadges[level] === true;
+  };
+  
+  // Override the downloadBadge function to check if earned
+  if (typeof window.downloadBadge === 'function') {
+    const originalDownload = window.downloadBadge;
+    window.downloadBadge = function(level) {
+      if (!canDownloadBadge(level)) {
+        alert(`You need to complete the ${level} challenge first before downloading this badge!`);
+        return;
+      }
+      return originalDownload(level);
+    };
+  }
+  
+  // Also fix the button click handlers
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('#achievements .badge button').forEach(btn => {
+      const badgeLevel = btn.closest('.badge')?.getAttribute('data-badge');
+      if (badgeLevel) {
+        btn.addEventListener('click', function(e) {
+          if (!canDownloadBadge(badgeLevel)) {
+            e.preventDefault();
+            e.stopPropagation();
+            alert(`Complete the ${badgeLevel} challenge first to unlock this badge!`);
+            return false;
+          }
+        });
+      }
+    });
+  });
+  
+  // Hook into game completions
+  // For Kids game completion
+  if (typeof KidsGame !== 'undefined') {
+    const originalKidsComplete = KidsGame.next;
+    // This will be called when all species are completed
+    setTimeout(function() {
+      if (window.Achievements && window.Achievements.state && window.Achievements.state.kids) {
+        markBadgeEarned('kids');
+      }
+    }, 100);
+  }
+  
+  // For Teens game completion  
+  if (typeof IntermediateGame !== 'undefined') {
+    const originalCheckTree = IntermediateGame.checkTree;
+    // Will be marked when checkTree succeeds
+  }
+  
+  // For Adults game completion
+  if (typeof AdvancedGame !== 'undefined') {
+    const originalMaybeUnlock = AdvancedGame.maybeUnlock;
+    // Will be marked when all steps complete
+  }
+})();
+
+// Hook into existing achievement system
+(function hookAchievements() {
+  if (typeof Achievements !== 'undefined' && Achievements.markComplete) {
+    const originalMarkComplete = Achievements.markComplete;
+    Achievements.markComplete = function(level) {
+      originalMarkComplete.call(this, level);
+      if (typeof window.markBadgeEarned === 'function') {
+        window.markBadgeEarned(level);
+      }
+    };
+  }
+})();
