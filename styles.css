@@ -260,6 +260,12 @@ html{scroll-behavior:smooth}
 .size-controls input[type="range"]{width:min(320px,60vw)}
 .size-controls .val{min-width:3.5rem;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
 
+/* Timer bars for teens and adults */
+.timer-wrap{display:flex;align-items:center;gap:.5rem;margin:.5rem 0;padding:.5rem;background:var(--ash);border-radius:.5rem;border:1px solid var(--ash-200)}
+.timer-bar{flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden}
+.timer-fill{height:100%;background:linear-gradient(90deg,var(--green),#34d399);transition:width 1s linear;border-radius:4px}
+.tleft{font-family:ui-monospace,monospace;min-width:45px;color:var(--navy);font-weight:600}
+
 /* Make sure tiny EVEs print crisply with visible edge */
 @media print{
   .eve-dot,.micro-eve,.print-eve{ box-shadow:0 0 0 .2pt rgba(0,0,0,.35) inset; }
@@ -274,6 +280,6 @@ html{scroll-behavior:smooth}
   .nav-toggle{display:inline-flex;gap:.25rem;align-items:center;background:#fff;color:var(--navy);border:1px solid var(--ash-200);border-radius:.5rem;padding:.4rem .6rem}
 }
 
-/* Kids: “Next species” pulse */
+/* Kids: "Next species" pulse */
 .pulse-once{animation:pulseOnce .8s ease-in-out 1}
 @keyframes pulseOnce{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
