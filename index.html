@@ -10,14 +10,16 @@
   <link rel="icon" href="assets/eve_logo.webp" type="image/webp" />
   <link rel="stylesheet" href="styles.css" />
 
+  <!-- Inline fixes: Kids legend colours + Team layout -->
   <style id="elm-fixes">
     :root{
-      --eve-intact:#16a34a;
-      --eve-broken:#111827;
-      --eve-useful:#ef4444;
-      --eve-unique:#f59e0b;
-      --eve-size:12px;
+      --eve-intact:#16a34a;   /* green */
+      --eve-broken:#111827;   /* grey/black */
+      --eve-useful:#ef4444;   /* red */
+      --eve-unique:#f59e0b;   /* golden */
     }
+
+    /* Kids legend chips colouring (uses your existing .chip classes) */
     .kids-legend .chip{
       --c:#9ca3af;
       display:inline-flex; align-items:center; gap:.35rem;
@@ -29,21 +31,80 @@
       background:var(--c); box-shadow:0 0 0 1px rgba(0,0,0,.15) inset;
     }
     .kids-legend .chip-intact { --c:var(--eve-intact); background:rgba(22,163,74,.12); border-color:rgba(22,163,74,.35); }
-    .kids-legend .chip-broken { --c:var(--eve-broken); background:rgba(17,24,39,.25); border-color:rgba(17,24,39,.50); }
-    .kids-legend .chip-useful { --c:var(--eve-useful); background:rgba(239,68,68,.18); border-color:rgba(239,68,68,.45); }
+    .kids-legend .chip-broken { --c:var(--eve-broken); background:rgba(17,24,39,.25); border-color:rgba(17,24,39,.50); color:#fff; }
+    .kids-legend .chip-useful { --c:var(--eve-useful); background:rgba(239,68,68,.18); border-color:rgba(239,68,68,.45); color:#fff; }
     .kids-legend .chip-unique { --c:var(--eve-unique); background:rgba(245,158,11,.18); border-color:rgba(245,158,11,.45); }
+
+    /* Team section layout fix: show cards in columns (not single vertical line) */
     #team .card-grid {
       display:grid !important;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap:1rem;
       align-items:stretch;
     }
-    .timer-wrap{display:flex;align-items:center;gap:.5rem;margin:.5rem 0;padding:.5rem;background:#f3f6f9;border-radius:.5rem;border:1px solid #e5e9ef}
-    .timer-bar{flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden}
-    .timer-fill{height:100%;background:linear-gradient(90deg,#0e8a68,#34d399);transition:width 1s linear;width:100%}
-    .tleft{font-family:ui-monospace,monospace;min-width:45px;color:#0a1a2f;font-weight:600}
+    #team .team-card { display:flex; flex-direction:column; gap:.5rem; min-width:0; }
+    #team .team-avatar { width:72px; height:72px; border-radius:50%; object-fit:cover; }
+    #team .contact-row { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.25rem; }
+    #team .contact-row .chip-link { word-break:break-word; }
   </style>
 </head>
+  <script>
+/* EVE size slider binding — supports very tiny dots for hand lens */
+(function(){
+  function $(s, r=document){ return r.querySelector(s); }
+  function $all(s, r=document){ return Array.from(r.querySelectorAll(s)); }
+
+  function findSlider(){
+    return $('#eveSize') ||
+           $('#eve-size') ||
+           document.querySelector('input[type="range"].eve-size') ||
+           document.querySelector('input[type="range"][name="eve-size"]') ||
+           document.querySelector('input[type="range"][data-eve-size]');
+  }
+
+  function applySize(px, scopeEl){
+    const pxClamped = Math.max(1, Math.min(40, Number(px)||12)); // allow 1–40 px
+    (scopeEl || document.documentElement).style.setProperty('--eve-size', pxClamped + 'px');
+
+    // If there are SVG circles representing EVEs, update their radius
+    $all('circle.eve-dot, circle.micro-eve, circle.print-eve', scopeEl || document).forEach(c => {
+      c.setAttribute('r', (pxClamped/2).toString());
+      // Optional: keep a thin outline visible at tiny sizes
+      c.setAttribute('stroke', 'rgba(0,0,0,.35)');
+      c.setAttribute('stroke-width', Math.max(0.2, pxClamped*0.05));
+    });
+
+    // Update any live readout
+    const out = $('#eveSizeVal');
+    if (out) out.textContent = pxClamped + ' px';
+    // Persist (optional)
+    try { localStorage.setItem('eve.size.px', String(pxClamped)); } catch(_){}
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const slider = findSlider();
+    if (!slider) return;
+
+    const scopeSel = slider.getAttribute('data-scope'); // e.g., "#print-root"
+    const scopeEl = scopeSel ? document.querySelector(scopeSel) : null;
+
+    // Init from localStorage or slider default
+    let start = Number(localStorage.getItem('eve.size.px'));
+    if (!start || Number.isNaN(start)) start = Number(slider.value || 12);
+    applySize(start, scopeEl);
+
+    // Ensure slider min/max reasonable for micro EVEs
+    if (!slider.hasAttribute('min')) slider.min = '1';
+    if (!slider.hasAttribute('max')) slider.max = '40';
+    if (!slider.hasAttribute('step')) slider.step = '1';
+    slider.value = String(start);
+
+    const onInput = e => applySize(e.target.value, scopeEl);
+    slider.addEventListener('input', onInput);
+    slider.addEventListener('change', onInput);
+  });
+})();
+</script>
 <body>
   <header class="site-header">
     <a class="brand" href="#home">
@@ -65,11 +126,15 @@
   </header>
 
   <main id="home">
+    <!-- Hero -->
     <section class="hero" aria-label="Hero">
       <div class="hero-bg" role="img" aria-label="Drosophila and DNA helix"></div>
       <div class="hero-content container">
         <h1 class="display">Uncover the Viral Fossils Hidden in Your DNA</h1>
-        <p class="lede">Join Captain DetectEVE on an interactive journey through the ancient viruses embedded in our genomes.</p>
+        <p class="lede">
+          Join Captain DetectEVE on an interactive journey through the ancient viruses embedded in our genomes.
+          Discover how fruit flies help us understand evolution, immunity, and the hidden history written in our DNA.
+        </p>
         <div class="hero-cta">
           <a class="btn btn-primary" href="#explore">Start Exploring</a>
           <a class="btn" href="#about">Learn More</a>
@@ -77,33 +142,84 @@
       </div>
     </section>
 
+    <!-- About -->
     <section id="about" class="section container">
       <h2 class="section-title">Drosophila and Endogenous Viral Elements (EVEs)</h2>
       <div class="card-grid">
-        <article class="card"><div class="card-icon" aria-hidden="true">🧬</div><h3>What Are Viral Fossils?</h3><p>Endogenous Viral Elements (EVEs) are ancient viral DNA sequences that became part of a host's genome.</p></article>
-        <article class="card"><div class="card-icon" aria-hidden="true">8%</div><h3>8% of Human DNA</h3><p>About 8% of the human genome consists of viral remnants from ancient infections.</p></article>
-        <article class="card"><div class="card-icon" aria-hidden="true">🪰</div><h3>Fruit Flies as Detectives</h3><p>Drosophila melanogaster shares many genes with humans, revealing health insights.</p></article>
-        <article class="card"><div class="card-icon" aria-hidden="true">🛡️</div><h3>Ancient Immunity</h3><p>Some EVEs are repurposed to help fight new viruses.</p></article>
+        <article class="card">
+          <div class="card-icon" aria-hidden="true">🧬</div>
+          <h3>What Are Viral Fossils?</h3>
+          <p>Endogenous Viral Elements (EVEs) are ancient viral DNA sequences that became part of a host’s genome. They’re like fossils written in our genetic code.</p>
+        </article>
+        <article class="card">
+          <div class="card-icon" aria-hidden="true">8%</div>
+          <h3>8% of Human DNA</h3>
+          <p>About 8% of the human genome consists of viral remnants from infections our ancestors survived millions of years ago.</p>
+        </article>
+        <article class="card">
+          <div class="card-icon" aria-hidden="true">🪰</div>
+          <h3>Fruit Flies as Detectives</h3>
+          <p>Drosophila melanogaster shares many genes with humans, revealing health insights through fly genetics.</p>
+        </article>
+        <article class="card">
+          <div class="card-icon" aria-hidden="true">🛡️</div>
+          <h3>Ancient Immunity</h3>
+          <p>Some EVEs are repurposed to help fight new viruses — like wanted posters that help immune systems recognise threats.</p>
+        </article>
       </div>
-    </section>
-
-    <section id="explore" class="section section-alt">
-      <div class="container">
-        <h2 class="section-title">Explore</h2>
-        <div class="card-grid">
-          <article class="card"><h3>Video Loop</h3><p>Watch the cinematic journey from ancient viral infections to modern immunity.</p><p><a class="btn btn-primary" href="#video">Watch Now</a></p></article>
-          <article class="card"><h3>Immunity Challenges</h3><p>Test your knowledge! Compare EVEs across species and predict immunity.</p><p><a class="btn" href="#challenges">Take Challenge</a></p></article>
-          <article class="card"><h3>Earn Your Badges</h3><p>Complete challenges and unlock achievement badges.</p><p><a class="btn" href="#achievements">See Badges</a></p></article>
+      <div class="about-exhibit">
+        <div>
+          <h3>Explore the Exhibit</h3>
+          <p>Dive into interactive lessons, watch the journey of viral integration, and discover how scientists use fruit flies to read the viral history written in DNA.</p>
         </div>
       </div>
     </section>
 
+    <!-- CTA -->
+    <section class="section section-alt">
+      <div class="container cta">
+        <h2 class="section-title">Ready to Become an EVE Detective?</h2>
+        <p>Start your journey through the hidden viral history written in DNA. Explore, learn, and earn your achievement badges today!</p>
+        <a class="btn btn-primary" href="#explore">Begin Your Adventure</a>
+      </div>
+    </section>
+
+    <!-- Explore -->
+    <section id="explore" class="section section-alt">
+      <div class="container">
+        <h2 class="section-title">Explore</h2>
+        <div class="card-grid">
+          <article class="card">
+            <img class="card-media" src="assets/eve_definition_intro.jpeg" alt="EVE definition timeline over a DNA helix" />
+            <h3>Video Loop</h3>
+            <p>Watch a 120‑second cinematic journey from ancient viral infections to modern immunity.</p>
+            <p><a class="btn btn-primary" href="#video">Watch Now</a></p>
+          </article>
+          <article class="card">
+            <img class="card-media" src="assets/hero_background.webp" alt="Drosophila and glowing DNA background" />
+            <h3>Immunity Challenges</h3>
+            <p>Test your knowledge! Compare EVEs across species and predict immunity.</p>
+            <p><a class="btn" href="#challenges">Take Challenge</a></p>
+          </article>
+          <article class="card">
+            <img class="card-media" src="assets/eve_logo.webp" alt="EVE Detective badge" />
+            <h3>Earn Your Badges</h3>
+            <p>Complete challenges at different levels and unlock achievement badges.</p>
+            <p><a class="btn" href="#achievements">See Badges</a></p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- Video -->
     <section id="video" class="section container">
       <h2 class="section-title">Watch the 120‑second Video Loop</h2>
       <figure class="video-wrap">
-        <video controls preload="metadata">
+        <video id="eveVideo" controls preload="metadata" poster="assets/eve_definition_intro.webp">
           <source src="assets/video/eve_loop.mp4" type="video/mp4" />
+          Your browser does not support the video tag.
         </video>
+        <figcaption>From ancient integrations to modern immunity — narrated by Captain DetectEVE.</figcaption>
       </figure>
     </section>
 
@@ -119,95 +235,195 @@
           <button role="tab" aria-selected="false" aria-controls="adults" id="tab-adults" class="tab">Advanced (Adults)</button>
         </div>
 
-        <!-- Kids Panel -->
+        <!-- Kids -->
         <div id="kids" role="tabpanel" aria-labelledby="tab-kids" class="panel is-active">
           <h3>Beginner Level: Detective Droso!</h3>
-          <p>Use the magnifying lens to find and click on EVEs hidden in the DNA.</p>
-          
-          <!-- Size slider for kids - FIXED -->
-          <div class="size-controls">
-            <label>🔍 EVE Size: <input type="range" id="kidsEveSize" min="2" max="24" step="1" value="12"></label>
-            <span id="kidsSizeVal" class="val">12 px</span>
-            <span class="muted">(Make tiny for hand lens!)</span>
-          </div>
+          <p>Your mission: search for the EVEs hidden in DNA. Use the lens to reveal and click to collect.</p>
 
           <div class="kids-controls">
-            <label>Species: <select id="species-select">
-              <option value="melanogaster">Drosophila melanogaster</option>
-              <option value="simulans">Drosophila simulans</option>
-              <option value="yakuba">Drosophila yakuba</option>
-              <option value="virilis">Drosophila virilis</option>
-              <option value="pseudoananassae">Drosophila pseudoananassae</option>
-            </select></label>
-            <button class="btn small" id="kids-next">Next species →</button>
-            <span id="kids-species-progress">Species complete: 0/5</span>
+            <label>
+              Species:
+              <select id="species-select" onchange="KidsGame.loadSpecies(this.value)">
+                <option value="melanogaster">Drosophila melanogaster</option>
+                <option value="simulans">Drosophila simulans</option>
+                <option value="yakuba">Drosophila yakuba</option>
+                <option value="virilis">Drosophila virilis</option>
+                <option value="pseudoananassae">Drosophila pseudoananassae</option>
+              </select>
+            </label>
+            <button class="btn small" id="kids-next" onclick="KidsGame.next()">Next species →</button>
+            <span id="kids-species-progress" class="kids-region">Species complete: 0/5</span>
+            <span id="kids-region" class="kids-region" style="margin-left:auto">Genomic Region: piRNA cluster 3R‑TAS (telomere‑associated sequence)</span>
           </div>
 
           <div class="kids-legend">
-            <span class="chip chip-intact">Intact EVE (green)</span>
-            <span class="chip chip-useful">Useful EVE (red)</span>
-            <span class="chip chip-broken">Broken EVE (grey)</span>
-            <span class="chip chip-unique">Unique EVE (gold)</span>
+            <span class="chip chip-intact" title="Intact EVE">Intact EVE</span>
+            <span class="chip chip-useful" title="Useful EVE">Useful EVE</span>
+            <span class="chip chip-broken" title="Broken/Degraded EVE">Broken EVE</span>
+            <span class="chip chip-unique" title="Unique EVE">Unique EVE</span>
           </div>
 
+          <div class="kids-hint">
+            <strong>🔍 Hint:</strong> Intact (green), Useful (red), Broken (grey), Unique (gold) — viral fossils from ancient infections.
+          </div>
+
+          <pre class="dna-seq" aria-hidden="true">TACGTAGCTAGCATCGATCGTACGTAGCTAGCATCGATGTACGTAGCTAGCATCGATCGTACGTAGCTAGCATCGATCGTACGTAGCTAGCATCGATCGTACGTAGCTAGCATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGATCGA</pre>
+
           <div id="kids-game" class="game-wrap">
-            <canvas id="bg-canvas" class="game-bg"></canvas>
+            <canvas id="bg-canvas" class="game-bg" aria-hidden="true"></canvas>
             <canvas id="eve-overlay" class="eve-overlay"></canvas>
-            <div id="lens-ring" class="lens-ring"></div>
+            <div id="lens-ring" class="lens-ring" aria-hidden="true"></div>
           </div>
 
           <div class="kids-bar">
-            <div><span id="kids-found">Found: 0</span> / <span id="kids-total">0</span> EVEs</div>
-            <div>
-              <button class="btn small" id="kids-reset">Reset Species</button>
-              <label><input type="checkbox" id="reveal-toggle"> Reveal all</label>
+            <div class="kids-status">
+              <span id="kids-found">Found: 0</span>
+              <span id="kids-total">of 0 EVEs</span>
+            </div>
+            <div class="kids-actions">
+              <button class="btn" onclick="KidsGame.giveHint()">Hint</button>
+              <button class="btn" onclick="KidsGame.reset()">Reset</button>
+              <label class="toggle">
+                <input type="checkbox" id="reveal-toggle" onchange="KidsGame.toggleReveal(this.checked)" />
+                <span>Reveal all (accessibility)</span>
+              </label>
             </div>
           </div>
         </div>
 
-        <!-- Teens Panel -->
+        <!-- Teens -->
         <div id="teens" role="tabpanel" aria-labelledby="tab-teens" class="panel">
           <h3>Intermediate Level: Create the EVE Family Tree!</h3>
-          <div class="timer-wrap"><div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div><strong class="tleft">60s</strong><button class="btn small" id="teens-start">Start 60s</button><button class="btn small" id="teens-restart">Restart</button></div>
-          <div id="matrix" class="matrix" hidden></div>
-          <div id="inspect-grid" class="inspect-grid"></div>
-          <div class="drag-builder">
-            <div class="drop-zone"><h5>Pair A (closest)</h5><div class="slot" data-slot="A1"></div><div class="slot" data-slot="A2"></div></div>
-            <div class="drop-zone"><h5>Pair B (next closest)</h5><div class="slot" data-slot="B1"></div><div class="slot" data-slot="B2"></div></div>
-            <div class="drop-zone"><h5>Outgroup</h5><div class="slot" data-slot="O"></div></div>
+          <p>Flip “barcode” cards, compare shared EVEs, then drag species into the tree. Shared EVEs = common ancestry.</p>
+
+          <div class="timer-wrap">
+            <div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div>
+            <strong class="tleft">60s</strong>
+            <button class="btn small" onclick="Timer.start('teens', 60)">Start 60s</button>
+            <button class="btn small" onclick="IntermediateGame.clearDrops()">Restart</button>
+            <button class="btn small" onclick="IntermediateGame.toggleMatrix()">Show/Hide Matrix</button>
+            <button class="btn small" onclick="IntermediateGame.showHints()">Hints</button>
           </div>
-          <div id="species-deck" class="deck"></div>
-          <button class="btn btn-primary" id="check-tree">Build & Check Tree</button>
-          <div id="tree-svg" class="tree-svg"></div>
+
+          <div id="matrix" class="matrix" hidden aria-live="polite"></div>
+          <p class="muted">Darker cells = more shared EVEs.</p>
+
+          <h4>Step A — Inspect and Compare</h4>
+          <div class="inspect-controls">
+            <label class="toggle">
+              <input type="checkbox" id="short-labels" checked onchange="IntermediateGame.setShort(this.checked)" />
+              <span>Short labels</span>
+            </label>
+            <button class="btn small" onclick="IntermediateGame.toggleCompare()">Toggle Compare Mode</button>
+          </div>
+          <div id="inspect-grid" class="inspect-grid" aria-live="polite"></div>
+          <p class="muted">In Compare mode, pick two cards — shared EVEs glow on both.</p>
+
+          <h4>Step B — Drag into the tree</h4>
+          <div class="drag-builder">
+            <div class="drop-zone" data-zone="pairA">
+              <h5>Pair A (closest)</h5>
+              <div class="slot" data-slot="A1"></div>
+              <div class="slot" data-slot="A2"></div>
+            </div>
+            <div class="drop-zone" data-zone="pairB">
+              <h5>Pair B (next closest)</h5>
+              <div class="slot" data-slot="B1"></div>
+              <div class="slot" data-slot="B2"></div>
+            </div>
+            <div class="drop-zone" data-zone="out">
+              <h5>Outgroup (oldest)</h5>
+              <div class="slot" data-slot="O"></div>
+            </div>
+          </div>
+
+          <h5>Species deck</h5>
+          <div id="species-deck" class="deck" aria-label="Draggable species"></div>
+
+          <div class="build-actions">
+            <button class="btn" onclick="IntermediateGame.clearDrops()">Clear slots</button>
+            <button class="btn btn-primary" onclick="IntermediateGame.checkTree()">Build & Check Tree</button>
+          </div>
+
+          <div class="tree-wrap">
+            <h4>Your tree</h4>
+            <div id="your-tree" class="tree">No merges yet</div>
+            <div id="tree-svg" class="tree-svg" role="img" aria-label="Your phylogenetic tree"></div>
+            <div id="build-steps" class="muted" style="margin-top:.25rem"></div>
+          </div>
+
+          <div class="kids-legend" style="margin-top:.75rem">
+            <span class="chip chip-intact" title="Intact EVE">Intact</span>
+            <span class="chip chip-useful" title="Useful EVE (piRNAs)">Useful</span>
+            <span class="chip chip-broken" title="Broken/Degraded EVE">Broken</span>
+            <span class="chip chip-unique" title="Unique EVE">Unique</span>
+          </div>
         </div>
 
-        <!-- Adults Panel - FIXED with proper card format -->
+        <!-- Adults -->
         <div id="adults" role="tabpanel" aria-labelledby="tab-adults" class="panel">
           <h3>Advanced Level: Antiviral Immunity Challenge</h3>
-          <div class="timer-wrap"><div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div><strong class="tleft">60s</strong><button class="btn small" id="adults-start">Start 60s</button><button class="btn small" id="adults-reset">Reset</button></div>
+          <p>Match EVE type/state to an invading virus to predict protection. Useful/Intact retro EVEs can protect; broken/silent do not.</p>
 
-          <div class="adv-step">
-            <h4>Step 1 — Which EVE helps fight RV1?</h4>
-            <div id="adv-eves-mel" class="eves-list"></div>
-            <button class="btn btn-primary" id="step1-check">Check Step 1</button>
-            <p id="adv-feedback-1" class="feedback"></p>
+          <div class="timer-wrap">
+            <div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div>
+            <strong class="tleft">60s</strong>
+            <button class="btn small" onclick="Timer.start('adults', 60)">Start 60s</button>
+            <button class="btn small" onclick="AdvancedGame.restart()">Restart 60s</button>
+            <button class="btn small" onclick="AdvancedGame.reset()">Reset</button>
           </div>
 
           <div class="adv-step">
-            <h4>Step 2 — Most resistant & most vulnerable to RV1a</h4>
-            <div class="adv-grid">
-              <div><strong>Most resistant</strong><div id="adv-resist-radios" class="radio-col"></div></div>
-              <div><strong>Most vulnerable</strong><div id="adv-vuln-radios" class="radio-col"></div></div>
+            <h4>Step 1 — Exact match (retrovirus “RV1” infects D. melanogaster)</h4>
+            <p>Which EVE helps the fly fight the virus, and why?</p>
+            <div id="adv-eves-mel" class="eves-list" aria-live="polite"></div>
+            <div class="build-actions">
+              <button class="btn small" onclick="AdvancedGame.hint(1)">Hint</button>
+              <button class="btn btn-primary" onclick="AdvancedGame.checkStep1()">Check</button>
             </div>
-            <button class="btn btn-primary" id="step2-check">Check Step 2</button>
-            <p id="adv-feedback-2" class="feedback"></p>
+            <p id="adv-feedback-1" class="feedback" aria-live="polite"></p>
           </div>
 
           <div class="adv-step">
-            <h4>Step 3 — Which species resist mutated RV1b?</h4>
-            <div id="adv-mutation-checks" class="check-col"></div>
-            <button class="btn btn-primary" id="step3-check">Check Step 3</button>
-            <p id="adv-feedback-3" class="feedback"></p>
+            <h4>Step 2 — Same ancestor (new retrovirus “RV1a”)</h4>
+            <p>Select the most resistant and the most vulnerable species.</p>
+            <div class="adv-grid" id="adv-step2" aria-live="polite">
+              <div>
+                <strong>Most resistant</strong>
+                <div class="radio-col" id="adv-resist-radios"></div>
+              </div>
+              <div>
+                <strong>Most vulnerable</strong>
+                <div class="radio-col" id="adv-vuln-radios"></div>
+              </div>
+            </div>
+            <div class="build-actions">
+              <button class="btn small" onclick="AdvancedGame.hint(2)">Hint</button>
+              <button class="btn btn-primary" onclick="AdvancedGame.checkStep2()">Check</button>
+            </div>
+            <p id="adv-feedback-2" class="feedback" aria-live="polite"></p>
+          </div>
+
+          <div class="adv-step">
+            <h4>Step 3 — Mutated variant (retrovirus “RV1b”)</h4>
+            <p>Which species might still have protection? (Select all that apply.)</p>
+            <div class="adv-grid" id="adv-step3" aria-live="polite">
+              <div class="check-col" id="adv-mutation-checks"></div>
+            </div>
+            <div class="build-actions">
+              <button class="btn small" onclick="AdvancedGame.hint(3)">Hint</button>
+              <button class="btn btn-primary" onclick="AdvancedGame.checkStep3()">Check</button>
+            </div>
+            <p id="adv-feedback-3" class="feedback" aria-live="polite"></p>
+          </div>
+
+          <div class="adv-portfolios">
+            <button class="btn" onclick="AdvancedGame.togglePortfolios()">Show/Hide species EVE portfolios</button>
+            <div id="adv-portfolios" class="portfolio-wrap" hidden aria-live="polite"></div>
+          </div>
+
+          <div class="build-actions">
+            <button class="btn" onclick="AdvancedGame.reset()">Reset</button>
           </div>
         </div>
       </div>
@@ -216,591 +432,327 @@
     <!-- Achievements -->
     <section id="achievements" class="section container">
       <h2 class="section-title">My Achievements</h2>
+      <p class="lede">Unlock badges as you complete challenges. Earn Champion by playing all three.</p>
       <div class="badges">
-        <div class="badge locked" data-badge="kids"><img class="sticker" src="assets/Beginner-sticker.jpeg" /><div><strong>Kids Badge</strong><button class="btn small" data-badge-dl="kids">Download</button></div></div>
-        <div class="badge locked" data-badge="teens"><img class="sticker" src="assets/Intermediate-sticker.jpeg" /><div><strong>Teens Badge</strong><button class="btn small" data-badge-dl="teens">Download</button></div></div>
-        <div class="badge locked" data-badge="adults"><img class="sticker" src="assets/Advanced-sticker.jpeg" /><div><strong>Adults Badge</strong><button class="btn small" data-badge-dl="adults">Download</button></div></div>
-        <div class="badge badge-champion" data-badge="champion"><img class="sticker" src="assets/Champion-sticker.jpeg" /><div><strong>Champion Badge</strong><button class="btn small" data-badge-dl="champion">Download</button></div></div>
+        <div class="badge locked" data-badge="kids">
+          <img class="sticker" src="assets/Beginner-sticker.jpeg" alt="Kids badge sticker" />
+          <div>
+            <strong>Kids — EVE Detective</strong>
+            <p>Complete the Kids challenge.</p>
+            <button class="btn small" onclick="downloadBadge('kids')">Download Sticker</button>
+          </div>
+        </div>
+        <div class="badge locked" data-badge="teens">
+          <img class="sticker" src="assets/Intermediate-sticker.jpeg" alt="Teens badge sticker" />
+          <div>
+            <strong>Teens — EVE Evolution Expert</strong>
+            <p>Complete the Teens challenge.</p>
+            <button class="btn small" onclick="downloadBadge('teens')">Download Sticker</button>
+          </div>
+        </div>
+        <div class="badge locked" data-badge="adults">
+          <img class="sticker" src="assets/Advanced-sticker.jpeg" alt="Adults badge sticker" />
+          <div>
+            <strong>Adults — Viral Immunity Expert</strong>
+            <p>Complete the Adults challenge.</p>
+            <button class="btn small" onclick="downloadBadge('adults')">Download Sticker</button>
+          </div>
+        </div>
+        <div class="badge badge-champion" data-badge="champion" aria-live="polite">
+          <img class="sticker" src="assets/Champion-sticker.jpeg" alt="Champion badge sticker" />
+          <div>
+            <strong>Champion — EVE Champion</strong>
+            <p>Unlocked automatically when you have all three badges.</p>
+            <button class="btn small" onclick="downloadBadge('champion')">Download Sticker</button>
+          </div>
+        </div>
       </div>
-      <div class="progress-wrap"><div class="progress"><div id="progress-bar" class="progress-bar" style="width:0%"></div></div><button class="btn" id="share-progress">Share</button></div>
+      <div class="progress-wrap">
+        <div class="progress" aria-label="Progress towards Champion">
+          <div id="progress-bar" class="progress-bar" style="width:0%"></div>
+        </div>
+        <button class="btn" onclick="shareProgress()">Share</button>
+      </div>
     </section>
 
+    <!-- Learn (card rows) -->
     <section id="learn" class="section container">
       <h2 class="section-title">Learn</h2>
+
+      <h3 class="subhead">Glossary</h3>
       <div class="glossary-grid">
-        <article class="glossary-card"><h4>Endogenous Viral Elements (EVEs)</h4><p>Ancient viral DNA sequences that became part of a host's genome.</p></article>
-        <article class="glossary-card"><h4>Intact / Useful / Broken / Unique</h4><p>Intact/Useful EVEs aid defense; Broken are degraded; Unique marks changes after lineages split.</p></article>
+        <article class="glossary-card">
+          <h4>Endogenous Viral Elements (EVEs)</h4>
+          <p>Ancient viral DNA sequences that became part of a host’s genome — “viral fossils” written in DNA.</p>
+        </article>
+        <article class="glossary-card">
+          <h4>Retrovirus vs DNA virus</h4>
+          <p>Retroviruses copy RNA → DNA and can integrate; DNA viruses carry DNA and usually don’t integrate.</p>
+        </article>
+        <article class="glossary-card">
+          <h4>piRNAs / piRNA clusters</h4>
+          <p>Small RNAs and genomic regions that help silence transposons and viral sequences, especially in germ cells.</p>
+        </article>
+        <article class="glossary-card">
+          <h4>Outgroup</h4>
+          <p>A distantly related species used to root a tree and identify the oldest split.</p>
+        </article>
+        <article class="glossary-card">
+          <h4>Intact / Useful / Broken / Unique</h4>
+          <p>Intact/Useful EVEs may aid defense; Broken are degraded; Unique marks changes after two lineages split.</p>
+        </article>
+        <article class="glossary-card">
+          <h4>Common ancestry / phylogeny</h4>
+          <p>Shared EVEs (same position/type) signal closer relationships among species.</p>
+        </article>
       </div>
+
+      <h3 class="subhead" style="margin-top:1rem">Research Papers</h3>
+      <ul class="paper-list">
+        <li class="paper">
+          <a class="title" href="https://pmc.ncbi.nlm.nih.gov/articles/PMC2987831/" target="_blank" rel="noopener">Endogenous Viral Elements in Animal Genomes</a>
+          <div class="meta">PLoS Genetics (2010) — Katzourakis & Gifford <span class="badge-oa">Open access</span></div>
+        </li>
+        <li class="paper">
+          <a class="title" href="https://openstax.org/books/biology-2e/pages/20-3-perspectives-on-the-phylogenetic-tree" target="_blank" rel="noopener">Building Phylogenetic Trees (intro chapter)</a>
+          <div class="meta">OpenStax Biology 2e (OER) <span class="badge-oa">Open access</span></div>
+        </li>
+        <li class="paper">
+          <a class="title" href="https://evolution.berkeley.edu/about/" target="_blank" rel="noopener">Understanding Phylogenetic Trees (educator resource)</a>
+          <div class="meta">UC Berkeley — Understanding Evolution <span class="badge-oa">Open access</span></div>
+        </li>
+        <li class="paper">
+          <a class="title" href="https://www.nature.com/articles/s41576-018-0073-3" target="_blank" rel="noopener">PIWI‑interacting RNAs: small RNAs with big functions</a>
+          <div class="meta">Nature Reviews Genetics (2019) — Ozata et al. (may be paywalled)</div>
+        </li>
+        <li class="paper">
+          <a class="title" href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4887275/" target="_blank" rel="noopener">Regulatory evolution of innate immunity through co‑option of endogenous retroviruses</a>
+          <div class="meta">Science (2016) — Chuong, Elde & Feschotte <span class="badge-oa">Open access</span></div>
+        </li>
+      </ul>
     </section>
 
+    <!-- Resources -->
     <section id="resources" class="section container">
       <h2 class="section-title">Resources</h2>
       <div class="card-grid">
-        <article class="card"><h3>Kids Cards</h3><p><a class="btn" href="print/print-kids-cards.html" target="_blank">Open & Print</a></p></article>
-        <article class="card"><h3>Kids Micro EVEs</h3><p><a class="btn" href="print/print-kids-cards-micro.html" target="_blank">Open & Print</a></p></article>
-        <article class="card"><h3>Teens Cards</h3><p><a class="btn" href="print/print-teens-cards.html" target="_blank">Open & Print</a></p></article>
-        <article class="card"><h3>Adults Cards</h3><p><a class="btn" href="print/print-adults-cards.html" target="_blank">Open & Print</a></p></article>
+        <article class="card">
+          <h3>Kids Cards (Print pack)</h3>
+          <p><a class="btn btn-primary" href="print/print-kids-cards.html" target="_blank" rel="noopener">Open & Print</a></p>
+        </article>
+        <article class="card">
+          <h3>Kids Cards — Micro EVEs (lens version)</h3>
+          <p><a class="btn btn-primary" href="print/print-kids-cards-micro.html" target="_blank" rel="noopener">Open & Print</a></p>
+        </article>
+        <article class="card">
+          <h3>Teens Cards + 2‑page Mat</h3>
+          <p><a class="btn btn-primary" href="print/print-teens-cards.html" target="_blank" rel="noopener">Open & Print</a></p>
+        </article>
+        <article class="card">
+          <h3>Adults Cards + Tokens</h3>
+          <p><a class="btn btn-primary" href="print/print-adults-cards.html" target="_blank" rel="noopener">Open & Print</a></p>
+        </article>
+        <article class="card">
+          <h3>Kids PDF</h3>
+          <p><a class="btn" href="assets/kids-pack.pdf" target="_blank" rel="noopener">Download PDF</a></p>
+        </article>
+
+        <!-- Added: Kids Video (download) -->
+        <article class="card">
+          <h3>Kids Video (Low‑Def)</h3>
+          <p class="muted">EVEs kids version — MP4 (~40 MB)</p>
+          <p><a class="btn" href="assets/video/EVEs-kids-version-LD.mp4" download>Download MP4</a></p>
+        </article>
       </div>
     </section>
 
+    <!-- Team -->
     <section id="team" class="section container">
       <h2>About the Team</h2>
       <div class="card-grid">
-        <article class="card team-card"><h3>Queen Droso</h3><p>Creator of EVE Detective. Exploring viral fossils in DNA.</p><a href="mailto:queendroso16@gmail.com">queendroso16@gmail.com</a></article>
-        <article class="card team-card"><h3>Darren's Lab</h3><p>Studying host-virus evolution and endogenous viral elements.</p><a href="https://obbard.bio.ed.ac.uk/" target="_blank">Visit Lab Website</a></article>
+        <article class="card team-card">
+          <picture>
+            <img class="team-avatar" src="assets/team-queen.jpg" alt="Queen Droso — Creator of EVE Detective" width="72" height="72" loading="lazy" decoding="async">
+          </picture>
+          <h3>Queen Droso</h3>
+          <p>Creator of EVE Detective. I explore how “viral fossils” in DNA reveal evolution and immunity across Drosophila.</p>
+          <div class="contact-row">
+            <a class="chip-link" href="mailto:queendroso16@gmail.com">✉️ queendroso16@gmail.com</a>
+            <a class="chip-link" href="https://queendroso.github.io/rabdulazeez.github.io/" target="_blank" rel="noopener">🔗 Visit Abdulazeez website</a>
+          </div>
+        </article>
+
+        <article class="card team-card">
+          <h3>Darren’s Lab</h3>
+          <p>We study host–virus evolution, small RNA immunity, and endogenous viral elements (EVEs) across species. Our work connects ancient viral DNA to modern immune defense.</p>
+          <div class="contact-row">
+            <a class="chip-link" href="https://obbard.bio.ed.ac.uk/" target="_blank" rel="noopener">🔗 Visit Darren’s Lab website</a>
+          </div>
+        </article>
       </div>
     </section>
   </main>
 
-  <footer class="site-footer">
+  <!-- Footer -->
+  <footer class="site-footer" id="site-footer">
     <div class="container footer-grid">
-      <div><img src="assets/eve_logo.webp" width="40" /><p>EVE Detective</p></div>
-      <div><h3>Explore</h3><ul><li><a href="#about">About</a></li><li><a href="#challenges">Challenges</a></li></ul></div>
-      <div><h3>Resources</h3><ul><li><a href="print/print-kids-cards.html">Kids Cards</a></li><li><a href="print/print-kids-cards-micro.html">Micro EVEs</a></li></ul></div>
+      <div class="footer-brand">
+        <img src="assets/eve_logo.webp" alt="EVE Detective logo" />
+        <p>EVE Detective<br /><small>Exploring viral fossils and evolution through interactive science.</small></p>
+        <p style="margin-top:.25rem"><small><a href="mailto:queendroso16@gmail.com">queendroso16@gmail.com</a></small></p>
+      </div>
+
+      <nav aria-label="Explore" class="footer-col">
+        <h3>Explore</h3>
+        <ul>
+          <li><a href="#about">About EVEs</a></li>
+          <li><a href="#video">Video Loop</a></li>
+          <li><a href="#challenges">Challenges</a></li>
+        </ul>
+      </nav>
+
+      <nav aria-label="Learn" class="footer-col">
+        <h3>Learn</h3>
+        <ul>
+          <li><a href="#learn">Glossary</a></li>
+          <li><a href="#learn">Research Papers</a></li>
+          <li><a href="#resources">Resources</a></li>
+        </ul>
+      </nav>
+
+      <nav aria-label="Resources" class="footer-col">
+        <h3>Resources</h3>
+        <ul>
+          <li><a href="print/print-kids-cards.html" target="_blank" rel="noopener">Kids cards (print)</a></li>
+          <li><a href="print/print-kids-cards-micro.html" target="_blank" rel="noopener">Kids Micro EVEs (print)</a></li>
+          <li><a href="print/print-teens-cards.html" target="_blank" rel="noopener">Teens cards + mat (print)</a></li>
+          <li><a href="print/print-adults-cards.html" target="_blank" rel="noopener">Adults cards + tokens (print)</a></li>
+        </ul>
+      </nav>
     </div>
-    <div class="footer-meta">© 2026 Queen Droso · Visits: <span id="visits-count">0</span> · Downloads: <span id="dl-total-count">0</span></div>
+
+    <div class="footer-meta">
+      <small>
+        © 2026 Queen Droso. Developed for the Royal Society Summer Science Exhibition 2026.
+        · Visits: <span id="visits-count">—</span>
+        · Sticker downloads: <span id="dl-total-count">—</span>
+      </small>
+    </div>
   </footer>
 
+  <!-- Inline: tree fit only (nav & logic are in script.js) -->
   <script>
-    // ==================== SIMPLE COUNTERS (WORKS WITHOUT EXTERNAL API) ====================
-    (function() {
-      // Use localStorage for counters (no external API dependency)
-      function getCount(key) {
-        try { return parseInt(localStorage.getItem('eve_' + key) || '0'); } catch(e) { return 0; }
-      }
-      function incrementCount(key) {
-        try {
-          let val = getCount(key) + 1;
-          localStorage.setItem('eve_' + key, val);
-          return val;
-        } catch(e) { return 0; }
-      }
-      function setDisplay(id, val) {
-        let el = document.getElementById(id);
-        if (el) el.textContent = val;
-      }
-      
-      // Track visits (once per session)
-      if (!sessionStorage.getItem('eve_visited')) {
-        sessionStorage.setItem('eve_visited', '1');
-        let visits = incrementCount('visits');
-        setDisplay('visits-count', visits);
-      } else {
-        setDisplay('visits-count', getCount('visits'));
-      }
-      setDisplay('dl-total-count', getCount('downloads'));
-      
-      // Track downloads
-      document.querySelectorAll('[data-badge-dl]').forEach(btn => {
-        btn.addEventListener('click', function() {
-          let total = incrementCount('downloads');
-          setDisplay('dl-total-count', total);
-          alert('Sticker saved! Check your downloads folder.');
-        });
-      });
-    })();
-
-    // ==================== KIDS GAME WITH WORKING SIZE SLIDER ====================
-    const KidsGame = (function() {
-      const speciesData = {
-        melanogaster: { eves: [{x:0.15,y:0.35,type:'intact'},{x:0.30,y:0.55,type:'useful'},{x:0.55,y:0.25,type:'broken'},{x:0.72,y:0.60,type:'unique'},{x:0.85,y:0.40,type:'intact'}] },
-        simulans: { eves: [{x:0.12,y:0.50,type:'broken'},{x:0.28,y:0.30,type:'useful'},{x:0.43,y:0.62,type:'intact'},{x:0.67,y:0.40,type:'intact'},{x:0.82,y:0.55,type:'unique'}] },
-        yakuba: { eves: [{x:0.18,y:0.40,type:'useful'},{x:0.36,y:0.58,type:'intact'},{x:0.50,y:0.28,type:'broken'},{x:0.70,y:0.45,type:'intact'}] },
-        virilis: { eves: [{x:0.22,y:0.42,type:'broken'},{x:0.41,y:0.24,type:'intact'},{x:0.58,y:0.55,type:'useful'},{x:0.80,y:0.36,type:'unique'}] },
-        pseudoananassae: { eves: [{x:0.10,y:0.32,type:'intact'},{x:0.27,y:0.57,type:'intact'},{x:0.49,y:0.38,type:'useful'},{x:0.66,y:0.22,type:'broken'},{x:0.84,y:0.58,type:'unique'}] }
-      };
-      const speciesList = ['melanogaster','simulans','yakuba','virilis','pseudoananassae'];
-      
-      let currentSpecies = 'melanogaster';
-      let foundEVEs = new Set();
-      let completedSpecies = new Set();
-      let eveSize = 12;
-      let canvas, ctx, overlay, ctxOver, ring, wrap;
-      let width, height;
-      
-      function init() {
-        wrap = document.getElementById('kids-game');
-        if (!wrap) return;
-        canvas = document.getElementById('bg-canvas');
-        overlay = document.getElementById('eve-overlay');
-        ring = document.getElementById('lens-ring');
-        ctx = canvas.getContext('2d');
-        ctxOver = overlay.getContext('2d');
-        
-        wrap.addEventListener('mousemove', onMove);
-        wrap.addEventListener('mouseleave', () => { ring.style.opacity = '0'; });
-        wrap.addEventListener('mouseenter', () => { ring.style.opacity = '0.9'; });
-        wrap.addEventListener('click', onClick);
-        window.addEventListener('resize', resize);
-        
-        document.getElementById('species-select').addEventListener('change', (e) => loadSpecies(e.target.value));
-        document.getElementById('kids-next').addEventListener('click', nextSpecies);
-        document.getElementById('kids-reset').addEventListener('click', resetSpecies);
-        document.getElementById('reveal-toggle').addEventListener('change', (e) => toggleReveal(e.target.checked));
-        
-        // Size slider
-        const slider = document.getElementById('kidsEveSize');
-        const valSpan = document.getElementById('kidsSizeVal');
-        slider.addEventListener('input', (e) => {
-          eveSize = parseInt(e.target.value);
-          valSpan.textContent = eveSize + ' px';
-          drawOverlay();
-        });
-        
-        resize();
-        loadSpecies('melanogaster');
-      }
-      
-      function resize() {
-        const rect = wrap.getBoundingClientRect();
-        width = rect.width;
-        height = rect.height;
-        canvas.width = width;
-        canvas.height = height;
-        overlay.width = width;
-        overlay.height = height;
-        drawBackground();
-        drawOverlay();
-      }
-      
-      function drawBackground() {
-        ctx.fillStyle = '#f3f6f9';
-        ctx.fillRect(0, 0, width, height);
-        ctx.fillStyle = '#cbd5e1';
-        ctx.font = '14px monospace';
-        for (let y = 30; y < height; y += 30) {
-          let seq = '';
-          for (let x = 0; x < width / 12; x++) seq += 'ACGT'[Math.floor(Math.random() * 4)];
-          ctx.fillText(seq, 10, y);
-        }
-      }
-      
-      function drawOverlay() {
-        ctxOver.clearRect(0, 0, width, height);
-        const data = speciesData[currentSpecies];
-        if (!data) return;
-        
-        data.eves.forEach((eve, idx) => {
-          const x = eve.x * width;
-          const y = eve.y * height;
-          const isFound = foundEVEs.has(`${currentSpecies}:${idx}`);
-          if (isFound) return;
-          
-          // Draw EVE dot with current size
-          ctxOver.beginPath();
-          ctxOver.arc(x, y, eveSize / 2, 0, Math.PI * 2);
-          let color = '#9ca3af';
-          if (eve.type === 'intact') color = '#16a34a';
-          if (eve.type === 'useful') color = '#ef4444';
-          if (eve.type === 'broken') color = '#111827';
-          if (eve.type === 'unique') color = '#f59e0b';
-          ctxOver.fillStyle = color;
-          ctxOver.fill();
-          ctxOver.strokeStyle = 'rgba(0,0,0,0.3)';
-          ctxOver.lineWidth = 0.5;
-          ctxOver.stroke();
-        });
-        
-        // Apply mask for lens
-        const lensX = parseFloat(overlay.style.getPropertyValue('--lx') || '-1000');
-        const lensY = parseFloat(overlay.style.getPropertyValue('--ly') || '-1000');
-        if (document.getElementById('reveal-toggle').checked) {
-          overlay.style.maskImage = 'none';
-        } else {
-          overlay.style.maskImage = `radial-gradient(circle 80px at ${lensX}px ${lensY}px, black 98%, transparent 100%)`;
-        }
-      }
-      
-      function onMove(e) {
-        const rect = wrap.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        overlay.style.setProperty('--lx', x + 'px');
-        overlay.style.setProperty('--ly', y + 'px');
-        ring.style.left = x + 'px';
-        ring.style.top = y + 'px';
-      }
-      
-      function onClick(e) {
-        const rect = wrap.getBoundingClientRect();
-        const clickX = e.clientX - rect.left;
-        const clickY = e.clientY - rect.top;
-        const data = speciesData[currentSpecies];
-        if (!data) return;
-        
-        data.eves.forEach((eve, idx) => {
-          const eveX = eve.x * width;
-          const eveY = eve.y * height;
-          const dist = Math.hypot(clickX - eveX, clickY - eveY);
-          if (dist < 20 && !foundEVEs.has(`${currentSpecies}:${idx}`)) {
-            foundEVEs.add(`${currentSpecies}:${idx}`);
-            updateCounts();
-            drawOverlay();
-            
-            // Check if species complete
-            if (foundCount() >= data.eves.length && !completedSpecies.has(currentSpecies)) {
-              completedSpecies.add(currentSpecies);
-              updateProgress();
-              if (completedSpecies.size === speciesList.length) {
-                alert('Congratulations! You found all EVEs in every species!');
-                if (typeof Achievements !== 'undefined') Achievements.markComplete('kids');
-              }
-            }
-          }
-        });
-      }
-      
-      function foundCount() {
-        let count = 0;
-        const data = speciesData[currentSpecies];
-        if (data) {
-          data.eves.forEach((_, idx) => {
-            if (foundEVEs.has(`${currentSpecies}:${idx}`)) count++;
-          });
-        }
-        return count;
-      }
-      
-      function updateCounts() {
-        const data = speciesData[currentSpecies];
-        document.getElementById('kids-found').textContent = foundCount();
-        document.getElementById('kids-total').textContent = data ? data.eves.length : 0;
-      }
-      
-      function updateProgress() {
-        document.getElementById('kids-species-progress').textContent = `Species complete: ${completedSpecies.size}/${speciesList.length}`;
-      }
-      
-      function loadSpecies(species) {
-        currentSpecies = species;
-        document.getElementById('species-select').value = species;
-        updateCounts();
-        drawOverlay();
-      }
-      
-      function nextSpecies() {
-        let idx = speciesList.indexOf(currentSpecies);
-        let next = (idx + 1) % speciesList.length;
-        loadSpecies(speciesList[next]);
-      }
-      
-      function resetSpecies() {
-        foundEVEs = new Set([...foundEVEs].filter(k => !k.startsWith(currentSpecies + ':')));
-        updateCounts();
-        drawOverlay();
-      }
-      
-      function toggleReveal(revealed) {
-        drawOverlay();
-      }
-      
-      return { init, resize };
-    })();
-    
-    // ==================== TEENS GAME ====================
-    const TeensGame = (function() {
-      let timerInterval = null;
-      let timeLeft = 60;
-      
-      function init() {
-        renderSpeciesDeck();
-        setupDropZones();
-        document.getElementById('teens-start').addEventListener('click', startTimer);
-        document.getElementById('teens-restart').addEventListener('click', restart);
-        document.getElementById('check-tree').addEventListener('click', checkTree);
-      }
-      
-      function startTimer() {
-        if (timerInterval) clearInterval(timerInterval);
-        timeLeft = 60;
-        updateTimerDisplay();
-        timerInterval = setInterval(() => {
-          timeLeft--;
-          updateTimerDisplay();
-          if (timeLeft <= 0) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-          }
-        }, 1000);
-      }
-      
-      function updateTimerDisplay() {
-        const fill = document.querySelector('#teens .timer-fill');
-        const tleft = document.querySelector('#teens .tleft');
-        if (fill) fill.style.width = (timeLeft / 60 * 100) + '%';
-        if (tleft) tleft.textContent = timeLeft + 's';
-      }
-      
-      function restart() {
-        if (timerInterval) clearInterval(timerInterval);
-        startTimer();
-        clearDrops();
-      }
-      
-      function renderSpeciesDeck() {
-        const species = ['D. melanogaster', 'D. simulans', 'D. yakuba', 'D. virilis', 'D. pseudoananassae'];
-        const deck = document.getElementById('species-deck');
-        deck.innerHTML = species.map(s => `<div class="badge-draggable" draggable="true" data-species="${s}">${s}</div>`).join('');
-        document.querySelectorAll('.badge-draggable').forEach(el => {
-          el.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', el.dataset.species));
-        });
-      }
-      
-      function setupDropZones() {
-        document.querySelectorAll('.slot').forEach(slot => {
-          slot.addEventListener('dragover', e => e.preventDefault());
-          slot.addEventListener('drop', e => {
-            e.preventDefault();
-            const species = e.dataTransfer.getData('text/plain');
-            if (!slot.querySelector('.badge-draggable')) {
-              const badge = document.createElement('div');
-              badge.className = 'badge-draggable';
-              badge.textContent = species;
-              slot.appendChild(badge);
-            }
-          });
-        });
-      }
-      
-      function clearDrops() {
-        document.querySelectorAll('.slot .badge-draggable').forEach(el => el.remove());
-      }
-      
-      function checkTree() {
-        const a1 = document.querySelector('[data-slot="A1"] .badge-draggable')?.textContent;
-        const a2 = document.querySelector('[data-slot="A2"] .badge-draggable')?.textContent;
-        const b1 = document.querySelector('[data-slot="B1"] .badge-draggable')?.textContent;
-        const b2 = document.querySelector('[data-slot="B2"] .badge-draggable')?.textContent;
-        const out = document.querySelector('[data-slot="O"] .badge-draggable')?.textContent;
-        
-        if (a1 && a2 && b1 && b2 && out) {
-          if ((a1.includes('melanogaster') && a2.includes('simulans') || a1.includes('simulans') && a2.includes('melanogaster')) &&
-              (b1.includes('virilis') && b2.includes('pseudoananassae') || b1.includes('pseudoananassae') && b2.includes('virilis')) &&
-              out.includes('yakuba')) {
-            alert('Correct! Your phylogenetic tree matches the EVE evidence!');
-            if (typeof Achievements !== 'undefined') Achievements.markComplete('teens');
-          } else {
-            alert('Not quite right. Hint: D. mel + D. sim are closest, D. vir + D. pse next, D. yak is outgroup.');
-          }
-        } else {
-          alert('Please drag species into all slots (Pair A: 2, Pair B: 2, Outgroup: 1)');
-        }
-      }
-      
-      return { init };
-    })();
-    
-    // ==================== ADULTS GAME (with proper card format) ====================
-    const AdultsGame = (function() {
-      let timerInterval = null;
-      let timeLeft = 60;
-      let step1Complete = false, step2Complete = false, step3Complete = false;
-      
-      const catalog = {
-        'D. melanogaster': [{id:'EVE-A',type:'retro',state:'useful',family:'RV1'},{id:'EVE-D',type:'retro',state:'silent',family:'RV1'},{id:'EVE-C',type:'retro',state:'broken',family:'RV0'},{id:'EVE-X',type:'dna',state:'useful',family:'DV2'}],
-        'D. simulans': [{id:"EVE-A'",type:'retro',state:'intact',family:'RV1'},{id:'EVE-Z',type:'dna',state:'useful',family:'DV1'}],
-        'D. yakuba': [{id:'EVE-Y1',type:'retro',state:'broken',family:'RV1'}],
-        'D. virilis': [{id:'EVE-D1',type:'dna',state:'useful',family:'DV1'}],
-        'D. pseudoananassae': [{id:'EVE-P',type:'retro',state:'useful',family:'RV1a'}]
-      };
-      const species = ['D. melanogaster', 'D. simulans', 'D. yakuba', 'D. virilis', 'D. pseudoananassae'];
-      
-      function init() {
-        renderStep1();
-        renderStep2();
-        renderStep3();
-        document.getElementById('adults-start').addEventListener('click', startTimer);
-        document.getElementById('adults-reset').addEventListener('click', resetGame);
-        document.getElementById('step1-check').addEventListener('click', checkStep1);
-        document.getElementById('step2-check').addEventListener('click', checkStep2);
-        document.getElementById('step3-check').addEventListener('click', checkStep3);
-      }
-      
-      function startTimer() {
-        if (timerInterval) clearInterval(timerInterval);
-        timeLeft = 60;
-        updateTimerDisplay();
-        timerInterval = setInterval(() => {
-          timeLeft--;
-          updateTimerDisplay();
-          if (timeLeft <= 0) clearInterval(timerInterval);
-        }, 1000);
-      }
-      
-      function updateTimerDisplay() {
-        const fill = document.querySelector('#adults .timer-fill');
-        const tleft = document.querySelector('#adults .tleft');
-        if (fill) fill.style.width = (timeLeft / 60 * 100) + '%';
-        if (tleft) tleft.textContent = timeLeft + 's';
-      }
-      
-      function renderStep1() {
-        const container = document.getElementById('adv-eves-mel');
-        container.innerHTML = catalog['D. melanogaster'].map(e => `
-          <label class="eve-card"><input type="radio" name="step1" value="${e.id}">
-            <div><strong>${e.id}</strong><br>
-            <span class="chip ${e.type}">${e.type}</span>
-            <span class="chip ${e.state}">${e.state}</span>
-            <span class="chip">family ${e.family}</span></div>
-          </label>
-        `).join('');
-      }
-      
-      function renderStep2() {
-        const resistDiv = document.getElementById('adv-resist-radios');
-        const vulnDiv = document.getElementById('adv-vuln-radios');
-        
-        resistDiv.innerHTML = species.map(s => `
-          <label class="species-card"><input type="radio" name="resist" value="${s}">
-            <strong>${s}</strong>
-            <div class="card-chips">${renderEVEChips(catalog[s])}</div>
-          </label>
-        `).join('');
-        
-        vulnDiv.innerHTML = species.map(s => `
-          <label class="species-card"><input type="radio" name="vuln" value="${s}">
-            <strong>${s}</strong>
-            <div class="card-chips">${renderEVEChips(catalog[s])}</div>
-          </label>
-        `).join('');
-      }
-      
-      function renderStep3() {
-        const container = document.getElementById('adv-mutation-checks');
-        container.innerHTML = species.map(s => `
-          <label class="species-card"><input type="checkbox" value="${s}">
-            <strong>${s}</strong>
-            <div class="card-chips">${renderEVEChips(catalog[s])}</div>
-          </label>
-        `).join('');
-      }
-      
-      function renderEVEChips(eves) {
-        return eves.map(e => `<span class="chip ${e.type} ${e.state}">${e.id}</span>`).join(' ');
-      }
-      
-      function checkStep1() {
-        const selected = document.querySelector('input[name="step1"]:checked')?.value;
-        if (selected === 'EVE-A') {
-          document.getElementById('adv-feedback-1').innerHTML = '✓ Correct! EVE-A is a useful retro EVE that fights RV1.';
-          step1Complete = true;
-        } else {
-          document.getElementById('adv-feedback-1').innerHTML = '✗ Try again. Look for a useful retro EVE matching RV1.';
-        }
-        checkAllComplete();
-      }
-      
-      function checkStep2() {
-        const resist = document.querySelector('input[name="resist"]:checked')?.value;
-        const vuln = document.querySelector('input[name="vuln"]:checked')?.value;
-        if (resist === 'D. pseudoananassae' && vuln === 'D. yakuba') {
-          document.getElementById('adv-feedback-2').innerHTML = '✓ Correct! D. pseudoananassae has RV1a protection; D. yakuba has only broken EVEs.';
-          step2Complete = true;
-        } else {
-          document.getElementById('adv-feedback-2').innerHTML = '✗ Hint: Most resistant has useful/intact retro near RV1a; most vulnerable has only broken retro.';
-        }
-        checkAllComplete();
-      }
-      
-      function checkStep3() {
-        const selected = Array.from(document.querySelectorAll('#adv-mutation-checks input:checked')).map(cb => cb.value);
-        const correct = ['D. melanogaster', 'D. simulans', 'D. pseudoananassae'];
-        const allCorrect = correct.every(s => selected.includes(s)) && selected.length === 3;
-        if (allCorrect) {
-          document.getElementById('adv-feedback-3').innerHTML = '✓ Correct! These species have active retro EVEs that may recognize RV1b.';
-          step3Complete = true;
-        } else {
-          document.getElementById('adv-feedback-3').innerHTML = '✗ Hint: Species with useful/intact retro EVEs against RV1/RV1a may still protect.';
-        }
-        checkAllComplete();
-      }
-      
-      function checkAllComplete() {
-        if (step1Complete && step2Complete && step3Complete) {
-          alert('Congratulations! You completed the Advanced Immunity Challenge!');
-          if (typeof Achievements !== 'undefined') Achievements.markComplete('adults');
-        }
-      }
-      
-      function resetGame() {
-        step1Complete = step2Complete = step3Complete = false;
-        if (timerInterval) clearInterval(timerInterval);
-        timeLeft = 60;
-        updateTimerDisplay();
-        renderStep1();
-        renderStep2();
-        renderStep3();
-        document.getElementById('adv-feedback-1').innerHTML = '';
-        document.getElementById('adv-feedback-2').innerHTML = '';
-        document.getElementById('adv-feedback-3').innerHTML = '';
-      }
-      
-      return { init };
-    })();
-    
-    // ==================== ACHIEVEMENTS SYSTEM ====================
-    const Achievements = {
-      state: { kids: false, teens: false, adults: false },
-      load() {
-        try {
-          const saved = localStorage.getItem('eve_achievements');
-          if (saved) this.state = JSON.parse(saved);
-          this.render();
-        } catch(e) {}
-      },
-      save() { localStorage.setItem('eve_achievements', JSON.stringify(this.state)); },
-      markComplete(level) {
-        if (!this.state[level]) {
-          this.state[level] = true;
-          this.save();
-          this.render();
-          alert(`🎉 Unlocked: ${level.toUpperCase()} Badge! 🎉`);
-          if (this.state.kids && this.state.teens && this.state.adults) {
-            alert('🏆 CHAMPION! You unlocked all three badges! 🏆');
-          }
-        }
-      },
-      render() {
-        ['kids', 'teens', 'adults', 'champion'].forEach(level => {
-          const badge = document.querySelector(`.badge[data-badge="${level}"]`);
-          if (badge) {
-            const isUnlocked = level === 'champion' ? (this.state.kids && this.state.teens && this.state.adults) : this.state[level];
-            badge.classList.toggle('locked', !isUnlocked);
-            badge.classList.toggle('unlocked', isUnlocked);
-          }
-        });
-        const completed = [this.state.kids, this.state.teens, this.state.adults].filter(Boolean).length;
-        const percent = (completed / 3) * 100;
-        const bar = document.getElementById('progress-bar');
-        if (bar) bar.style.width = percent + '%';
-      }
-    };
-    
-    // Initialize everything
     document.addEventListener('DOMContentLoaded', () => {
-      KidsGame.init();
-      TeensGame.init();
-      AdultsGame.init();
-      Achievements.load();
-      
-      // Tab switching
-      document.querySelectorAll('.tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-          document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', 'false'));
-          document.querySelectorAll('.panel').forEach(p => p.classList.remove('is-active'));
-          tab.setAttribute('aria-selected', 'true');
-          const id = tab.getAttribute('aria-controls');
-          document.getElementById(id).classList.add('is-active');
-          if (id === 'kids') setTimeout(() => KidsGame.resize(), 50);
-        });
+      if (window.matchMedia('(max-width: 768px)').matches) {
+        document.documentElement.classList.add('prefer-short-labels');
+      }
+      function fitOneSVG(svg) {
+        try {
+          if (!svg || svg.hasAttribute('data-fitted')) return;
+          svg.removeAttribute('width'); svg.removeAttribute('height');
+          const b = svg.getBBox();
+          if (b && b.width > 0 && b.height > 0) svg.setAttribute('viewBox', `${b.x} ${b.y} ${b.width} ${b.height}`);
+          else svg.setAttribute('viewBox', '0 0 900 500');
+          svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+          svg.setAttribute('data-fitted', 'true');
+        } catch (e) {
+          requestAnimationFrame(() => {
+            try {
+              const b = svg.getBBox();
+              if (b && b.width > 0 && b.height > 0) {
+                svg.setAttribute('viewBox', `${b.x} ${b.y} ${b.width} ${b.height}`);
+                svg.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+                svg.setAttribute('data-fitted', 'true');
+              }
+            } catch(_) {}
+          });
+        }
+      }
+      function fitAllTrees() {
+        document.querySelectorAll('.tree-svg svg').forEach(fitOneSVG);
+      }
+      fitAllTrees();
+      const obs = new MutationObserver(muts => {
+        for (const m of muts) {
+          m.addedNodes.forEach(node => {
+            if (!(node instanceof Element)) return;
+            if (node.matches && node.matches('.tree-svg svg')) fitOneSVG(node);
+            node.querySelectorAll?.('.tree-svg svg').forEach(fitOneSVG);
+          });
+        }
       });
-      
-      // Share progress
-      document.getElementById('share-progress')?.addEventListener('click', () => {
-        const completed = [Achievements.state.kids, Achievements.state.teens, Achievements.state.adults].filter(Boolean).length;
-        alert(`I've earned ${completed}/3 EVE Detective badges! Play at ${window.location.href}`);
-      });
+      obs.observe(document.body, { childList: true, subtree: true });
     });
   </script>
+
+  <!-- Footer counters (visits + sticker downloads); optional video download count -->
+  <script>
+    (function() {
+      const NS = ('eve-' + (location.host || 'local')).replace(/[^a-z0-9\-\.]/gi,'-').toLowerCase() + '-2026';
+      async function cget(key) {
+        const r = await fetch(`https://api.countapi.xyz/get/${NS}/${key}`, { cache: 'no-store' });
+        if (!r.ok) return 0;
+        const j = await r.json(); return Number(j.value) || 0;
+      }
+      async function chit(key) {
+        const r = await fetch(`https://api.countapi.xyz/hit/${NS}/${key}`, { cache: 'no-store' });
+        if (!r.ok) return 0;
+        const j = await r.json(); return Number(j.value) || 0;
+      }
+      function setCount(id, n) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = Number(n).toLocaleString();
+      }
+
+      document.addEventListener('DOMContentLoaded', async () => {
+        // Show current totals
+        try {
+          const [vis, sticks] = await Promise.all([cget('visits'), cget('stickers')]);
+          setCount('visits-count', vis);
+          setCount('dl-total-count', sticks);
+        } catch (e) { /* ignore */ }
+
+        // Count one visit per tab (session)
+        const seenKey = 'eve-visit-counted';
+        if (!sessionStorage.getItem(seenKey)) {
+          try {
+            const next = await chit('visits');
+            setCount('visits-count', next);
+          } catch (e) { /* ignore */ }
+          sessionStorage.setItem(seenKey, '1');
+        }
+
+        // Sticker download buttons in Achievements
+        document.querySelectorAll('#achievements .badge button').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            try {
+              const next = await chit('stickers');
+              setCount('dl-total-count', next);
+            } catch (e) { /* ignore */ }
+          });
+        });
+
+        // If a global downloadBadge function exists, wrap it to ensure counting
+        if (typeof window.downloadBadge === 'function' && !window.downloadBadge._wrapped) {
+          const orig = window.downloadBadge;
+          window.downloadBadge = async function() {
+            try { const next = await chit('stickers'); setCount('dl-total-count', next); } catch(e) {}
+            return orig.apply(this, arguments);
+          };
+          window.downloadBadge._wrapped = true;
+        }
+
+        // Optional: count Kids video downloads if needed (not shown in footer)
+        document.querySelectorAll('a[href$=".mp4"][download]').forEach(a => {
+          if (/EVEs-kids-version-LD\.mp4$/.test(a.getAttribute('href')||'')) {
+            a.addEventListener('click', () => { chit('video').catch(()=>{}); });
+          }
+        });
+      });
+    })();
+  </script>
+
+  <!-- Main logic -->
+  <script src="script.js" defer></script>
 </body>
 </html>
