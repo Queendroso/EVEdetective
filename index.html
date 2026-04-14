@@ -9,6 +9,44 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
   <link rel="icon" href="assets/eve_logo.webp" type="image/webp" />
   <link rel="stylesheet" href="styles.css" />
+
+  <!-- Inline fixes: Kids legend colours + Team layout -->
+  <style id="elm-fixes">
+    :root{
+      --eve-intact:#16a34a;   /* green */
+      --eve-broken:#111827;   /* grey/black */
+      --eve-useful:#ef4444;   /* red */
+      --eve-unique:#f59e0b;   /* golden */
+    }
+
+    /* Kids legend chips colouring (uses your existing .chip classes) */
+    .kids-legend .chip{
+      --c:#9ca3af;
+      display:inline-flex; align-items:center; gap:.35rem;
+      padding:.2rem .55rem; border-radius:999px; font-size:.85rem; line-height:1.2;
+      border:1px solid rgba(0,0,0,.08); background:#f8fafc; color:#111827;
+    }
+    .kids-legend .chip::before {
+      content:""; width:.65rem; height:.65rem; border-radius:999px;
+      background:var(--c); box-shadow:0 0 0 1px rgba(0,0,0,.15) inset;
+    }
+    .kids-legend .chip-intact { --c:var(--eve-intact); background:rgba(22,163,74,.12); border-color:rgba(22,163,74,.35); }
+    .kids-legend .chip-broken { --c:var(--eve-broken); background:rgba(17,24,39,.25); border-color:rgba(17,24,39,.50); color:#fff; }
+    .kids-legend .chip-useful { --c:var(--eve-useful); background:rgba(239,68,68,.18); border-color:rgba(239,68,68,.45); color:#fff; }
+    .kids-legend .chip-unique { --c:var(--eve-unique); background:rgba(245,158,11,.18); border-color:rgba(245,158,11,.45); }
+
+    /* Team section layout fix: show cards in columns (not single vertical line) */
+    #team .card-grid {
+      display:grid !important;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap:1rem;
+      align-items:stretch;
+    }
+    #team .team-card { display:flex; flex-direction:column; gap:.5rem; min-width:0; }
+    #team .team-avatar { width:72px; height:72px; border-radius:50%; object-fit:cover; }
+    #team .contact-row { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.25rem; }
+    #team .contact-row .chip-link { word-break:break-word; }
+  </style>
 </head>
 <body>
   <header class="site-header">
@@ -461,6 +499,13 @@
           <h3>Kids PDF</h3>
           <p><a class="btn" href="assets/kids-pack.pdf" target="_blank" rel="noopener">Download PDF</a></p>
         </article>
+
+        <!-- Added: Kids Video (download) -->
+        <article class="card">
+          <h3>Kids Video (Low‑Def)</h3>
+          <p class="muted">EVEs kids version — MP4 (~40 MB)</p>
+          <p><a class="btn" href="assets/video/EVEs-kids-version-LD.mp4" download>Download MP4</a></p>
+        </article>
       </div>
     </section>
 
@@ -581,6 +626,73 @@
       });
       obs.observe(document.body, { childList: true, subtree: true });
     });
+  </script>
+
+  <!-- Footer counters (visits + sticker downloads); optional video download count -->
+  <script>
+    (function() {
+      const NS = ('eve-' + (location.host || 'local')).replace(/[^a-z0-9\-\.]/gi,'-').toLowerCase() + '-2026';
+      async function cget(key) {
+        const r = await fetch(`https://api.countapi.xyz/get/${NS}/${key}`, { cache: 'no-store' });
+        if (!r.ok) return 0;
+        const j = await r.json(); return Number(j.value) || 0;
+      }
+      async function chit(key) {
+        const r = await fetch(`https://api.countapi.xyz/hit/${NS}/${key}`, { cache: 'no-store' });
+        if (!r.ok) return 0;
+        const j = await r.json(); return Number(j.value) || 0;
+      }
+      function setCount(id, n) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = Number(n).toLocaleString();
+      }
+
+      document.addEventListener('DOMContentLoaded', async () => {
+        // Show current totals
+        try {
+          const [vis, sticks] = await Promise.all([cget('visits'), cget('stickers')]);
+          setCount('visits-count', vis);
+          setCount('dl-total-count', sticks);
+        } catch (e) { /* ignore */ }
+
+        // Count one visit per tab (session)
+        const seenKey = 'eve-visit-counted';
+        if (!sessionStorage.getItem(seenKey)) {
+          try {
+            const next = await chit('visits');
+            setCount('visits-count', next);
+          } catch (e) { /* ignore */ }
+          sessionStorage.setItem(seenKey, '1');
+        }
+
+        // Sticker download buttons in Achievements
+        document.querySelectorAll('#achievements .badge button').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            try {
+              const next = await chit('stickers');
+              setCount('dl-total-count', next);
+            } catch (e) { /* ignore */ }
+          });
+        });
+
+        // If a global downloadBadge function exists, wrap it to ensure counting
+        if (typeof window.downloadBadge === 'function' && !window.downloadBadge._wrapped) {
+          const orig = window.downloadBadge;
+          window.downloadBadge = async function() {
+            try { const next = await chit('stickers'); setCount('dl-total-count', next); } catch(e) {}
+            return orig.apply(this, arguments);
+          };
+          window.downloadBadge._wrapped = true;
+        }
+
+        // Optional: count Kids video downloads if needed (not shown in footer)
+        document.querySelectorAll('a[href$=".mp4"][download]').forEach(a => {
+          if (/EVEs-kids-version-LD\.mp4$/.test(a.getAttribute('href')||'')) {
+            a.addEventListener('click', () => { chit('video').catch(()=>{}); });
+          }
+        });
+      });
+    })();
   </script>
 
   <!-- Main logic -->
