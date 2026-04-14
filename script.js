@@ -1144,3 +1144,213 @@ if (typeof AdvancedGame !== 'undefined' && !AdvancedGame.togglePortfolios) {
     };
   }
 })();
+
+// ==================== ADULT GAME: ADD COLOURED EVE SHAPES ====================
+(function enhanceAdultsGame() {
+  // Wait for game to render
+  setTimeout(function() {
+    // Style the EVE cards with coloured icons
+    const style = document.createElement('style');
+    style.textContent = `
+      /* Adult game EVE cards - visual improvements */
+      #adults .eve-card {
+        display: flex !important;
+        align-items: center !important;
+        gap: 12px !important;
+        padding: 12px !important;
+        margin: 8px 0 !important;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+        border: 2px solid #e2e8f0 !important;
+        border-radius: 16px !important;
+        transition: all 0.2s ease !important;
+        cursor: pointer !important;
+      }
+      
+      #adults .eve-card:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1) !important;
+        border-color: #0e8a68 !important;
+      }
+      
+      #adults .eve-card input {
+        transform: scale(1.2) !important;
+        margin-right: 4px !important;
+      }
+      
+      /* EVE type icons */
+      #adults .eve-card .eve-icon {
+        width: 40px !important;
+        height: 40px !important;
+        border-radius: 50% !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 20px !important;
+        flex-shrink: 0 !important;
+      }
+      
+      #adults .eve-card .eve-icon.retro {
+        background: linear-gradient(135deg, #0ea5e9, #0284c7) !important;
+        box-shadow: 0 4px 10px rgba(14,165,233,0.3) !important;
+      }
+      
+      #adults .eve-card .eve-icon.dna {
+        background: linear-gradient(135deg, #a16207, #854d0e) !important;
+        box-shadow: 0 4px 10px rgba(161,98,7,0.3) !important;
+      }
+      
+      /* EVE state coloured dots */
+      #adults .eve-card .state-dot {
+        width: 12px !important;
+        height: 12px !important;
+        border-radius: 50% !important;
+        display: inline-block !important;
+        margin-right: 6px !important;
+      }
+      
+      #adults .eve-card .state-dot.intact { background: #16a34a !important; box-shadow: 0 0 0 2px rgba(22,163,74,0.2) !important; }
+      #adults .eve-card .state-dot.useful { background: #ef4444 !important; box-shadow: 0 0 0 2px rgba(239,68,68,0.2) !important; }
+      #adults .eve-card .state-dot.broken { background: #111827 !important; box-shadow: 0 0 0 2px rgba(17,24,39,0.2) !important; }
+      #adults .eve-card .state-dot.silent { background: #f59e0b !important; box-shadow: 0 0 0 2px rgba(245,158,11,0.2) !important; }
+      
+      /* Species cards in adults game */
+      #adults .species-card {
+        background: linear-gradient(135deg, #ffffff, #fefce8) !important;
+        border: 2px solid #e5e9ef !important;
+        border-radius: 20px !important;
+        padding: 16px !important;
+        margin: 10px 0 !important;
+        transition: all 0.2s ease !important;
+      }
+      
+      #adults .species-card.selected {
+        border-color: #0e8a68 !important;
+        background: linear-gradient(135deg, #f0fdf4, #dcfce7) !important;
+        transform: scale(1.02) !important;
+      }
+      
+      #adults .species-card h5 {
+        font-size: 1.1rem !important;
+        font-weight: 700 !important;
+        color: #0a1a2f !important;
+        margin-bottom: 12px !important;
+        border-left: 4px solid #0e8a68 !important;
+        padding-left: 12px !important;
+      }
+      
+      #adults .card-chips {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 10px !important;
+      }
+      
+      #adults .card-chips .chip {
+        display: inline-flex !important;
+        align-items: center !important;
+        gap: 8px !important;
+        padding: 6px 14px !important;
+        border-radius: 40px !important;
+        font-size: 0.8rem !important;
+        font-weight: 600 !important;
+        background: white !important;
+        border: 1px solid #e2e8f0 !important;
+      }
+      
+      /* Timer bar improvements */
+      .timer-wrap {
+        background: linear-gradient(135deg, #f1f5f9, #e2e8f0) !important;
+        padding: 10px 15px !important;
+        border-radius: 60px !important;
+      }
+      
+      .timer-fill {
+        background: linear-gradient(90deg, #0e8a68, #22c55e, #0e8a68) !important;
+        background-size: 200% 100% !important;
+        animation: shimmer 2s ease infinite !important;
+      }
+      
+      @keyframes shimmer {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+      
+      /* Step containers */
+      .adv-step {
+        background: linear-gradient(135deg, #ffffff, #faf5ff) !important;
+        border-radius: 24px !important;
+        padding: 20px !important;
+        margin: 20px 0 !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
+      }
+      
+      .adv-step h4 {
+        color: #0e8a68 !important;
+        font-weight: 700 !important;
+        margin-bottom: 16px !important;
+      }
+      
+      /* Buttons */
+      #adults .btn-primary {
+        background: linear-gradient(135deg, #0e8a68, #16a34a) !important;
+        border: none !important;
+        padding: 10px 24px !important;
+        border-radius: 40px !important;
+        font-weight: 600 !important;
+        transition: all 0.2s ease !important;
+      }
+      
+      #adults .btn-primary:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(14,138,104,0.3) !important;
+      }
+    `;
+    document.head.appendChild(style);
+    
+    // Add icons to EVE cards
+    function addEveIcons() {
+      document.querySelectorAll('#adults .eve-card').forEach(card => {
+        const text = card.querySelector('div div strong')?.textContent || '';
+        let type = 'retro';
+        let state = 'useful';
+        
+        if (card.innerHTML.includes('retro')) type = 'retro';
+        if (card.innerHTML.includes('dna')) type = 'dna';
+        if (card.innerHTML.includes('intact')) state = 'intact';
+        if (card.innerHTML.includes('useful')) state = 'useful';
+        if (card.innerHTML.includes('broken')) state = 'broken';
+        if (card.innerHTML.includes('silent')) state = 'silent';
+        
+        const iconHtml = `<div class="eve-icon ${type}">${type === 'retro' ? '🦠' : '🧬'}</div>`;
+        const stateDot = `<span class="state-dot ${state}"></span>`;
+        
+        // Insert icon at beginning of card content
+        const contentDiv = card.querySelector('div:not(input)');
+        if (contentDiv && !card.querySelector('.eve-icon')) {
+          contentDiv.insertAdjacentHTML('afterbegin', iconHtml);
+          // Replace text state with dot
+          const chips = contentDiv.querySelectorAll('.card-chips');
+          chips.forEach(chip => {
+            let html = chip.innerHTML;
+            if (html.includes('useful')) html = html.replace('useful', `${stateDot}useful`);
+            if (html.includes('intact')) html = html.replace('intact', `${stateDot}intact`);
+            if (html.includes('broken')) html = html.replace('broken', `${stateDot}broken`);
+            if (html.includes('silent')) html = html.replace('silent', `${stateDot}silent`);
+            chip.innerHTML = html;
+          });
+        }
+      });
+    }
+    
+    // Run after each render
+    const observer = new MutationObserver(function() {
+      addEveIcons();
+    });
+    
+    const adultsPanel = document.getElementById('adults');
+    if (adultsPanel) {
+      observer.observe(adultsPanel, { childList: true, subtree: true });
+      setTimeout(addEveIcons, 100);
+    }
+  }, 500);
+})();
