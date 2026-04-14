@@ -10,7 +10,6 @@ if (toggle) {
     nav.classList.toggle('is-open');
   });
 }
-// Close mobile nav when clicking any in-page anchor link
 document.querySelectorAll('a[href^="#"]').forEach(a => {
   a.addEventListener('click', () => {
     if (nav && nav.classList.contains('is-open')) {
@@ -37,150 +36,109 @@ tabs.forEach(tab => {
 });
 
 // -------- Simple counters via CountAPI (static-friendly) --------
-// -------- Simple counters via CountAPI (static-friendly) --------
-const COUNTER_NS = 'queendroso-evdetective'; // namespace for your site
+const COUNTER_NS = 'queendroso-evdetective';
 
 async function counterHit(key){
-  try{
-    const res = await fetch(`https://api.countapi.xyz/hit/${COUNTER_NS}/${key}`, { cache:'no-store' });
-    return await res.json(); // { value: N }
-  }catch(e){ return null; }
+  try{ const res = await fetch(`https://api.countapi.xyz/hit/${COUNTER_NS}/${key}`, { cache:'no-store' });
+       return await res.json(); } catch(e){ return null; }
 }
 async function counterGet(key){
-  try{
-    const res = await fetch(`https://api.countapi.xyz/get/${COUNTER_NS}/${key}`, { cache:'no-store' });
-    return await res.json(); // { value: N }
-  }catch(e){ return null; }
+  try{ const res = await fetch(`https://api.countapi.xyz/get/${COUNTER_NS}/${key}`, { cache:'no-store' });
+       return await res.json(); } catch(e){ return null; }
 }
 function setText(id, val){ const el = document.getElementById(id); if (el) el.textContent = (val ?? '—'); }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Count one visit per browser per day (simple)
   const today = new Date().toISOString().slice(0,10);
   const last = localStorage.getItem('eve.visitYMD');
   if (last !== today){
     localStorage.setItem('eve.visitYMD', today);
-    const d = await counterHit('site-visits'); // increments total
+    const d = await counterHit('site-visits');
     setText('visits-count', d?.value);
   } else {
-    const d = await counterGet('site-visits'); // show value
+    const d = await counterGet('site-visits');
     setText('visits-count', d?.value);
   }
-
-  // Show total sticker downloads if footer span exists
   const dls = await counterGet('sticker-downloads-total');
   setText('dl-total-count', dls?.value);
 });
 
 // ---------------- Achievements (badges) ----------------
-// Small toast for bottom notifications (needs a <div id="achv-toast"> in HTML)
 function achvToast(msg){
   const el = document.getElementById('achv-toast');
   if(!el) { alert(msg); return; }
   el.textContent = msg;
   el.classList.remove('show');
-  void el.offsetWidth; // restart CSS animation
+  void el.offsetWidth;
   el.classList.add('show');
 }
 
 (function(){
   const STORAGE_KEY = 'eveDetective.achievements.v1';
-  // Preferred filenames (with hyphen); fallback to “space” variants if needed
   const BADGE_FILES = {
-    kids:     ['assets/Beginner-sticker.jpeg',     'assets/Beginner sticker.jpeg'],
-    teens:    ['assets/Intermediate-sticker.jpeg', 'assets/Intermediate sticker.jpeg'],
-    adults:   ['assets/Advanced-sticker.jpeg',     'assets/Advanced sticker.jpeg'],
-    champion: ['assets/Champion-sticker.jpeg',     'assets/Champion sticker.jpeg']
+    kids:     ['assets/Beginner-sticker.jpeg','assets/Beginner sticker.jpeg'],
+    teens:    ['assets/Intermediate-sticker.jpeg','assets/Intermediate sticker.jpeg'],
+    adults:   ['assets/Advanced-sticker.jpeg','assets/Advanced sticker.jpeg'],
+    champion: ['assets/Champion-sticker.jpeg','assets/Champion sticker.jpeg']
   };
 
   const Achievements = {
     state: { kids:false, teens:false, adults:false },
     load(){
-      try{
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if(raw){
-          const p = JSON.parse(raw);
-          this.state = { kids:!!p.kids, teens:!!p.teens, adults:!!p.adults };
-        }
-      }catch(_){}
+      try{ const raw = localStorage.getItem(STORAGE_KEY);
+           if(raw){ const p = JSON.parse(raw); this.state = { kids:!!p.kids, teens:!!p.teens, adults:!!p.adults }; } }
+      catch(_){}
     },
-    save(){
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
-    },
-    isUnlocked(level){
-      if(level==='champion') return (this.state.kids && this.state.teens && this.state.adults);
-      return !!this.state[level];
-    },
+    save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state)); },
+    isUnlocked(level){ return level==='champion' ? (this.state.kids&&this.state.teens&&this.state.adults) : !!this.state[level]; },
     markComplete(level){
       if(!['kids','teens','adults'].includes(level)) return;
       if(!this.state[level]){
-        this.state[level] = true;
-        this.save();
-        this.render();
+        this.state[level] = true; this.save(); this.render();
         achvToast(`Unlocked: ${level.charAt(0).toUpperCase()+level.slice(1)} badge!`);
       }
     },
     async _fetchFirstOk(urls){
-      for (const u of urls){
-        try{
-          const res = await fetch(u, { cache:'no-store' });
-          if (res.ok) return await res.blob();
-        }catch(_){}
-      }
+      for (const u of urls){ try{ const r=await fetch(u,{cache:'no-store'}); if(r.ok) return await r.blob(); }catch(_){ } }
       throw new Error('not-found');
     },
     async download(level){
-  if(!['kids','teens','adults','champion'].includes(level)) return;
-  if(!this.isUnlocked(level)){
-    achvToast(`Play the ${level} challenge to unlock this sticker.`);
-    return;
-  }
-  const candidates = BADGE_FILES[level] || [];
-  try{
-    const blob = await this._fetchFirstOk(candidates);
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    const nice = level === 'kids' ? 'Kids' : level === 'teens' ? 'Teens' : level === 'adults' ? 'Adults' : 'Champion';
-    a.href = url; a.download = `EVE-Detective-${nice}-Sticker.jpeg`;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
-
-    // NEW: increment counters
-    counterHit('sticker-downloads-total');
-    counterHit(`sticker-downloads-${level}`);
-  }catch(_){
-    // Fallback: open first candidate in new tab
-    const a = document.createElement('a');
-    a.href = candidates[0] || '#';
-    a.target = '_blank'; a.rel = 'noopener';
-    document.body.appendChild(a); a.click(); a.remove();
-
-    // NEW: still increment counters on fallback open
-    counterHit('sticker-downloads-total');
-    counterHit(`sticker-downloads-${level}`);
-  }
-},
+      if(!['kids','teens','adults','champion'].includes(level)) return;
+      if(!this.isUnlocked(level)){ achvToast(`Play the ${level} challenge to unlock this sticker.`); return; }
+      const candidates = BADGE_FILES[level] || [];
+      try{
+        const blob = await this._fetchFirstOk(candidates);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const nice = level==='kids'?'Kids':level==='teens'?'Teens':level==='adults'?'Adults':'Champion';
+        a.href = url; a.download = `EVE-Detective-${nice}-Sticker.jpeg`;
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+        counterHit('sticker-downloads-total'); counterHit(`sticker-downloads-${level}`);
+      }catch(_){
+        const a = document.createElement('a');
+        a.href = candidates[0] || '#'; a.target = '_blank'; a.rel = 'noopener';
+        document.body.appendChild(a); a.click(); a.remove();
+        counterHit('sticker-downloads-total'); counterHit(`sticker-downloads-${level}`);
+      }
+    },
     render(){
-      // Update lock visuals and buttons
       ['kids','teens','adults','champion'].forEach(level => {
         const card = document.querySelector(`.badge[data-badge="${level}"]`);
         if(!card) return;
         const btn = card.querySelector('button');
         const unlocked = this.isUnlocked(level);
-        if(level === 'champion'){
+        if(level==='champion'){
           card.classList.toggle('unlocked', unlocked);
           card.style.opacity = unlocked ? 1 : 0.7;
-          if (btn) btn.disabled = !unlocked;
-          if (btn) btn.setAttribute('aria-disabled', btn.disabled ? 'true' : 'false');
-        } else {
+          if (btn) { btn.disabled = !unlocked; btn.setAttribute('aria-disabled', btn.disabled ? 'true':'false'); }
+        }else{
           card.classList.toggle('locked', !unlocked);
           card.classList.toggle('unlocked', unlocked);
           card.style.opacity = unlocked ? 1 : 0.95;
-          if (btn) btn.disabled = !unlocked;
-          if (btn) btn.setAttribute('aria-disabled', btn.disabled ? 'true' : 'false');
+          if (btn) { btn.disabled = !unlocked; btn.setAttribute('aria-disabled', btn.disabled ? 'true':'false'); }
         }
       });
-      // Progress
       const done = ['kids','teens','adults'].filter(k => this.state[k]).length;
       const pct = Math.round((done/3)*100);
       const bar = document.getElementById('progress-bar');
@@ -188,22 +146,18 @@ function achvToast(msg){
     }
   };
 
-  // Expose globally for games and buttons
   window.Achievements = Achievements;
   window.downloadBadge = (level) => Achievements.download(level);
   window.shareProgress = async function(){
     const s = Achievements.state;
     const earned = ['kids','teens','adults'].filter(k => s[k]).length;
-    const text = (earned===3) ? 'I earned all EVE Detective badges and unlocked Champion!' : `I earned ${earned}/3 EVE Detective badges!`;
+    const text = earned===3 ? 'I earned all EVE Detective badges and unlocked Champion!' : `I earned ${earned}/3 EVE Detective badges!`;
     const url = window.location.href;
     if (navigator.share) { try { await navigator.share({ title:'EVE Detective', text, url }); } catch(_){} }
     else { await navigator.clipboard?.writeText(`${text} ${url}`); achvToast('Progress copied to clipboard!'); }
   };
 
-  document.addEventListener('DOMContentLoaded', () => {
-    Achievements.load();
-    Achievements.render();
-  });
+  document.addEventListener('DOMContentLoaded', () => { Achievements.load(); Achievements.render(); });
 })();
 
 // ---------- Confetti + Claps + Sound ----------
@@ -216,11 +170,9 @@ function confettiBurst(){
   c.style.width = innerWidth+'px'; c.style.height = innerHeight+'px';
   const N = 150, parts=[];
   for(let i=0;i<N;i++){
-    parts.push({
-      x: Math.random()*W, y: -Math.random()*H*0.2, vy: 2+Math.random()*4, vx: (Math.random()-0.5)*2,
+    parts.push({ x: Math.random()*W, y: -Math.random()*H*0.2, vy: 2+Math.random()*4, vx: (Math.random()-0.5)*2,
       w: 6*dpr, h: 10*dpr, r: Math.random()*Math.PI,
-      col: ['#60a5fa','#34d399','#f472b6','#facc15','#a78bfa'][Math.floor(Math.random()*5)]
-    });
+      col: ['#60a5fa','#34d399','#f472b6','#facc15','#a78bfa'][Math.floor(Math.random()*5)] });
   }
   let t=0; const T=90;
   function step(){
@@ -244,7 +196,7 @@ function playChime(){
     const now = ctx.currentTime;
     [0,0.12,0.24].forEach((dt,i)=>{
       const o = ctx.createOscillator(); const g = ctx.createGain();
-      o.type='sine'; o.frequency.value = 880 + i*120; // rising tones
+      o.type='sine'; o.frequency.value = 880 + i*120;
       g.gain.setValueAtTime(0.0001, now+dt);
       g.gain.exponentialRampToValueAtTime(0.2, now+dt+0.01);
       g.gain.exponentialRampToValueAtTime(0.0001, now+dt+0.25);
@@ -325,8 +277,8 @@ const KidsGame = (() => {
 
   let overlay, bg, ctxO, ctxB, ring, wrap;
   let w=0,h=0; let current='melanogaster';
-  let found=new Set();               // holds keys like "species:index"
-  let completed = new Set();         // species completed
+  let found=new Set();
+  let completed = new Set();
   let revealAll=false;
 
   function init(){
@@ -360,14 +312,12 @@ const KidsGame = (() => {
         if (!completed.has(current)){
           completed.add(current);
           updateSpeciesProgress();
-          // If all species are done -> unlock kids badge
           if (completed.size === SPECIES.length && !KidsGame._won){
             KidsGame._won = true;
             window.Achievements?.markComplete('kids');
             toast('Great work! All 5 species complete — Kids badge unlocked!', wrap);
             confettiBurst(); claps(); playChime();
           } else {
-            // Nudge to go to next species
             toast(`Nice! ${completed.size}/${SPECIES.length} species complete — click “Next species →”`, wrap);
             document.getElementById('kids-next')?.classList.add('pulse-once');
             setTimeout(()=>document.getElementById('kids-next')?.classList.remove('pulse-once'), 1500);
@@ -399,19 +349,13 @@ const KidsGame = (() => {
     if (sp) sp.textContent = `Species complete: ${completed.size}/${SPECIES.length}`;
   }
   function foundCountForCurrent(){ let c=0; const cfg=speciesConfigs[current]; cfg.eves.forEach((_,i)=>{ if(found.has(`${current}:${i}`)) c++; }); return c; }
-  function giveHint(){ /* optional visual hint */ }
-  function resetCurrent(){ // clear finds only for current species
-    Array.from(found).forEach(k=>{ if(k.startsWith(current+':')) found.delete(k); });
-    drawOverlay(); updateCounts();
-  }
-  function resetAll(){ found.clear(); completed.clear(); updateSpeciesProgress(); drawOverlay(); updateCounts(); }
+  function giveHint(){}
+  function reset(){ Array.from(found).forEach(k=>{ if(k.startsWith(current+':')) found.delete(k); }); drawOverlay(); updateCounts(); }
   function loadSpecies(name){
     if (!speciesConfigs[name]) return;
     current = name;
-    const sel = document.getElementById('species-select');
-    if (sel && sel.value !== name) sel.value = name;
-    const reg=document.getElementById('kids-region');
-    if(reg) reg.textContent = speciesConfigs[current].region || '';
+    const sel = document.getElementById('species-select'); if (sel && sel.value !== name) sel.value = name;
+    const reg=document.getElementById('kids-region'); if(reg) reg.textContent = speciesConfigs[current].region || '';
     resize(); updateCounts();
   }
   function next(){
@@ -420,7 +364,7 @@ const KidsGame = (() => {
     loadSpecies(SPECIES[nextIdx]);
   }
   function toggleReveal(on){ revealAll=!!on; drawOverlay(); }
-  return { init, resize, giveHint, reset: resetCurrent, loadSpecies, toggleReveal, next };
+  return { init, resize, giveHint, reset, loadSpecies, toggleReveal, next };
 })();
 document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('kids-game')) KidsGame.init(); });
 
@@ -431,7 +375,6 @@ const IntermediateGame = (() => {
   const LABEL_SHORT= { melanogaster:'D. mel.', simulans:'D. sim.', yakuba:'D. yak.', virilis:'D. vir.', pseudoananassae:'D. pse.' };
   let useShort = true, compareMode = false;
 
-  // EVE presence (E1..E8), states drive barcode colors
   const EVE_DB = {
     E1:{ state:'broken',  present:new Set(S) },
     E2:{ state:'broken',  present:new Set(['melanogaster','simulans','yakuba']) },
@@ -444,7 +387,6 @@ const IntermediateGame = (() => {
   };
   const EVE_ORDER = ['E1','E2','E3','E4','E5','E6','E7','E8'];
 
-  // Gold solution: Pair A (mel+sim), Pair B (vir+pse), Outgroup yak
   const GOLD = {
     pairA: new Set(['melanogaster','simulans']),
     pairB: new Set(['virilis','pseudoananassae']),
@@ -456,14 +398,9 @@ const IntermediateGame = (() => {
   function init(){
     const sl = document.getElementById('short-labels');
     if (sl) { useShort = sl.checked; sl.onchange = (e)=>setShort(e.target.checked); }
-    renderMatrix();
-    renderInspect();
-    renderDeck();
-    wireDrops();
-    drawTree(); // none until user drops
+    renderMatrix(); renderInspect(); renderDeck(); wireDrops(); drawTree();
   }
 
-  // ----- Matrix (optional heatmap) -----
   function renderMatrix(){
     const el = document.getElementById('matrix'); if (!el) return;
     const shared = pairwiseSharedCounts();
@@ -488,18 +425,15 @@ const IntermediateGame = (() => {
     if (hidden) el.removeAttribute('hidden'); else el.setAttribute('hidden','');
   }
   function showHints(){
-    alert([
-      'How to play:',
-      '1) Click species cards to flip EVEs; in Compare mode, pick two and shared EVEs will glow.',
-      '2) Drag the two closest into Pair A; the next two into Pair B; place the oldest as Outgroup.',
-      '3) Click Build & Check. Use the matrix if you need a hint.',
-      'Tip: Broken EVEs are older (shared deeper); Useful/Intact are newer; Unique are recent.'
+    alert(['How to play:',
+      '1) Click species cards to flip EVEs; in Compare mode, pick two and shared EVEs glow.',
+      '2) Drag the two closest into Pair A; next closest into Pair B; place the outgroup.',
+      '3) Build & Check. Use the matrix if you need a hint.'
     ].join('\n'));
   }
   function setShort(on){ useShort = !!on; renderMatrix(); renderInspect(); renderDeck(); drawTree(); }
   function toggleCompare(){ compareMode = !compareMode; selectedForCompare.length = 0; updateCompareGlow(); }
 
-  // ----- Inspect/Compare -----
   function renderInspect(){
     const grid = document.getElementById('inspect-grid'); if (!grid) return;
     grid.innerHTML = S.map(sp => {
@@ -519,16 +453,14 @@ const IntermediateGame = (() => {
     }).join('');
   }
   function flipCard(sp){
-    const card = document.querySelector(`.inspect-card[data-sp="${sp}"]`);
-    if (!card) return;
+    const card = document.querySelector(`.inspect-card[data-sp="${sp}"]`); if (!card) return;
     card.classList.toggle('revealed');
     if (compareMode){
       if (card.classList.contains('selected')){
         card.classList.remove('selected');
         selectedForCompare = selectedForCompare.filter(x=>x!==sp);
       } else if (selectedForCompare.length < 2){
-        card.classList.add('selected');
-        selectedForCompare.push(sp);
+        card.classList.add('selected'); selectedForCompare.push(sp);
       }
       if (selectedForCompare.length > 2){
         const first = selectedForCompare.shift();
@@ -549,7 +481,6 @@ const IntermediateGame = (() => {
     });
   }
 
-  // ----- Drag & drop builder -----
   function renderDeck(){
     const deck = document.getElementById('species-deck'); if (!deck) return;
     deck.innerHTML = S.map(sp => {
@@ -577,10 +508,7 @@ const IntermediateGame = (() => {
       });
     }
   }
-  function onDragStart(e){
-    const sp = e.target.getAttribute('data-sp');
-    e.dataTransfer.setData('text/sp', sp);
-  }
+  function onDragStart(e){ const sp = e.target.getAttribute('data-sp'); e.dataTransfer.setData('text/sp', sp); }
   function onDrop(e){
     e.preventDefault();
     const sp = e.dataTransfer.getData('text/sp');
@@ -604,7 +532,6 @@ const IntermediateGame = (() => {
     drawTree();
   }
 
-  // ----- Build & check -----
   function checkTree(){
     const A = Array.from(document.querySelectorAll('[data-slot="A1"] .badge-draggable, [data-slot="A2"] .badge-draggable')).map(x=>x.getAttribute('data-sp'));
     const B = Array.from(document.querySelectorAll('[data-slot="B1"] .badge-draggable, [data-slot="B2"] .badge-draggable')).map(x=>x.getAttribute('data-sp'));
@@ -633,11 +560,10 @@ const IntermediateGame = (() => {
       }
       if (steps) steps.textContent = `Pairs: {${A.join(', ')}} and {${B.join(', ')}}, Outgroup: ${O}`;
     } else {
-      alert('Not quite. Hint: (D. mel. + D. sim.) are closest; (D. vir. + D. pse.) are next; D. yak. is the outgroup.');
+      alert('Not quite. Hint: (D. mel. + D. sim.) are closest; (D. vir. + D. pse.) next; D. yak. is outgroup.');
     }
   }
 
-  // ----- Tree SVG (compact) -----
   function drawTree(nw){
     const box = document.getElementById('tree-svg'); if (!box) return;
     if (!nw){ box.innerHTML = ''; return; }
@@ -665,7 +591,6 @@ const IntermediateGame = (() => {
     box.innerHTML=''; box.appendChild(svg);
   }
 
-  // ----- Helpers -----
   function keyPair(a,b){ return [a,b].sort().join('|'); }
   function pairwiseSharedCounts(){
     const out={}; for (let i=0;i<S.length;i++){ for (let j=i+1;j<S.length;j++){ const a=S[i], b=S[j]; let c=0; EVE_ORDER.forEach(e=>{ const p=EVE_DB[e].present; if (p.has(a)&&p.has(b)) c++; }); out[keyPair(a,b)] = c; } } return out;
@@ -674,7 +599,6 @@ const IntermediateGame = (() => {
   function heatClass(val, diag, max){ if (diag) return 'med'; const r = val/max; return r>=0.95?'max': r>=0.65?'high': r>=0.35?'med':'low'; }
   function setEquals(a,b){ if (a.size!==b.size) return false; for (const x of a) if (!b.has(x)) return false; return true; }
 
-  // Expose API
   return {
     init, toggleMatrix, showHints, setShort, toggleCompare, flipCard,
     onDragStart, checkTree, clearDrops
@@ -686,7 +610,7 @@ document.addEventListener('DOMContentLoaded', () => { if (document.getElementByI
 const AdvancedGame = (() => {
   const SPECIES = ['melanogaster','simulans','yakuba','virilis','pseudoananassae'];
   const LABEL = { melanogaster:'D. melanogaster', simulans:'D. simulans', yakuba:'D. yakuba', virilis:'D. virilis', pseudoananassae:'D. pseudoananassae' };
-  const RESHUFFLE_ON_RESET = true; // set to false to keep order stable
+  const RESHUFFLE_ON_RESET = true;
 
   const CATALOG = {
     melanogaster: [
@@ -716,8 +640,7 @@ const AdvancedGame = (() => {
 
   function init(){
     if (RESHUFFLE_ON_RESET){ orderStep2 = shuffled(SPECIES); orderStep3 = shuffled(SPECIES); }
-    renderStep1(); renderStep2(); renderStep3();
-    clearFeedback();
+    renderStep1(); renderStep2(); renderStep3(); clearFeedback();
   }
   function clearFeedback(){
     const o1 = document.getElementById('adv-feedback-1'); if (o1) o1.textContent='';
@@ -753,7 +676,7 @@ const AdvancedGame = (() => {
     const vulnBox = document.getElementById('adv-vuln-radios');
     if (!resistBox || !vulnBox) return;
     resistBox.className='species-cards'; vulnBox.className='species-cards';
-    const cards2 = (RESHUFFLE_ON_RESET ? orderStep2 : SPECIES).map(s => speciesCard(s));
+    const cards2 = (RESHUFFLE_ON_RESET ? shuffled(SPECIES) : SPECIES).map(s => speciesCard(s));
     resistBox.innerHTML = cards2.join('');
     vulnBox.innerHTML   = cards2.join('');
     resistBox.querySelectorAll('.species-card').forEach(el => el.addEventListener('click', ()=>selectCard(resistBox, el)));
@@ -778,7 +701,7 @@ const AdvancedGame = (() => {
   function renderStep3(){
     const c = document.getElementById('adv-mutation-checks'); if (!c) return;
     c.className='species-cards';
-    const cards3 = (RESHUFFLE_ON_RESET ? orderStep3 : SPECIES).map(s => `<div class="species-card" data-species="${s}"><h5>${LABEL[s]}</h5><div class="card-chips">${
+    const cards3 = (RESHUFFLE_ON_RESET ? shuffled(SPECIES) : SPECIES).map(s => `<div class="species-card" data-species="${s}"><h5>${LABEL[s]}</h5><div class="card-chips">${
       (CATALOG[s]||[]).map(e=>`${chip(e.type,e.type)}${chip(e.state,e.state)}${chip('fam',e.family)}`).join('')
     }</div></div>`);
     c.innerHTML = cards3.join('');
@@ -790,8 +713,8 @@ const AdvancedGame = (() => {
     if (!chosen.length){ out.textContent='Select at least one species.'; out.style.color='#b91c1c'; return; }
     const set = new Set(chosen);
     let allOk = true;
-    for (const s of STEP3_SET){ if (!set.has(s)) allOk = false; }
-    for (const s of set){ if (!STEP3_SET.has(s)) allOk = false; }
+    for (const s of new Set(['melanogaster','simulans','pseudoananassae'])){ if (!set.has(s)) allOk = false; }
+    for (const s of set){ if (!new Set(['melanogaster','simulans','pseudoananassae']).has(s)) allOk = false; }
     if (allOk){ out.textContent='Correct: D. mel., D. sim., and D. pse. likely retain protection against RV1b.'; out.style.color='#0f766e'; passed.s3=true; maybeUnlock(); }
     else { out.textContent='Close—active/intact retro EVEs vs RV1/RV1a may still recognize RV1b; broken or DNA EVEs won’t.'; out.style.color='#b91c1c'; }
   }
@@ -806,23 +729,18 @@ const AdvancedGame = (() => {
       }
     }
   }
-  // New: full reset and restart
   function reset(){
-    // clear flags
     passed = { s1:false, s2:false, s3:false };
     AdvancedGame._won = false;
-    // (Re)shuffle orders if desired
     if (RESHUFFLE_ON_RESET){ orderStep2 = shuffled(SPECIES); orderStep3 = shuffled(SPECIES); }
-    // Clear selections and re-render
     renderStep1(); renderStep2(); renderStep3(); clearFeedback();
-    // Stop timer (kept separate from restart)
     Timer.stop('adults');
   }
-  function restart(){
-    reset();
-    Timer.start('adults', 60);
-  }
+  function restart(){ reset(); Timer.start('adults', 60); }
 
   return { init, hint, checkStep1, checkStep2, checkStep3, reset, restart };
 })();
 document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('adv-eves-mel')) AdvancedGame.init(); });
+
+// Helpers
+function setEquals(a,b){ if (a.size!==b.size) return false; for (const x of a) if (!b.has(x)) return false; return true; }
