@@ -260,12 +260,6 @@ html{scroll-behavior:smooth}
 .size-controls input[type="range"]{width:min(320px,60vw)}
 .size-controls .val{min-width:3.5rem;text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
 
-/* Timer bars for teens and adults */
-.timer-wrap{display:flex;align-items:center;gap:.5rem;margin:.5rem 0;padding:.5rem;background:var(--ash);border-radius:.5rem;border:1px solid var(--ash-200)}
-.timer-bar{flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden}
-.timer-fill{height:100%;background:linear-gradient(90deg,var(--green),#34d399);transition:width 1s linear;border-radius:4px}
-.tleft{font-family:ui-monospace,monospace;min-width:45px;color:var(--navy);font-weight:600}
-
 /* Make sure tiny EVEs print crisply with visible edge */
 @media print{
   .eve-dot,.micro-eve,.print-eve{ box-shadow:0 0 0 .2pt rgba(0,0,0,.35) inset; }
@@ -280,6 +274,78 @@ html{scroll-behavior:smooth}
   .nav-toggle{display:inline-flex;gap:.25rem;align-items:center;background:#fff;color:var(--navy);border:1px solid var(--ash-200);border-radius:.5rem;padding:.4rem .6rem}
 }
 
-/* Kids: "Next species" pulse */
+/* Kids: “Next species” pulse */
 .pulse-once{animation:pulseOnce .8s ease-in-out 1}
 @keyframes pulseOnce{0%{transform:scale(1)}40%{transform:scale(1.06)}100%{transform:scale(1)}}
+
+/* ==================== FIX: ENSURE TIMER BARS DISPLAY PROPERLY ==================== */
+.timer-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  margin: 0.5rem 0 !important;
+  padding: 0.5rem !important;
+  background: var(--ash) !important;
+  border-radius: 0.5rem !important;
+  border: 1px solid var(--ash-200) !important;
+}
+.timer-bar {
+  flex: 1 !important;
+  height: 8px !important;
+  background: #e2e8f0 !important;
+  border-radius: 4px !important;
+  overflow: hidden !important;
+}
+.timer-fill {
+  height: 100% !important;
+  background: linear-gradient(90deg, var(--green), #34d399) !important;
+  transition: width 1s linear !important;
+  width: 100% !important;
+}
+.tleft {
+  font-family: ui-monospace, monospace !important;
+  min-width: 45px !important;
+  color: var(--navy) !important;
+  font-weight: 600 !important;
+}
+
+/* ==================== FIX: MICRO EVE SIZES FOR PRINT ==================== */
+.micro-eve, .print-eve, .eve-dot {
+  display: inline-block !important;
+  border-radius: 50% !important;
+  transition: width 0.05s ease, height 0.05s ease !important;
+}
+.eve-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(calc(var(--eve-size, 12px) + 4px), 1fr)) !important;
+  gap: 4px !important;
+  align-items: center !important;
+}
+
+/* ==================== FIX: ADULTS CARD FORMAT ==================== */
+.species-cards {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.5rem !important;
+}
+.species-card {
+  background: #fff !important;
+  border: 1px solid var(--ash-200) !important;
+  border-radius: 0.5rem !important;
+  padding: 0.5rem !important;
+  cursor: pointer !important;
+  transition: all 0.1s ease !important;
+}
+.species-card.selected {
+  border-color: var(--green) !important;
+  background: var(--green-100) !important;
+}
+.species-card input {
+  margin-right: 0.5rem !important;
+}
+.card-chips {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.25rem !important;
+  margin-top: 0.25rem !important;
+}
