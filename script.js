@@ -36,6 +36,43 @@ tabs.forEach(tab => {
   });
 });
 
+// -------- Simple counters via CountAPI (static-friendly) --------
+// PLACE A: put this right after the Tabs section and before Achievements
+const COUNTER_NS = 'queendroso-evdetective'; // namespace for your site
+
+async function counterHit(key){
+  try{
+    const res = await fetch(`https://api.countapi.xyz/hit/${COUNTER_NS}/${key}`, { cache:'no-store' });
+    return await res.json(); // { value: N }
+  }catch(e){ return null; }
+}
+async function counterGet(key){
+  try{
+    const res = await fetch(`https://api.countapi.xyz/get/${COUNTER_NS}/${key}`, { cache:'no-store' });
+    return await res.json(); // { value: N }
+  }catch(e){ return null; }
+}
+function setText(id, val){ const el = document.getElementById(id); if (el) el.textContent = (val ?? '—'); }
+
+// Update footer counters on load (visits + total sticker downloads)
+document.addEventListener('DOMContentLoaded', async () => {
+  // Count one visit per browser per day (simple)
+  const today = new Date().toISOString().slice(0,10); // YYYY-MM-DD
+  const last = localStorage.getItem('eve.visitYMD');
+  if (last !== today){
+    localStorage.setItem('eve.visitYMD', today);
+    const d = await counterHit('site-visits'); // increments total
+    setText('visits-count', d?.value);
+  } else {
+    const d = await counterGet('site-visits'); // just show value
+    setText('visits-count', d?.value);
+  }
+
+  // If you added <span id="dl-total-count"> in the footer, show total downloads
+  const dls = await counterGet('sticker-downloads-total');
+  setText('dl-total-count', dls?.value);
+});
+
 // ---------------- Achievements (badges) ----------------
 // Small toast for bottom notifications (needs a <div id="achv-toast"> in HTML)
 function achvToast(msg){
@@ -94,28 +131,36 @@ function achvToast(msg){
       throw new Error('not-found');
     },
     async download(level){
-      if(!['kids','teens','adults','champion'].includes(level)) return;
-      if(!this.isUnlocked(level)){
-        achvToast(`Play the ${level} challenge to unlock this sticker.`);
-        return;
-      }
-      const candidates = BADGE_FILES[level] || [];
-      try{
-        const blob = await this._fetchFirstOk(candidates);
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        const nice = level === 'kids' ? 'Kids' : level === 'teens' ? 'Teens' : level === 'adults' ? 'Adults' : 'Champion';
-        a.href = url; a.download = `EVE-Detective-${nice}-Sticker.jpeg`;
-        document.body.appendChild(a); a.click(); a.remove();
-        URL.revokeObjectURL(url);
-      }catch(_){
-        // Fallback: open first candidate in new tab
-        const a = document.createElement('a');
-        a.href = candidates[0] || '#';
-        a.target = '_blank'; a.rel = 'noopener';
-        document.body.appendChild(a); a.click(); a.remove();
-      }
-    },
+  if(!['kids','teens','adults','champion'].includes(level)) return;
+  if(!this.isUnlocked(level)){
+    achvToast(`Play the ${level} challenge to unlock this sticker.`);
+    return;
+  }
+  const candidates = BADGE_FILES[level] || [];
+  try{
+    const blob = await this._fetchFirstOk(candidates);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const nice = level === 'kids' ? 'Kids' : level === 'teens' ? 'Teens' : level === 'adults' ? 'Adults' : 'Champion';
+    a.href = url; a.download = `EVE-Detective-${nice}-Sticker.jpeg`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+
+    // NEW: increment counters
+    counterHit('sticker-downloads-total');
+    counterHit(`sticker-downloads-${level}`);
+  }catch(_){
+    // Fallback: open first candidate in new tab
+    const a = document.createElement('a');
+    a.href = candidates[0] || '#';
+    a.target = '_blank'; a.rel = 'noopener';
+    document.body.appendChild(a); a.click(); a.remove();
+
+    // NEW: still increment counters on fallback open
+    counterHit('sticker-downloads-total');
+    counterHit(`sticker-downloads-${level}`);
+  }
+},
     render(){
       // Update lock visuals and buttons
       ['kids','teens','adults','champion'].forEach(level => {
