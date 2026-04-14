@@ -48,6 +48,63 @@
     #team .contact-row .chip-link { word-break:break-word; }
   </style>
 </head>
+  <script>
+/* EVE size slider binding — supports very tiny dots for hand lens */
+(function(){
+  function $(s, r=document){ return r.querySelector(s); }
+  function $all(s, r=document){ return Array.from(r.querySelectorAll(s)); }
+
+  function findSlider(){
+    return $('#eveSize') ||
+           $('#eve-size') ||
+           document.querySelector('input[type="range"].eve-size') ||
+           document.querySelector('input[type="range"][name="eve-size"]') ||
+           document.querySelector('input[type="range"][data-eve-size]');
+  }
+
+  function applySize(px, scopeEl){
+    const pxClamped = Math.max(1, Math.min(40, Number(px)||12)); // allow 1–40 px
+    (scopeEl || document.documentElement).style.setProperty('--eve-size', pxClamped + 'px');
+
+    // If there are SVG circles representing EVEs, update their radius
+    $all('circle.eve-dot, circle.micro-eve, circle.print-eve', scopeEl || document).forEach(c => {
+      c.setAttribute('r', (pxClamped/2).toString());
+      // Optional: keep a thin outline visible at tiny sizes
+      c.setAttribute('stroke', 'rgba(0,0,0,.35)');
+      c.setAttribute('stroke-width', Math.max(0.2, pxClamped*0.05));
+    });
+
+    // Update any live readout
+    const out = $('#eveSizeVal');
+    if (out) out.textContent = pxClamped + ' px';
+    // Persist (optional)
+    try { localStorage.setItem('eve.size.px', String(pxClamped)); } catch(_){}
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const slider = findSlider();
+    if (!slider) return;
+
+    const scopeSel = slider.getAttribute('data-scope'); // e.g., "#print-root"
+    const scopeEl = scopeSel ? document.querySelector(scopeSel) : null;
+
+    // Init from localStorage or slider default
+    let start = Number(localStorage.getItem('eve.size.px'));
+    if (!start || Number.isNaN(start)) start = Number(slider.value || 12);
+    applySize(start, scopeEl);
+
+    // Ensure slider min/max reasonable for micro EVEs
+    if (!slider.hasAttribute('min')) slider.min = '1';
+    if (!slider.hasAttribute('max')) slider.max = '40';
+    if (!slider.hasAttribute('step')) slider.step = '1';
+    slider.value = String(start);
+
+    const onInput = e => applySize(e.target.value, scopeEl);
+    slider.addEventListener('input', onInput);
+    slider.addEventListener('change', onInput);
+  });
+})();
+</script>
 <body>
   <header class="site-header">
     <a class="brand" href="#home">
