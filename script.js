@@ -28,7 +28,9 @@ tabs.forEach(tab => {
     panels.forEach(p => p.classList.remove('is-active'));
     tab.setAttribute('aria-selected', 'true');
     const id = tab.getAttribute('aria-controls');
-    document.getElementById(id).classList.add('is-active');
+    document.getElementById(id)?.classList.add('is-active');
+
+    // Defer to ensure panel is visible
     if (id === 'kids') setTimeout(() => KidsGame.resize(), 50);
     if (id === 'teens') setTimeout(() => { IntermediateGame.init(); Timer.start('teens', 60); }, 50);
     if (id === 'adults') setTimeout(() => { AdvancedGame.init(); Timer.start('adults', 60); }, 50);
@@ -36,31 +38,46 @@ tabs.forEach(tab => {
 });
 
 // -------- Simple counters via CountAPI (static-friendly) --------
+// Uses a stable namespace; update if you fork to avoid mixing counts across sites.
 const COUNTER_NS = 'queendroso-evdetective';
 
 async function counterHit(key){
-  try{ const res = await fetch(`https://api.countapi.xyz/hit/${COUNTER_NS}/${key}`, { cache:'no-store' });
-       return await res.json(); } catch(e){ return null; }
+  try {
+    const res = await fetch(`https://api.countapi.xyz/hit/${COUNTER_NS}/${key}`, { cache:'no-store' });
+    if (!res.ok) return null;
+    const j = await res.json();
+    return typeof j.value === 'number' ? j.value : null;
+  } catch(e){ return null; }
 }
 async function counterGet(key){
-  try{ const res = await fetch(`https://api.countapi.xyz/get/${COUNTER_NS}/${key}`, { cache:'no-store' });
-       return await res.json(); } catch(e){ return null; }
+  try {
+    const res = await fetch(`https://api.countapi.xyz/get/${COUNTER_NS}/${key}`, { cache:'no-store' });
+    if (!res.ok) return null;
+    const j = await res.json();
+    return typeof j.value === 'number' ? j.value : null;
+  } catch(e){ return null; }
 }
-function setText(id, val){ const el = document.getElementById(id); if (el) el.textContent = (val ?? '—'); }
+function setText(id, val){
+  const el = document.getElementById(id);
+  if (el) el.textContent = (typeof val === 'number') ? val.toLocaleString() : '—';
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // Count 1 visit per calendar day per browser (prevents inflating totals on refresh)
   const today = new Date().toISOString().slice(0,10);
   const last = localStorage.getItem('eve.visitYMD');
   if (last !== today){
     localStorage.setItem('eve.visitYMD', today);
-    const d = await counterHit('site-visits');
-    setText('visits-count', d?.value);
+    const v = await counterHit('site-visits');
+    setText('visits-count', v);
   } else {
-    const d = await counterGet('site-visits');
-    setText('visits-count', d?.value);
+    const v = await counterGet('site-visits');
+    setText('visits-count', v);
   }
+
+  // Initialize sticker download total
   const dls = await counterGet('sticker-downloads-total');
-  setText('dl-total-count', dls?.value);
+  setText('dl-total-count', dls);
 });
 
 // ---------------- Achievements (badges) ----------------
@@ -85,26 +102,39 @@ function achvToast(msg){
   const Achievements = {
     state: { kids:false, teens:false, adults:false },
     load(){
-      try{ const raw = localStorage.getItem(STORAGE_KEY);
-           if(raw){ const p = JSON.parse(raw); this.state = { kids:!!p.kids, teens:!!p.teens, adults:!!p.adults }; } }
-      catch(_){}
+      try{
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if(raw){
+          const p = JSON.parse(raw);
+          this.state = { kids:!!p.kids, teens:!!p.teens, adults:!!p.adults };
+        }
+      } catch(_){}
     },
     save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state)); },
-    isUnlocked(level){ return level==='champion' ? (this.state.kids&&this.state.teens&&this.state.adults) : !!this.state[level]; },
+    isUnlocked(level){
+      return level==='champion' ? (this.state.kids&&this.state.teens&&this.state.adults) : !!this.state[level];
+    },
     markComplete(level){
       if(!['kids','teens','adults'].includes(level)) return;
       if(!this.state[level]){
         this.state[level] = true; this.save(); this.render();
         achvToast(`Unlocked: ${level.charAt(0).toUpperCase()+level.slice(1)} badge!`);
+        // If all three are now done, also refresh champion card state
+        this.render();
       }
     },
     async _fetchFirstOk(urls){
-      for (const u of urls){ try{ const r=await fetch(u,{cache:'no-store'}); if(r.ok) return await r.blob(); }catch(_){ } }
+      for (const u of urls){
+        try{ const r=await fetch(u,{cache:'no-store'}); if(r.ok) return await r.blob(); }catch(_){}
+      }
       throw new Error('not-found');
     },
     async download(level){
       if(!['kids','teens','adults','champion'].includes(level)) return;
-      if(!this.isUnlocked(level)){ achvToast(`Play the ${level} challenge to unlock this sticker.`); return; }
+      if(!this.isUnlocked(level)){
+        achvToast(`Play the ${level} challenge to unlock this sticker.`);
+        return;
+      }
       const candidates = BADGE_FILES[level] || [];
       try{
         const blob = await this._fetchFirstOk(candidates);
@@ -114,12 +144,16 @@ function achvToast(msg){
         a.href = url; a.download = `EVE-Detective-${nice}-Sticker.jpeg`;
         document.body.appendChild(a); a.click(); a.remove();
         URL.revokeObjectURL(url);
-        counterHit('sticker-downloads-total'); counterHit(`sticker-downloads-${level}`);
       }catch(_){
+        // Fallback to opening first candidate in a new tab (lets user save manually)
         const a = document.createElement('a');
         a.href = candidates[0] || '#'; a.target = '_blank'; a.rel = 'noopener';
         document.body.appendChild(a); a.click(); a.remove();
-        counterHit('sticker-downloads-total'); counterHit(`sticker-downloads-${level}`);
+      } finally {
+        // Count the download and update footer UI
+        const next = await counterHit('sticker-downloads-total');
+        setText('dl-total-count', next);
+        await counterHit(`sticker-downloads-${level}`);
       }
     },
     render(){
@@ -153,8 +187,11 @@ function achvToast(msg){
     const earned = ['kids','teens','adults'].filter(k => s[k]).length;
     const text = earned===3 ? 'I earned all EVE Detective badges and unlocked Champion!' : `I earned ${earned}/3 EVE Detective badges!`;
     const url = window.location.href;
-    if (navigator.share) { try { await navigator.share({ title:'EVE Detective', text, url }); } catch(_){} }
-    else { await navigator.clipboard?.writeText(`${text} ${url}`); achvToast('Progress copied to clipboard!'); }
+    if (navigator.share) {
+      try { await navigator.share({ title:'EVE Detective', text, url }); } catch(_){}
+    } else {
+      try { await navigator.clipboard?.writeText(`${text} ${url}`); achvToast('Progress copied to clipboard!'); } catch(_){ alert(text + ' ' + url); }
+    }
   };
 
   document.addEventListener('DOMContentLoaded', () => { Achievements.load(); Achievements.render(); });
@@ -187,7 +224,15 @@ function confettiBurst(){
   step();
 }
 function claps(){
-  let e=document.querySelector('.claps'); if(!e){ e=document.createElement('div'); e.className='claps'; e.textContent='👏👏👏'; document.body.appendChild(e); }
+  let e=document.querySelector('.claps');
+  if(!e){
+    e=document.createElement('div');
+    e.className='claps';
+    e.textContent='👏👏👏';
+    e.style.position='fixed'; e.style.left='50%'; e.style.top='10%'; e.style.transform='translateX(-50%)';
+    e.style.fontSize='2rem'; e.style.transition='opacity .4s ease'; e.style.zIndex='9999';
+    document.body.appendChild(e);
+  }
   e.style.opacity=1; setTimeout(()=>{ e.style.opacity=0; }, 1200);
 }
 function playChime(){
@@ -306,44 +351,67 @@ const KidsGame = (() => {
     const r=wrap.getBoundingClientRect(); const x=e.clientX-r.left, y=e.clientY-r.top;
     const cfg=speciesConfigs[current]; if (!cfg) return;
     const hit=cfg.eves.findIndex((ev,i)=>Math.hypot(ev.x*w-x, ev.y*h-y)<=16);
-    if (hit>=0){ const key=`${current}:${hit}`; if (!found.has(key)){
-      found.add(key); toast(foundMessage(cfg.eves[hit].type), wrap); drawOverlay(); updateCounts();
-      if (foundCountForCurrent()>=cfg.eves.length){
-        if (!completed.has(current)){
-          completed.add(current);
-          updateSpeciesProgress();
-          if (completed.size === SPECIES.length && !KidsGame._won){
-            KidsGame._won = true;
-            window.Achievements?.markComplete('kids');
-            toast('Great work! All 5 species complete — Kids badge unlocked!', wrap);
-            confettiBurst(); claps(); playChime();
-          } else {
-            toast(`Nice! ${completed.size}/${SPECIES.length} species complete — click “Next species →”`, wrap);
-            document.getElementById('kids-next')?.classList.add('pulse-once');
-            setTimeout(()=>document.getElementById('kids-next')?.classList.remove('pulse-once'), 1500);
+    if (hit>=0){
+      const key=`${current}:${hit}`;
+      if (!found.has(key)){
+        found.add(key);
+        toast(foundMessage(cfg.eves[hit].type), wrap);
+        drawOverlay(); updateCounts();
+        if (foundCountForCurrent()>=cfg.eves.length){
+          if (!completed.has(current)){
+            completed.add(current);
+            updateSpeciesProgress();
+            if (completed.size === SPECIES.length && !KidsGame._won){
+              KidsGame._won = true;
+              window.Achievements?.markComplete('kids');
+              toast('Great work! All 5 species complete — Kids badge unlocked!', wrap);
+              confettiBurst(); claps(); playChime();
+            } else {
+              toast(`Nice! ${completed.size}/${SPECIES.length} species complete — click “Next species →”`, wrap);
+              document.getElementById('kids-next')?.classList.add('pulse-once');
+              setTimeout(()=>document.getElementById('kids-next')?.classList.remove('pulse-once'), 1500);
+            }
           }
         }
       }
-    }} else { toast('No EVE here—keep scanning!', wrap); }
+    } else {
+      toast('No EVE here—keep scanning!', wrap);
+    }
   }
   function foundMessage(type){ return type==='intact'?'Intact EVE: viral DNA is complete'
     : type==='useful'?'Useful EVE: helps the fly resist viruses'
     : type==='broken'?'Broken EVE: grey/black, cannot do anything'
     : type==='unique'?'Unique EVE: special/rare insertion' : 'EVE found!'; }
-  function drawBg(){ ctxB.clearRect(0,0,w,h); ctxB.fillStyle='rgba(10,26,47,0.06)'; ctxB.font='700 12px Inter, system-ui';
-    const letters=['A','C','G','T']; for(let Y=24;Y<h;Y+=28){ let row=''; for(let i=0;i<Math.ceil(w/14);i++){ row+=letters[(i+Math.floor(Y))%4]; } ctxB.fillText(row,12,Y); } }
-  function drawOverlay(){ const cfg=speciesConfigs[current]; ctxO.clearRect(0,0,w,h); if(!cfg)return;
+  function drawBg(){
+    ctxB.clearRect(0,0,w,h);
+    ctxB.fillStyle='rgba(10,26,47,0.06)';
+    ctxB.font='700 12px Inter, system-ui';
+    const letters=['A','C','G','T'];
+    for(let Y=24;Y<h;Y+=28){
+      let row=''; for(let i=0;i<Math.ceil(w/14);i++){ row+=letters[(i+Math.floor(Y))%4]; }
+      ctxB.fillText(row,12,Y);
+    }
+  }
+  function drawOverlay(){
+    const cfg=speciesConfigs[current]; ctxO.clearRect(0,0,w,h); if(!cfg)return;
     cfg.eves.forEach((ev,i)=>{ const ex=ev.x*w, ey=ev.y*h, key=`${current}:${i}`, isFound=found.has(key);
       ctxO.beginPath(); ctxO.arc(ex,ey,12,0,Math.PI*2); ctxO.closePath();
       ctxO.fillStyle={intact:'#22c55e',useful:'#ef4444',broken:'#6b7280',unique:'#d4a017'}[ev.type]||'#0ea5e9';
       ctxO.globalAlpha=isFound?1:0.9; ctxO.fill(); ctxO.lineWidth=2; ctxO.strokeStyle='rgba(0,0,0,0.15)'; ctxO.stroke();
-      if(isFound){ ctxO.strokeStyle='rgba(10,26,47,0.8)'; ctxO.lineWidth=2; ctxO.beginPath(); ctxO.moveTo(ex-6,ey); ctxO.lineTo(ex-1,ey+5); ctxO.lineTo(ex+7,ey-6); ctxO.stroke(); }
+      if(isFound){
+        ctxO.strokeStyle='rgba(10,26,47,0.8)'; ctxO.lineWidth=2;
+        ctxO.beginPath(); ctxO.moveTo(ex-6,ey); ctxO.lineTo(ex-1,ey+5); ctxO.lineTo(ex+7,ey-6); ctxO.stroke();
+      }
     });
     const overlayEl=document.getElementById('eve-overlay');
-    if (revealAll){ overlayEl.style.maskImage='none'; overlayEl.style.webkitMaskImage='none'; } else { overlayEl.style.maskImage=''; overlayEl.style.webkitMaskImage=''; }
+    if (revealAll){ overlayEl.style.maskImage='none'; overlayEl.style.webkitMaskImage='none'; }
+    else { overlayEl.style.maskImage=''; overlayEl.style.webkitMaskImage=''; }
   }
-  function updateCounts(){ const cfg=speciesConfigs[current], f=document.getElementById('kids-found'), t=document.getElementById('kids-total');
-    if (f) f.textContent=`Found: ${foundCountForCurrent()}`; if (t) t.textContent=`of ${cfg.eves.length} EVEs`; }
+  function updateCounts(){
+    const cfg=speciesConfigs[current], f=document.getElementById('kids-found'), t=document.getElementById('kids-total');
+    if (f) f.textContent=`Found: ${foundCountForCurrent()}`;
+    if (t) t.textContent=`of ${cfg.eves.length} EVEs`;
+  }
   function updateSpeciesProgress(){
     const sp = document.getElementById('kids-species-progress');
     if (sp) sp.textContent = `Species complete: ${completed.size}/${SPECIES.length}`;
@@ -394,11 +462,14 @@ const IntermediateGame = (() => {
   };
 
   let selectedForCompare = [];
+  let wiredDrops = false;
 
   function init(){
     const sl = document.getElementById('short-labels');
     if (sl) { useShort = sl.checked; sl.onchange = (e)=>setShort(e.target.checked); }
-    renderMatrix(); renderInspect(); renderDeck(); wireDrops(); drawTree();
+    renderMatrix(); renderInspect(); renderDeck();
+    if (!wiredDrops) { wireDrops(); wiredDrops = true; }
+    drawTree();
   }
 
   function renderMatrix(){
@@ -425,7 +496,8 @@ const IntermediateGame = (() => {
     if (hidden) el.removeAttribute('hidden'); else el.setAttribute('hidden','');
   }
   function showHints(){
-    alert(['How to play:',
+    alert([
+      'How to play:',
       '1) Click species cards to flip EVEs; in Compare mode, pick two and shared EVEs glow.',
       '2) Drag the two closest into Pair A; next closest into Pair B; place the outgroup.',
       '3) Build & Check. Use the matrix if you need a hint.'
@@ -490,6 +562,7 @@ const IntermediateGame = (() => {
   }
   function wireDrops(){
     document.querySelectorAll('.slot').forEach(slot => {
+      // Use {passive:false} not needed; just ensure we don't attach multiple times
       slot.addEventListener('dragover', e => e.preventDefault());
       slot.addEventListener('drop', onDrop);
     });
@@ -513,7 +586,7 @@ const IntermediateGame = (() => {
     e.preventDefault();
     const sp = e.dataTransfer.getData('text/sp');
     if (!sp) return;
-    if (document.querySelector(`.slot .badge-draggable[data-sp="${sp}"]`)) return;
+    if (this.querySelector(`.badge-draggable[data-sp="${sp}"]`)) return;
     document.querySelector(`#species-deck .badge-draggable[data-sp="${sp}"]`)?.remove();
     if (this.querySelector('.badge-draggable')){
       const old = this.querySelector('.badge-draggable');
@@ -568,7 +641,15 @@ const IntermediateGame = (() => {
     const box = document.getElementById('tree-svg'); if (!box) return;
     if (!nw){ box.innerHTML = ''; return; }
     const tokens = nw.replace(/\s+/g,''); let i=0;
-    function parse(){ if (tokens[i]==='('){ i++; const kids=[]; while(tokens[i]!==')'){ kids.push(parse()); if(tokens[i]===',') i++; } i++; return kids; } else { let name=''; while(i<tokens.length && !',)'.includes(tokens[i])) name+=tokens[i++]; return name; } }
+    function parse(){
+      if (tokens[i]==='('){
+        i++; const kids=[];
+        while(tokens[i]!==')'){ kids.push(parse()); if(tokens[i]===',') i++; }
+        i++; return kids;
+      } else {
+        let name=''; while(i<tokens.length && !',)'.includes(tokens[i])) name+=tokens[i++]; return name;
+      }
+    }
     const tree = parse();
     const leaves=[]; (function cl(n){ if (typeof n==='string') leaves.push(n); else n.forEach(cl);} )(tree);
     const depth = (function d(n){ return typeof n==='string' ? 0 : 1 + Math.max(...n.map(d)); })(tree);
@@ -576,15 +657,22 @@ const IntermediateGame = (() => {
     const width = margin.l+margin.r + depth*xStep, height = margin.t+margin.b + (leaves.length-1)*yStep;
     const pos=new Map();
     leaves.forEach((lf,i)=>pos.set(lf,{x:margin.l+depth*xStep,y:margin.t+i*yStep}));
-    (function layout(n,depth){
-      if (typeof n==='string'){ const p=pos.get(n); p.x=margin.l+depth*xStep; return p; }
-      const kids=n.map(k=>layout(k,depth+1)); const y=(kids[0].y+kids[kids.length-1].y)/2; const p={x:margin.l+depth*xStep,y}; pos.set(n,p); return p;
+    (function layout(n,depthLvl){
+      if (typeof n==='string'){ const p=pos.get(n); p.x=margin.l+depthLvl*xStep; return p; }
+      const kids=n.map(k=>layout(k,depthLvl+1)); const y=(kids[0].y+kids[kids.length-1].y)/2; const p={x:margin.l+depthLvl*xStep,y}; pos.set(n,p); return p;
     })(tree,0);
     const svgNS='http://www.w3.org/2000/svg';
     const svg=document.createElementNS(svgNS,'svg'); svg.setAttribute('viewBox',`0 0 ${width} ${height}`); svg.setAttribute('width',width); svg.setAttribute('height',height);
     (function edges(n){
-      const p=pos.get(n)||pos.get(JSON.stringify(n));
-      if (typeof n!=='string'){ n.forEach(ch=>{ const c=pos.get(ch)||pos.get(JSON.stringify(ch)); svg.appendChild(line(p.x,p.y,c.x,p.y,'edge')); svg.appendChild(line(c.x,p.y,c.x,c.y,'edge-vert')); edges(ch); }); }
+      const p=pos.get(n);
+      if (typeof n!=='string'){
+        n.forEach(ch=>{
+          const c=pos.get(ch);
+          svg.appendChild(line(p.x,p.y,c.x,p.y,'edge'));
+          svg.appendChild(line(c.x,p.y,c.x,c.y,'edge-vert'));
+          edges(ch);
+        });
+      }
     })(tree);
     function line(x1,y1,x2,y2,cls){ const el=document.createElementNS(svgNS,'line'); el.setAttribute('x1',x1); el.setAttribute('y1',y1); el.setAttribute('x2',x2); el.setAttribute('y2',y2); el.setAttribute('class',cls); return el; }
     leaves.forEach(lf=>{ const p=pos.get(lf); const t=document.createElementNS(svgNS,'text'); t.setAttribute('x',p.x+6); t.setAttribute('y',p.y+4); const name=useShort ? LABEL_SHORT[lf] : LABEL_FULL[lf]; t.textContent=name; svg.appendChild(t); });
@@ -593,7 +681,15 @@ const IntermediateGame = (() => {
 
   function keyPair(a,b){ return [a,b].sort().join('|'); }
   function pairwiseSharedCounts(){
-    const out={}; for (let i=0;i<S.length;i++){ for (let j=i+1;j<S.length;j++){ const a=S[i], b=S[j]; let c=0; EVE_ORDER.forEach(e=>{ const p=EVE_DB[e].present; if (p.has(a)&&p.has(b)) c++; }); out[keyPair(a,b)] = c; } } return out;
+    const out={};
+    for (let i=0;i<S.length;i++){
+      for (let j=i+1;j<S.length;j++){
+        const a=S[i], b=S[j]; let c=0;
+        EVE_ORDER.forEach(e=>{ const p=EVE_DB[e].present; if (p.has(a)&&p.has(b)) c++; });
+        out[keyPair(a,b)] = c;
+      }
+    }
+    return out;
   }
   function countFor(sp){ let c=0; EVE_ORDER.forEach(e=>{ if (EVE_DB[e].present.has(sp)) c++; }); return c; }
   function heatClass(val, diag, max){ if (diag) return 'med'; const r = val/max; return r>=0.95?'max': r>=0.65?'high': r>=0.35?'med':'low'; }
@@ -668,8 +764,12 @@ const AdvancedGame = (() => {
     const val = (document.querySelector('input[name="step1-choice"]:checked')||{}).value;
     const out = document.getElementById('adv-feedback-1');
     if (!val){ out.textContent='Select an EVE above.'; out.style.color='#b91c1c'; return; }
-    if (val === STEP1_CORRECT){ out.textContent='Correct: EVE-A is a retro EVE with active piRNAs against RV1.'; out.style.color='#0f766e'; passed.s1=true; maybeUnlock(); }
-    else { out.textContent='Not quite. Choose an active retro EVE matching RV1 (not DNA, not broken).'; out.style.color='#b91c1c'; }
+    if (val === STEP1_CORRECT){
+      out.textContent='Correct: EVE-A is a retro EVE with active piRNAs against RV1.'; out.style.color='#0f766e';
+      passed.s1=true; maybeUnlock();
+    } else {
+      out.textContent='Not quite. Choose an active retro EVE matching RV1 (not DNA, not broken).'; out.style.color='#b91c1c';
+    }
   }
   function renderStep2(){
     const resistBox = document.getElementById('adv-resist-radios');
@@ -695,8 +795,12 @@ const AdvancedGame = (() => {
     const out = document.getElementById('adv-feedback-2');
     if (!resist || !vuln){ out.textContent='Select a species in each column.'; out.style.color='#b91c1c'; return; }
     const ok = (resist===STEP2_RESIST) && (vuln===STEP2_VULN);
-    if (ok){ out.textContent = `${LABEL[resist]} is most resistant; ${LABEL[vuln]} is most vulnerable.`; out.style.color='#0f766e'; passed.s2=true; maybeUnlock(); }
-    else { out.textContent = 'Try again: look for useful/intact retro near RV1a (resistant) and species lacking such retro EVEs (vulnerable).'; out.style.color='#b91c1c'; }
+    if (ok){
+      out.textContent = `${LABEL[resist]} is most resistant; ${LABEL[vuln]} is most vulnerable.`; out.style.color='#0f766e';
+      passed.s2=true; maybeUnlock();
+    } else {
+      out.textContent = 'Try again: look for useful/intact retro near RV1a (resistant) and species lacking such retro EVEs (vulnerable).'; out.style.color='#b91c1c';
+    }
   }
   function renderStep3(){
     const c = document.getElementById('adv-mutation-checks'); if (!c) return;
@@ -715,8 +819,12 @@ const AdvancedGame = (() => {
     let allOk = true;
     for (const s of new Set(['melanogaster','simulans','pseudoananassae'])){ if (!set.has(s)) allOk = false; }
     for (const s of set){ if (!new Set(['melanogaster','simulans','pseudoananassae']).has(s)) allOk = false; }
-    if (allOk){ out.textContent='Correct: D. mel., D. sim., and D. pse. likely retain protection against RV1b.'; out.style.color='#0f766e'; passed.s3=true; maybeUnlock(); }
-    else { out.textContent='Close—active/intact retro EVEs vs RV1/RV1a may still recognize RV1b; broken or DNA EVEs won’t.'; out.style.color='#b91c1c'; }
+    if (allOk){
+      out.textContent='Correct: D. mel., D. sim., and D. pse. likely retain protection against RV1b.'; out.style.color='#0f766e';
+      passed.s3=true; maybeUnlock();
+    } else {
+      out.textContent='Close—active/intact retro EVEs vs RV1/RV1a may still recognize RV1b; broken or DNA EVEs won’t.'; out.style.color='#b91c1c';
+    }
   }
   function maybeUnlock(){
     if (passed.s1 && passed.s2 && passed.s3){
