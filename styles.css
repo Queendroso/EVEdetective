@@ -458,3 +458,25 @@ html { scroll-behavior:smooth }
   40%  { transform: scale(1.06) }
   100% { transform: scale(1) }
 }
+
+/* Learn/Resources section polish */
+.subhead {
+  margin-top:.75rem;
+  margin-bottom:.25rem;
+  color:var(--muted, #4a5568);
+  font-weight:700;
+  letter-spacing:.2px;
+}
+.paper-card .meta {
+  display:flex;gap:.5rem;flex-wrap:wrap;
+  color:var(--muted, #4a5568); font-size:.9rem; margin-top:.25rem;
+}
+.paper-card a { color:var(--navy, #0a1a2f); font-weight:700; text-decoration:none }
+.paper-card a:hover { text-decoration:underline }
+.badge-oa {
+  display:inline-block; padding:.1rem .4rem; border-radius:.4rem;
+  background:#e6f4ef; color:#065f46; border:1px solid #b7e4cf; font-size:.75rem;
+}
+
+/* Optional tighter spacing for card grids under Learn/Resources */
+#learn .card-grid, #resources .card-grid { margin-top:.75rem }
