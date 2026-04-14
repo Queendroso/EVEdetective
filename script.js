@@ -37,7 +37,7 @@ tabs.forEach(tab => {
 });
 
 // -------- Simple counters via CountAPI (static-friendly) --------
-// PLACE A: put this right after the Tabs section and before Achievements
+// -------- Simple counters via CountAPI (static-friendly) --------
 const COUNTER_NS = 'queendroso-evdetective'; // namespace for your site
 
 async function counterHit(key){
@@ -54,21 +54,20 @@ async function counterGet(key){
 }
 function setText(id, val){ const el = document.getElementById(id); if (el) el.textContent = (val ?? '—'); }
 
-// Update footer counters on load (visits + total sticker downloads)
 document.addEventListener('DOMContentLoaded', async () => {
   // Count one visit per browser per day (simple)
-  const today = new Date().toISOString().slice(0,10); // YYYY-MM-DD
+  const today = new Date().toISOString().slice(0,10);
   const last = localStorage.getItem('eve.visitYMD');
   if (last !== today){
     localStorage.setItem('eve.visitYMD', today);
     const d = await counterHit('site-visits'); // increments total
     setText('visits-count', d?.value);
   } else {
-    const d = await counterGet('site-visits'); // just show value
+    const d = await counterGet('site-visits'); // show value
     setText('visits-count', d?.value);
   }
 
-  // If you added <span id="dl-total-count"> in the footer, show total downloads
+  // Show total sticker downloads if footer span exists
   const dls = await counterGet('sticker-downloads-total');
   setText('dl-total-count', dls?.value);
 });
