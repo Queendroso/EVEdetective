@@ -349,3 +349,101 @@ html{scroll-behavior:smooth}
   gap: 0.25rem !important;
   margin-top: 0.25rem !important;
 }
+
+/* ==================== ADULT ONLINE GAME EVE COLOURS ==================== */
+/* Make adults game use the same EVE colours as print cards */
+
+/* EVE card chips in adults game */
+#adults .eve-card .chip,
+#adults .species-card .chip {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important;
+  padding: 2px 8px !important;
+  border-radius: 999px !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+}
+
+/* Retro type chip */
+#adults .chip.retro {
+  background: #0ea5e9 !important;
+  color: white !important;
+}
+
+/* DNA type chip */
+#adults .chip.dna {
+  background: #a16207 !important;
+  color: white !important;
+}
+
+/* EVE state chips - matching online game colours */
+#adults .chip.intact {
+  background: #16a34a !important;
+  color: white !important;
+}
+
+#adults .chip.useful {
+  background: #ef4444 !important;
+  color: white !important;
+}
+
+#adults .chip.broken {
+  background: #111827 !important;
+  color: white !important;
+}
+
+#adults .chip.silent {
+  background: #f59e0b !important;
+  color: white !important;
+}
+
+/* Family chips */
+#adults .chip.fam {
+  background: #64748b !important;
+  color: white !important;
+}
+
+/* Species card styling for adults */
+#adults .species-card {
+  background: #fff !important;
+  border: 2px solid #e5e9ef !important;
+  border-radius: 0.75rem !important;
+  padding: 0.75rem !important;
+  margin: 0.5rem 0 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+#adults .species-card.selected {
+  border-color: #0e8a68 !important;
+  background: #e8f7f1 !important;
+}
+
+#adults .species-card h5 {
+  margin: 0 0 0.5rem 0 !important;
+  font-size: 0.9rem !important;
+}
+
+#adults .card-chips {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 0.5rem !important;
+  margin-top: 0.5rem !important;
+}
+
+/* Radio/Checkbox columns */
+#adults .radio-col,
+#adults .check-col {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.75rem !important;
+}
+
+/* Make sure feedback messages are visible */
+#adults .feedback {
+  margin-top: 0.75rem !important;
+  padding: 0.5rem !important;
+  border-radius: 0.5rem !important;
+  font-weight: 500 !important;
+}
