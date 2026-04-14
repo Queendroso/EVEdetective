@@ -251,7 +251,7 @@ function playChime(){
   }catch(e){}
 }
 
-// ---------------- Timer ----------------
+// ---------------- Timer (FIXED: bars show properly for teens and adults) ----------------
 const Timer = (() => {
   let timers = {};
   function ensureBar(panelId){
@@ -267,13 +267,24 @@ const Timer = (() => {
     return wrap;
   }
   function start(panelId, seconds){
-    const panel = document.getElementById(panelId); if (!panel) return;
+    const panel = document.getElementById(panelId); 
+    if (!panel) return;
+    
+    // Stop any existing timer for this panel
+    stop(panelId);
+    
+    // Ensure timer bar exists
     const wrap = panel.querySelector('.timer-wrap') || ensureBar(panelId);
+    if (!wrap) return;
+    
     const fill = wrap.querySelector('.timer-fill');
     const tleft = wrap.querySelector('.tleft');
-    stop(panelId);
+    if (!fill || !tleft) return;
+    
     let t = seconds;
-    fill.style.width = '100%'; tleft.textContent = t+'s';
+    fill.style.width = '100%'; 
+    tleft.textContent = t+'s';
+    
     timers[panelId] = setInterval(()=>{
       t = Math.max(0, t-1);
       const pct = (t/seconds)*100;
@@ -367,7 +378,7 @@ const KidsGame = (() => {
               toast('Great work! All 5 species complete — Kids badge unlocked!', wrap);
               confettiBurst(); claps(); playChime();
             } else {
-              toast(`Nice! ${completed.size}/${SPECIES.length} species complete — click “Next species →”`, wrap);
+              toast(`Nice! ${completed.size}/${SPECIES.length} species complete — click "Next species →"`, wrap);
               document.getElementById('kids-next')?.classList.add('pulse-once');
               setTimeout(()=>document.getElementById('kids-next')?.classList.remove('pulse-once'), 1500);
             }
@@ -476,7 +487,7 @@ const IntermediateGame = (() => {
     const el = document.getElementById('matrix'); if (!el) return;
     const shared = pairwiseSharedCounts();
     const maxShared = Math.max(1, ...Object.values(shared));
-    let html = '<table><thead><tr><th></th>';
+    let html = '<tr><thead><tr><th></th>';
     S.forEach(sp => html += `<th>${(useShort?LABEL_SHORT:LABEL_FULL)[sp]}</th>`);
     html += '</tr></thead><tbody>';
     S.forEach(rsp => {
@@ -562,7 +573,6 @@ const IntermediateGame = (() => {
   }
   function wireDrops(){
     document.querySelectorAll('.slot').forEach(slot => {
-      // Use {passive:false} not needed; just ensure we don't attach multiple times
       slot.addEventListener('dragover', e => e.preventDefault());
       slot.addEventListener('drop', onDrop);
     });
@@ -845,8 +855,27 @@ const AdvancedGame = (() => {
     Timer.stop('adults');
   }
   function restart(){ reset(); Timer.start('adults', 60); }
+  function togglePortfolios(){
+    const el = document.getElementById('adv-portfolios');
+    if (!el) return;
+    if (el.hasAttribute('hidden')){
+      el.removeAttribute('hidden');
+      // Build portfolio content
+      let html = '<h4>EVE Portfolios by Species</h4>';
+      SPECIES.forEach(s => {
+        html += `<div class="portfolio"><h5>${LABEL[s]}</h5>`;
+        (CATALOG[s]||[]).forEach(e => {
+          html += `<div><strong>${e.id}</strong>: ${e.type}, ${e.state}, family ${e.family} — ${e.note}</div>`;
+        });
+        html += '</div>';
+      });
+      el.innerHTML = html;
+    } else {
+      el.setAttribute('hidden', '');
+    }
+  }
 
-  return { init, hint, checkStep1, checkStep2, checkStep3, reset, restart };
+  return { init, hint, checkStep1, checkStep2, checkStep3, reset, restart, togglePortfolios };
 })();
 document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('adv-eves-mel')) AdvancedGame.init(); });
 
