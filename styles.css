@@ -480,3 +480,57 @@ html { scroll-behavior:smooth }
 
 /* Optional tighter spacing for card grids under Learn/Resources */
 #learn .card-grid, #resources .card-grid { margin-top:.75rem }
+
+/* Learn (make existing markup horizontal cards) */
+#learn .glossary-grid {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:1rem;
+  margin-top:.75rem;
+}
+#learn .glossary-card {
+  background:#fff;
+  border:1px solid var(--ash-200, #e5e9ef);
+  border-radius:.75rem;
+  padding:1rem;
+}
+
+/* Research list as card grid */
+#learn .paper-list {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(300px,1fr));
+  gap:1rem;
+  margin:.75rem 0 0 0;
+  padding:0;
+  list-style:none;
+}
+#learn .paper-list .paper {
+  background:#fff;
+  border:1px solid var(--ash-200, #e5e9ef);
+  border-radius:.65rem;
+  padding:.75rem;
+}
+#learn .paper-list .paper a.title {
+  color:var(--navy, #0a1a2f);
+  font-weight:700;
+  text-decoration:none;
+}
+#learn .paper-list .paper a.title:hover { text-decoration:underline }
+#learn .paper-list .paper .meta {
+  display:flex; flex-wrap:wrap; gap:.5rem;
+  color:var(--muted, #4a5568); font-size:.9rem; margin-top:.25rem;
+}
+#learn .badge-oa {
+  display:inline-block; padding:.1rem .4rem; border-radius:.4rem;
+  background:#e6f4ef; color:#065f46; border:1px solid #b7e4cf; font-size:.75rem;
+}
+
+/* Optional Learn section subhead */
+#learn .subhead {
+  margin-top:.75rem; margin-bottom:.25rem;
+  color:var(--muted, #4a5568); font-weight:700; letter-spacing:.2px;
+}
+
+/* Ensure anchor targets visible under sticky header */
+section, .section { scroll-margin-top: 80px; }
+html { scroll-behavior:smooth }
