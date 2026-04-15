@@ -132,67 +132,60 @@
 })();
 </script>
   <script>
-// WORKING TIMER - FIXED
+// SIMPLE TIMER - NO BAR, JUST NUMBERS
 (function() {
-  let activeTimers = {};
+  let simpleTimers = {};
   
-  window.startTimer = function(panelId, seconds) {
+  window.startSimpleTimer = function(panelId, seconds) {
     // Stop existing timer for this panel
-    if (activeTimers[panelId]) {
-      clearInterval(activeTimers[panelId]);
+    if (simpleTimers[panelId]) {
+      clearInterval(simpleTimers[panelId]);
     }
     
-    const panel = document.getElementById(panelId);
-    if (!panel) return;
-    
-    const fill = panel.querySelector('.timer-fill');
-    const tleft = panel.querySelector('.tleft');
-    
-    if (!fill || !tleft) return;
-    
     let timeLeft = seconds;
-    fill.style.width = '100%';
-    fill.style.backgroundColor = '#22c55e';
-    tleft.textContent = timeLeft + 's';
+    const timerSpan = document.getElementById(panelId + '-timer');
+    if (!timerSpan) return;
     
-    activeTimers[panelId] = setInterval(function() {
+    timerSpan.textContent = timeLeft;
+    timerSpan.style.color = '#0e8a68';
+    
+    simpleTimers[panelId] = setInterval(function() {
       timeLeft--;
-      const percent = (timeLeft / seconds) * 100;
-      fill.style.width = Math.max(0, percent) + '%';
-      tleft.textContent = timeLeft + 's';
+      timerSpan.textContent = timeLeft;
       
+      // Change color when low
       if (timeLeft <= 10 && timeLeft > 0) {
-        fill.style.backgroundColor = '#f59e0b';
+        timerSpan.style.color = '#f59e0b';
+      }
+      if (timeLeft <= 5 && timeLeft > 0) {
+        timerSpan.style.color = '#ef4444';
       }
       
+      // Stop when reaches zero
       if (timeLeft <= 0) {
-        clearInterval(activeTimers[panelId]);
-        delete activeTimers[panelId];
-        fill.style.backgroundColor = '#ef4444';
-        fill.style.width = '0%';
+        clearInterval(simpleTimers[panelId]);
+        delete simpleTimers[panelId];
+        timerSpan.style.color = '#ef4444';
       }
     }, 1000);
   };
   
-  window.resetTimer = function(panelId, seconds) {
-    if (activeTimers[panelId]) {
-      clearInterval(activeTimers[panelId]);
-      delete activeTimers[panelId];
+  window.resetSimpleTimer = function(panelId, seconds) {
+    // Stop existing timer
+    if (simpleTimers[panelId]) {
+      clearInterval(simpleTimers[panelId]);
+      delete simpleTimers[panelId];
     }
     
-    const panel = document.getElementById(panelId);
-    if (panel) {
-      const fill = panel.querySelector('.timer-fill');
-      const tleft = panel.querySelector('.tleft');
-      if (fill) {
-        fill.style.width = '100%';
-        fill.style.backgroundColor = '#22c55e';
-      }
-      if (tleft) tleft.textContent = seconds + 's';
+    // Reset display
+    const timerSpan = document.getElementById(panelId + '-timer');
+    if (timerSpan) {
+      timerSpan.textContent = seconds;
+      timerSpan.style.color = '#0e8a68';
     }
   };
   
-  console.log('Timer loaded');
+  console.log('Simple timer loaded');
 })();
 </script>
 <body>
@@ -386,15 +379,13 @@
           <h3>Intermediate Level: Create the EVE Family Tree!</h3>
           <p>Flip "barcode" cards, compare shared EVEs, then drag species into the tree. Shared EVEs = common ancestry.</p>
 
-          <div class="timer-wrap">
-            <div class="timer-bar"><div class="timer-fill"></div></div>
-            <strong class="tleft">60s</strong>
-            <button class="btn small" onclick="startTimer('teens', 60)">Start 60s</button>
-            <button class="btn small" onclick="resetTimer('teens', 60)">Restart</button>
-            <button class="btn small" onclick="IntermediateGame.toggleMatrix()">Show/Hide Matrix</button>
-            <button class="btn small" onclick="IntermediateGame.showHints()">Hints</button>
-          </div>
-          
+          <div class="timer-wrap" style="justify-content: space-between;">
+  <strong>⏱️ Time left: <span id="teens-timer" style="font-family: monospace; font-size: 1.3rem; font-weight: 700; color: #0e8a68;">60</span> seconds</strong>
+  <button class="btn small" onclick="startSimpleTimer('teens', 60)">Start 60s</button>
+  <button class="btn small" onclick="resetSimpleTimer('teens', 60)">Restart</button>
+  <button class="btn small" onclick="IntermediateGame.toggleMatrix()">Show/Hide Matrix</button>
+  <button class="btn small" onclick="IntermediateGame.showHints()">Hints</button>
+</div>  
           <div id="matrix" class="matrix" hidden aria-live="polite"></div>
           <p class="muted">Darker cells = more shared EVEs.</p>
 
@@ -455,14 +446,12 @@
           <h3>Advanced Level: Antiviral Immunity Challenge</h3>
           <p>Match EVE type/state to an invading virus to predict protection. Useful/Intact retro EVEs can protect; broken/silent do not.</p>
 
-          <div class="timer-wrap">
-            <div class="timer-bar"><div class="timer-fill"></div></div>
-            <strong class="tleft">60s</strong>
-            <button class="btn small" onclick="startTimer('adults', 60)">Start 60s</button>
-            <button class="btn small" onclick="resetTimer('adults', 60)">Restart 60s</button>
-            <button class="btn small" onclick="AdvancedGame.reset()">Reset</button>
-          </div>
-          
+          <div class="timer-wrap" style="justify-content: space-between;">
+  <strong>⏱️ Time left: <span id="adults-timer" style="font-family: monospace; font-size: 1.3rem; font-weight: 700; color: #0e8a68;">60</span> seconds</strong>
+  <button class="btn small" onclick="startSimpleTimer('adults', 60)">Start 60s</button>
+  <button class="btn small" onclick="resetSimpleTimer('adults', 60)">Restart 60s</button>
+  <button class="btn small" onclick="AdvancedGame.reset()">Reset</button>
+</div>
           <div class="adv-step">
             <h4>Task 1 — Exact match (retrovirus "RV1" infects D. melanogaster)</h4>
             <p>Which EVE will help the fly fight the virus, and why?</p>
