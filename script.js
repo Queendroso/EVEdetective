@@ -224,16 +224,26 @@ function confettiBurst(){
   step();
 }
 function claps(){
-  let e=document.querySelector('.claps');
+  let e = document.querySelector('.claps');
   if(!e){
-    e=document.createElement('div');
-    e.className='claps';
-    e.textContent='👏👏👏';
-    e.style.position='fixed'; e.style.left='50%'; e.style.top='10%'; e.style.transform='translateX(-50%)';
-    e.style.fontSize='2rem'; e.style.transition='opacity .4s ease'; e.style.zIndex='9999';
+    e = document.createElement('div');
+    e.className = 'claps';
+    e.textContent = '👏👏👏👏👏';
+    e.style.position = 'fixed';
+    e.style.left = '50%';
+    e.style.top = '10%';
+    e.style.transform = 'translateX(-50%)';
+    e.style.fontSize = '3rem';
+    e.style.transition = 'opacity .8s ease';
+    e.style.zIndex = '9999';
+    e.style.background = 'rgba(0,0,0,0.7)';
+    e.style.padding = '20px 40px';
+    e.style.borderRadius = '60px';
+    e.style.color = 'white';
     document.body.appendChild(e);
   }
-  e.style.opacity=1; setTimeout(()=>{ e.style.opacity=0; }, 1200);
+  e.style.opacity = '1';
+  setTimeout(() => { e.style.opacity = '0'; }, 2500);
 }
 function playChime(){
   try{
