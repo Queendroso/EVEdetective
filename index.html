@@ -105,6 +105,91 @@
   });
 })();
 </script>
+  <script>
+// STANDALONE TIMER - WORKS 100%
+(function() {
+  // Store timers
+  let activeTimer = null;
+  let activePanel = null;
+  
+  // Function to update display
+  function updateDisplay(panelId, timeLeft, totalSeconds) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+    
+    const fill = panel.querySelector('.timer-fill');
+    const tleft = panel.querySelector('.tleft');
+    
+    if (fill) {
+      const percent = (timeLeft / totalSeconds) * 100;
+      fill.style.width = Math.max(0, percent) + '%';
+      
+      // Change color when low
+      if (timeLeft <= 10) {
+        fill.style.backgroundColor = '#ef4444';
+      } else {
+        fill.style.backgroundColor = '#22c55e';
+      }
+    }
+    
+    if (tleft) {
+      tleft.textContent = timeLeft + 's';
+    }
+  }
+  
+  // Make timer functions global
+  window.startTimer = function(panelId, seconds) {
+    // Stop any existing timer
+    if (activeTimer) {
+      clearInterval(activeTimer);
+      activeTimer = null;
+    }
+    
+    activePanel = panelId;
+    let timeLeft = seconds;
+    const totalSeconds = seconds;
+    
+    // Initial display
+    updateDisplay(panelId, timeLeft, totalSeconds);
+    
+    // Start countdown
+    activeTimer = setInterval(function() {
+      timeLeft--;
+      updateDisplay(panelId, timeLeft, totalSeconds);
+      
+      if (timeLeft <= 0) {
+        clearInterval(activeTimer);
+        activeTimer = null;
+        activePanel = null;
+      }
+    }, 1000);
+  };
+  
+  window.resetTimer = function(panelId, seconds) {
+    // Stop timer
+    if (activeTimer) {
+      clearInterval(activeTimer);
+      activeTimer = null;
+    }
+    
+    // Reset display
+    const panel = document.getElementById(panelId);
+    if (panel) {
+      const fill = panel.querySelector('.timer-fill');
+      const tleft = panel.querySelector('.tleft');
+      if (fill) {
+        fill.style.width = '100%';
+        fill.style.backgroundColor = '#22c55e';
+      }
+      if (tleft) tleft.textContent = seconds + 's';
+    }
+    
+    activePanel = null;
+  };
+  
+  console.log('Standalone timer loaded');
+})();
+</script>
 <body>
   <header class="site-header">
     <a class="brand" href="#home">
@@ -297,13 +382,12 @@
           <p>Flip “barcode” cards, compare shared EVEs, then drag species into the tree. Shared EVEs = common ancestry.</p>
 
           <div class="timer-wrap">
-  <div class="timer-bar">
-    <div class="timer-fill" style="width:100%"></div>
-  </div>
+  <div class="timer-bar"><div class="timer-fill" style="width:100%; background-color:#22c55e;"></div></div>
   <strong class="tleft">60s</strong>
-  <button class="btn small" onclick="startTimer('adults', 60)">Start 60s</button>
-  <button class="btn small" onclick="resetTimer('adults', 60)">Restart 60s</button>
-  <button class="btn small" onclick="AdvancedGame.reset()">Reset</button>
+  <button class="btn small" onclick="startTimer('teens', 60)">Start 60s</button>
+  <button class="btn small" onclick="resetTimer('teens', 60)">Restart</button>
+  <button class="btn small" onclick="IntermediateGame.toggleMatrix()">Show/Hide Matrix</button>
+  <button class="btn small" onclick="IntermediateGame.showHints()">Hints</button>
 </div>
           <div id="matrix" class="matrix" hidden aria-live="polite"></div>
           <p class="muted">Darker cells = more shared EVEs.</p>
@@ -366,7 +450,7 @@
           <p>Match EVE type/state to an invading virus to predict protection. Useful/Intact retro EVEs can protect; broken/silent do not.</p>
 
           <div class="timer-wrap">
-  <div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div>
+  <div class="timer-bar"><div class="timer-fill" style="width:100%; background-color:#22c55e;"></div></div>
   <strong class="tleft">60s</strong>
   <button class="btn small" onclick="startTimer('adults', 60)">Start 60s</button>
   <button class="btn small" onclick="resetTimer('adults', 60)">Restart 60s</button>
