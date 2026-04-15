@@ -27,29 +27,26 @@
   .species{font-size:10pt;color:#334155}
   .sub{font-size:9pt;color:#64748b}
 
-  /* EVE colours - but front cards use NEARLY INVISIBLE dots */
+  /* EVE colours - consistent across all games */
   :root{
     --eve-intact:#16a34a;
     --eve-broken:#111827;
     --eve-useful:#ef4444;
     --eve-unique:#f59e0b;
-    --eve-size-mm: 0.5;      /* Default very tiny */
+    --eve-size-mm: 0.4;
     --eve-back-mm: 1.4;
-    --stroke-mm: 0.18;
   }
 
-  /* FRONT CARDS: EVEs are very faint - need hand lens to see colours! */
-  .front-eve {
+  /* FRONT CARDS: Real EVEs are very faint - need hand lens! */
+  .front-eve.real {
     opacity: 0.25 !important;
-    transition: opacity 0.1s ease;
   }
   
-  /* When viewed with magnifying glass or in print, still subtle */
-  @media print {
-    .front-eve {
-      opacity: 0.3 !important;
-      print-color-adjust: exact;
-    }
+  /* DUMMY EVEs: White/grey circles that are NOT real EVEs - visible but not colourful */
+  .front-eve.dummy {
+    opacity: 0.4 !important;
+    fill: #cbd5e1 !important;
+    stroke: #cbd5e1 !important;
   }
 
   /* BACK CARDS: EVEs are fully visible for answer key */
@@ -69,11 +66,12 @@
 <body>
 
 <div class="screen-note">
-  🔬 MICRO EVEs: Front cards have VERY TINY, FAINT dots (opacity 25%). Use a 5-10× hand lens to spot them and see their colours!<br>
-  📖 Back cards show full answer key with visible EVEs. Adjust sizes below for your hand lens.
+  🔬 MICRO EVEs: <strong>Real EVEs</strong> are very faint (25% opacity) - need 5-10× hand lens!<br>
+  ⚪ <strong>White/grey dots</strong> are DUMMY EVEs (not real) - helps train careful observation!<br>
+  📖 Back cards show answer key. Adjust sizes below for your hand lens.
 </div>
 <div class="toolbar">
-  <label>Front size (mm) - make TINY for hand lens:
+  <label>Front size (mm):
     <input id="frontSize" type="range" min="0.2" max="1.2" step="0.05" value="0.4"
            oninput="updateEveSize('front', this.value)">
     <span id="frontSizeVal">0.4</span> mm
@@ -90,12 +88,12 @@
 <section class="sheet" id="backs"></section>
 
 <script>
-// EVE colours matching online game
+// EVE colours matching online game - ALL USE CIRCLES (no X, no star, no diamond)
 const EVE_COLOURS = {
-  intact: '#16a34a',   // green
-  useful: '#ef4444',   // red
-  broken: '#111827',   // grey/black
-  unique: '#f59e0b'    // golden
+  intact: '#16a34a',   // green circle ●
+  useful: '#ef4444',   // red circle ●
+  broken: '#111827',   // grey/black circle ●
+  unique: '#f59e0b'    // golden circle ●
 };
 
 const speciesData = [
@@ -120,6 +118,25 @@ const speciesData = [
     intact:[[0.18,0.20],[0.46,0.18]], useful:[[0.66,0.55]], broken:[[0.28,0.72]], unique:[[0.70,0.18]]
   }
 ];
+
+// Generate dummy EVE positions (white/grey circles that are NOT real EVEs)
+function generateDummyEVEs(realPositions, count = 8) {
+  const dummies = [];
+  const taken = new Set(realPositions.map(p => `${p[0]},${p[1]}`));
+  
+  for (let i = 0; i < count; i++) {
+    let x, y, attempts = 0;
+    do {
+      x = 0.05 + Math.random() * 0.9;
+      y = 0.05 + Math.random() * 0.9;
+      attempts++;
+      if (attempts > 100) break;
+    } while (taken.has(`${x},${y}`));
+    dummies.push([x, y]);
+    taken.add(`${x},${y}`);
+  }
+  return dummies;
+}
 
 function gridLines(W,H,step,stroke){
   const g=[]; 
@@ -150,55 +167,38 @@ function svgFront(data){
   const r = dmm/2; 
   const dots = [];
   
-  function place(list, colour, kind, typeName){
+  // Collect real EVE positions
+  const realPositions = [];
+  
+  function placeReal(list, colour, typeName){
     (list||[]).forEach(([nx,ny])=>{
       const x = PAD + nx*(W-2*PAD);
       const y = PAD + ny*(H-2*PAD);
-      // FRONT: Very faint opacity - need hand lens!
-      const opacity = 0.25;
-      const fillColour = colour;
-      
-      if(kind==='circle'){ 
-        dots.push(`<circle class="front-eve" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r}" fill="${fillColour}" opacity="${opacity}" stroke="rgba(0,0,0,0.15)" stroke-width="0.1"/>`); 
-      }
-      else if(kind==='diamond'){ 
-        const s = dmm; 
-        const x0 = (x-s/2).toFixed(2); 
-        const y0 = (y-s/2).toFixed(2);
-        dots.push(`<rect class="front-eve" x="${x0}" y="${y0}" width="${s}" height="${s}" fill="${fillColour}" opacity="${opacity}" transform="rotate(45 ${x.toFixed(2)} ${y.toFixed(2)})" rx="${(s*0.1).toFixed(2)}"/>`); 
-      }
-      else if(kind==='cross'){ 
-        const len = dmm*1.2; 
-        const sw = Math.max(0.1, dmm*0.18);
-        dots.push(`<g class="front-eve" stroke="${fillColour}" stroke-width="${sw}" opacity="${opacity}">
-          <line x1="${(x-len/2).toFixed(2)}" y1="${(y-len/2).toFixed(2)}" x2="${(x+len/2).toFixed(2)}" y2="${(y+len/2).toFixed(2)}"/>
-          <line x1="${(x-len/2).toFixed(2)}" y1="${(y+len/2).toFixed(2)}" x2="${(x+len/2).toFixed(2)}" y2="${(y-len/2).toFixed(2)}"/>
-        </g>`); 
-      }
-      else if(kind==='star'){ 
-        const R = dmm*0.9; 
-        const r2 = R*0.4; 
-        const pts = [];
-        for(let i=0;i<10;i++){ 
-          const ang = -Math.PI/2 + i*(Math.PI/5); 
-          const rad = (i%2===0) ? R : r2;
-          pts.push([ (x+rad*Math.cos(ang)).toFixed(2), (y+rad*Math.sin(ang)).toFixed(2) ]); 
-        }
-        dots.push(`<polygon class="front-eve" points="${pts.map(p=>p.join(',')).join(' ')}" fill="${fillColour}" opacity="${opacity}" stroke="rgba(0,0,0,0.1)" stroke-width="0.1"/>`); 
-      }
+      realPositions.push([nx, ny]);
+      // ALL REAL EVES use CIRCLES with faint opacity
+      dots.push(`<circle class="front-eve real" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r}" fill="${colour}" opacity="0.25" stroke="rgba(0,0,0,0.15)" stroke-width="0.1"/>`);
     });
   }
   
-  place(data.intact, EVE_COLOURS.intact, 'circle', 'intact');
-  place(data.useful, EVE_COLOURS.useful, 'diamond', 'useful');
-  place(data.broken, EVE_COLOURS.broken, 'cross', 'broken');
-  place(data.unique, EVE_COLOURS.unique, 'star', 'unique');
+  placeReal(data.intact, EVE_COLOURS.intact, 'intact');
+  placeReal(data.useful, EVE_COLOURS.useful, 'useful');
+  placeReal(data.broken, EVE_COLOURS.broken, 'broken');
+  placeReal(data.unique, EVE_COLOURS.unique, 'unique');
+  
+  // Generate and add DUMMY EVEs (white/grey circles - not real)
+  const dummies = generateDummyEVEs(realPositions, 10);
+  dummies.forEach(([nx, ny]) => {
+    const x = PAD + nx*(W-2*PAD);
+    const y = PAD + ny*(H-2*PAD);
+    dots.push(`<circle class="front-eve dummy" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r}" fill="#cbd5e1" opacity="0.4" stroke="none"/>`);
+  });
   
   return `
   <div class="card"><div class="pad">
     <div class="hdr"><div class="title">🔍 Find the EVEs</div><div class="species">${data.short}</div></div>
     <div class="sub">${data.full} — ${data.region}</div>
-    <div class="sub" style="color:#d4a017; margin-bottom:2mm">✨ Use a hand lens (5-10×) to spot the hidden EVEs!</div>
+    <div class="sub" style="color:#d4a017; margin-bottom:2mm">✨ Use hand lens (5-10×) - colour = EVE type!</div>
+    <div class="sub" style="color:#94a3b8; margin-bottom:2mm">⚪ White dots = NOT real EVEs (distractors)</div>
     <svg width="63mm" height="88mm" viewBox="0 0 ${W} ${H}">
       ${gridLines(W,H,3,'#eef2f7')}
       ${dots.join('')}
@@ -220,48 +220,21 @@ function svgBack(data){
   const W=63, H=88, PAD=4; 
   const dmm = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--eve-back-mm')) || 1.4;
   const r = dmm/2; 
-  const sw = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--stroke-mm')) || 0.18;
   const dots = [];
   
-  function place(list, colour, kind){
+  // BACK: ALL REAL EVES use CIRCLES (no X, no star, no diamond) - fully visible
+  function place(list, colour){
     (list||[]).forEach(([nx,ny])=>{
       const x = PAD + nx*(W-2*PAD);
       const y = PAD + ny*(H-2*PAD);
-      // BACK: Fully visible for answer key
-      if(kind==='circle'){ 
-        dots.push(`<circle class="back-eve" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r}" fill="${colour}" stroke="rgba(0,0,0,0.2)" stroke-width="0.15"/>`); 
-      }
-      else if(kind==='diamond'){ 
-        const s = dmm; 
-        const x0 = (x-s/2).toFixed(2); 
-        const y0 = (y-s/2).toFixed(2);
-        dots.push(`<rect class="back-eve" x="${x0}" y="${y0}" width="${s}" height="${s}" fill="${colour}" transform="rotate(45 ${x.toFixed(2)} ${y.toFixed(2)})" rx="${(s*0.1).toFixed(2)}"/>`); 
-      }
-      else if(kind==='cross'){ 
-        const len = dmm*1.3;
-        dots.push(`<g class="back-eve" stroke="${colour}" stroke-width="${sw}">
-          <line x1="${(x-len/2).toFixed(2)}" y1="${(y-len/2).toFixed(2)}" x2="${(x+len/2).toFixed(2)}" y2="${(y+len/2).toFixed(2)}"/>
-          <line x1="${(x-len/2).toFixed(2)}" y1="${(y+len/2).toFixed(2)}" x2="${(x+len/2).toFixed(2)}" y2="${(y-len/2).toFixed(2)}"/>
-        </g>`); 
-      }
-      else if(kind==='star'){ 
-        const R = dmm*1.0; 
-        const r2 = R*0.42; 
-        const pts = [];
-        for(let i=0;i<10;i++){ 
-          const ang = -Math.PI/2 + i*(Math.PI/5); 
-          const rad = (i%2===0) ? R : r2;
-          pts.push([ (x+rad*Math.cos(ang)).toFixed(2), (y+rad*Math.sin(ang)).toFixed(2) ]); 
-        }
-        dots.push(`<polygon class="back-eve" points="${pts.map(p=>p.join(',')).join(' ')}" fill="${colour}" stroke="rgba(0,0,0,0.15)" stroke-width="0.15"/>`); 
-      }
+      dots.push(`<circle class="back-eve" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r}" fill="${colour}" stroke="rgba(0,0,0,0.2)" stroke-width="0.15"/>`);
     });
   }
   
-  place(data.intact, EVE_COLOURS.intact, 'circle');
-  place(data.useful, EVE_COLOURS.useful, 'diamond');
-  place(data.broken, EVE_COLOURS.broken, 'cross');
-  place(data.unique, EVE_COLOURS.unique, 'star');
+  place(data.intact, EVE_COLOURS.intact);
+  place(data.useful, EVE_COLOURS.useful);
+  place(data.broken, EVE_COLOURS.broken);
+  place(data.unique, EVE_COLOURS.unique);
   
   return `
   <div class="card"><div class="pad">
