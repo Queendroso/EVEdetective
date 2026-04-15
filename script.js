@@ -31,49 +31,34 @@ tabs.forEach(tab => {
     document.getElementById(id)?.classList.add('is-active');
 
     if (id === 'kids') setTimeout(() => KidsGame.resize(), 50);
-    if (id === 'teens') setTimeout(() => { IntermediateGame.init(); Timer.start('teens', 60); }, 50);
-    if (id === 'adults') setTimeout(() => { AdvancedGame.init(); Timer.start('adults', 60); }, 50);
+    if (id === 'teens') setTimeout(() => { IntermediateGame.init(); startTimer('teens', 60); }, 50);
+    if (id === 'adults') setTimeout(() => { AdvancedGame.init(); startTimer('adults', 60); }, 50);
   });
 });
 
-// -------- Simple counters via CountAPI (static-friendly) --------
-const COUNTER_NS = 'queendroso-evdetective';
+// ==================== WORKING COUNTERS (localStorage) ====================
+let visitCount = parseInt(localStorage.getItem('eve_visits') || '0');
+let downloadCount = parseInt(localStorage.getItem('eve_downloads') || '0');
 
-async function counterHit(key){
-  try {
-    const res = await fetch(`https://api.countapi.xyz/hit/${COUNTER_NS}/${key}`, { cache:'no-store' });
-    if (!res.ok) return null;
-    const j = await res.json();
-    return typeof j.value === 'number' ? j.value : null;
-  } catch(e){ return null; }
-}
-async function counterGet(key){
-  try {
-    const res = await fetch(`https://api.countapi.xyz/get/${COUNTER_NS}/${key}`, { cache:'no-store' });
-    if (!res.ok) return null;
-    const j = await res.json();
-    return typeof j.value === 'number' ? j.value : null;
-  } catch(e){ return null; }
-}
-function setText(id, val){
-  const el = document.getElementById(id);
-  if (el) el.textContent = (typeof val === 'number') ? val.toLocaleString() : '—';
+// Count visit once per session
+if (!sessionStorage.getItem('eve_visited')) {
+  sessionStorage.setItem('eve_visited', '1');
+  visitCount++;
+  localStorage.setItem('eve_visits', visitCount);
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-  const today = new Date().toISOString().slice(0,10);
-  const last = localStorage.getItem('eve.visitYMD');
-  if (last !== today){
-    localStorage.setItem('eve.visitYMD', today);
-    const v = await counterHit('site-visits');
-    setText('visits-count', v);
-  } else {
-    const v = await counterGet('site-visits');
-    setText('visits-count', v);
-  }
-  const dls = await counterGet('sticker-downloads-total');
-  setText('dl-total-count', dls);
-});
+// Display counts
+const visitsEl = document.getElementById('visits-count');
+const downloadsEl = document.getElementById('dl-total-count');
+if (visitsEl) visitsEl.textContent = visitCount;
+if (downloadsEl) downloadsEl.textContent = downloadCount;
+
+// Track downloads
+function trackDownload() {
+  downloadCount++;
+  localStorage.setItem('eve_downloads', downloadCount);
+  if (downloadsEl) downloadsEl.textContent = downloadCount;
+}
 
 // ---------------- Achievements (badges) ----------------
 function achvToast(msg){
@@ -138,14 +123,12 @@ function achvToast(msg){
         a.href = url; a.download = `EVE-Detective-${nice}-Sticker.jpeg`;
         document.body.appendChild(a); a.click(); a.remove();
         URL.revokeObjectURL(url);
+        trackDownload();
       }catch(_){
         const a = document.createElement('a');
         a.href = candidates[0] || '#'; a.target = '_blank'; a.rel = 'noopener';
         document.body.appendChild(a); a.click(); a.remove();
-      } finally {
-        const next = await counterHit('sticker-downloads-total');
-        setText('dl-total-count', next);
-        await counterHit(`sticker-downloads-${level}`);
+        trackDownload();
       }
     },
     render(){
@@ -189,6 +172,83 @@ function achvToast(msg){
   document.addEventListener('DOMContentLoaded', () => { Achievements.load(); Achievements.render(); });
 })();
 
+// ==================== WORKING TIMER ====================
+let timerIntervals = {};
+
+function startTimer(panelId, seconds) {
+  console.log(`startTimer(${panelId}, ${seconds})`);
+  
+  // Stop existing timer
+  if (timerIntervals[panelId]) {
+    clearInterval(timerIntervals[panelId]);
+  }
+  
+  const panel = document.getElementById(panelId);
+  if (!panel) return;
+  
+  // Find or create timer elements
+  let fill = panel.querySelector('.timer-fill');
+  let tleft = panel.querySelector('.tleft');
+  
+  if (!fill || !tleft) {
+    let wrap = panel.querySelector('.timer-wrap');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.className = 'timer-wrap';
+      wrap.innerHTML = `
+        <div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div>
+        <strong class="tleft">${seconds}s</strong>
+        <button class="btn small" onclick="startTimer('${panelId}', ${seconds})">Start 60s</button>
+        <button class="btn small" onclick="resetTimer('${panelId}', ${seconds})">Reset</button>
+      `;
+      panel.insertBefore(wrap, panel.firstChild.nextSibling);
+      fill = wrap.querySelector('.timer-fill');
+      tleft = wrap.querySelector('.tleft');
+    }
+  }
+  
+  if (!fill || !tleft) return;
+  
+  let timeLeft = seconds;
+  fill.style.width = '100%';
+  fill.style.background = 'linear-gradient(90deg, #0e8a68, #22c55e)';
+  tleft.textContent = timeLeft + 's';
+  
+  timerIntervals[panelId] = setInterval(function() {
+    timeLeft--;
+    const percent = (timeLeft / seconds) * 100;
+    fill.style.width = Math.max(0, percent) + '%';
+    tleft.textContent = timeLeft + 's';
+    
+    if (timeLeft <= 0) {
+      clearInterval(timerIntervals[panelId]);
+      delete timerIntervals[panelId];
+      fill.style.background = '#ef4444';
+    }
+  }, 1000);
+}
+
+function resetTimer(panelId, seconds) {
+  if (timerIntervals[panelId]) {
+    clearInterval(timerIntervals[panelId]);
+    delete timerIntervals[panelId];
+  }
+  const panel = document.getElementById(panelId);
+  if (panel) {
+    const fill = panel.querySelector('.timer-fill');
+    const tleft = panel.querySelector('.tleft');
+    if (fill) {
+      fill.style.width = '100%';
+      fill.style.background = 'linear-gradient(90deg, #0e8a68, #22c55e)';
+    }
+    if (tleft) tleft.textContent = seconds + 's';
+  }
+}
+
+// Make timers globally accessible
+window.startTimer = startTimer;
+window.resetTimer = resetTimer;
+
 // ---------- Confetti (10 seconds) + Claps (3 seconds) + Sound ----------
 function confettiBurst(){
   let c = document.getElementById('confetti-canvas');
@@ -203,7 +263,7 @@ function confettiBurst(){
       w: 8*dpr, h: 12*dpr, r: Math.random()*Math.PI,
       col: ['#60a5fa','#34d399','#f472b6','#facc15','#a78bfa','#ef4444','#16a34a'][Math.floor(Math.random()*7)] });
   }
-  let t=0; const T=300; // 10 seconds at 30fps approx
+  let frames = 0;
   function step(){
     ctx.clearRect(0,0,W,H);
     parts.forEach(p=>{
@@ -211,7 +271,9 @@ function confettiBurst(){
       ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r);
       ctx.fillStyle=p.col; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore();
     });
-    if (++t<T) requestAnimationFrame(step); else c.remove();
+    frames++;
+    if (frames < 300) requestAnimationFrame(step);
+    else c.remove();
   }
   step();
 }
@@ -221,18 +283,20 @@ function claps(){
   if(!e){
     e = document.createElement('div');
     e.className = 'claps';
-    e.textContent = '👏👏👏👏👏';
+    e.innerHTML = '👏👏👏👏👏';
     e.style.position = 'fixed';
     e.style.left = '50%';
-    e.style.top = '10%';
-    e.style.transform = 'translateX(-50%)';
-    e.style.fontSize = '3rem';
-    e.style.transition = 'opacity .8s ease';
+    e.style.top = '50%';
+    e.style.transform = 'translate(-50%, -50%)';
+    e.style.fontSize = '4rem';
+    e.style.transition = 'opacity 0.8s ease';
     e.style.zIndex = '9999';
-    e.style.background = 'rgba(0,0,0,0.7)';
-    e.style.padding = '20px 40px';
-    e.style.borderRadius = '60px';
+    e.style.background = 'rgba(0,0,0,0.8)';
+    e.style.padding = '30px 50px';
+    e.style.borderRadius = '80px';
     e.style.color = 'white';
+    e.style.textAlign = 'center';
+    e.style.whiteSpace = 'nowrap';
     document.body.appendChild(e);
   }
   e.style.opacity = '1';
@@ -252,96 +316,8 @@ function playChime(){
       o.connect(g).connect(ctx.destination);
       o.start(now+dt); o.stop(now+dt+0.26);
     });
-  }catch(e){}
+  }catch(e){ console.log('Audio not supported'); }
 }
-
-// ---------------- WORKING TIMER ----------------
-const Timer = (() => {
-  let activeTimers = {};
-  
-  function start(panelId, seconds) {
-    console.log(`Timer.start(${panelId}, ${seconds})`);
-    const panel = document.getElementById(panelId);
-    if (!panel) return;
-    
-    let fill = panel.querySelector('.timer-fill');
-    let tleft = panel.querySelector('.tleft');
-    
-    if (!fill || !tleft) {
-      let wrap = panel.querySelector('.timer-wrap');
-      if (!wrap) {
-        wrap = document.createElement('div');
-        wrap.className = 'timer-wrap';
-        wrap.innerHTML = `
-          <div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div>
-          <strong class="tleft">${seconds}s</strong>
-          <button class="btn small" onclick="Timer.start('${panelId}', ${seconds})">Start</button>
-          <button class="btn small" onclick="Timer.reset('${panelId}', ${seconds})">Reset</button>
-        `;
-        panel.insertBefore(wrap, panel.firstChild.nextSibling);
-        fill = wrap.querySelector('.timer-fill');
-        tleft = wrap.querySelector('.tleft');
-      }
-    }
-    
-    if (!fill || !tleft) return;
-    
-    if (activeTimers[panelId]) clearInterval(activeTimers[panelId]);
-    
-    let timeLeft = seconds;
-    fill.style.width = '100%';
-    fill.style.background = 'linear-gradient(90deg, #0e8a68, #22c55e)';
-    tleft.textContent = timeLeft + 's';
-    
-    activeTimers[panelId] = setInterval(() => {
-      timeLeft--;
-      const percent = (timeLeft / seconds) * 100;
-      fill.style.width = Math.max(0, percent) + '%';
-      tleft.textContent = timeLeft + 's';
-      
-      if (timeLeft <= 0) {
-        clearInterval(activeTimers[panelId]);
-        delete activeTimers[panelId];
-        fill.style.background = '#ef4444';
-      }
-    }, 1000);
-  }
-  
-  function reset(panelId, seconds) {
-    if (activeTimers[panelId]) {
-      clearInterval(activeTimers[panelId]);
-      delete activeTimers[panelId];
-    }
-    const panel = document.getElementById(panelId);
-    if (panel) {
-      const fill = panel.querySelector('.timer-fill');
-      const tleft = panel.querySelector('.tleft');
-      if (fill) {
-        fill.style.width = '100%';
-        fill.style.background = 'linear-gradient(90deg, #0e8a68, #22c55e)';
-      }
-      if (tleft) tleft.textContent = seconds + 's';
-    }
-  }
-  
-  function stop(panelId) {
-    if (activeTimers[panelId]) {
-      clearInterval(activeTimers[panelId]);
-      delete activeTimers[panelId];
-    }
-  }
-  
-  function timeLeft(panelId) {
-    const panel = document.getElementById(panelId);
-    if (!panel) return 0;
-    const tleft = panel.querySelector('.tleft');
-    if (!tleft) return 0;
-    const val = parseInt(tleft.textContent, 10);
-    return isNaN(val) ? 0 : val;
-  }
-  
-  return { start, reset, stop, timeLeft };
-})();
 
 function toast(msg, parent){
   const w = parent || document.body;
@@ -352,10 +328,10 @@ function toast(msg, parent){
   setTimeout(()=>{ t.remove(); }, 1800);
 }
 
-// ---------------- Kids Game ----------------
+// ==================== KIDS GAME ====================
 const KidsGame = (() => {
   const speciesConfigs = {
-    melanogaster: { region: 'piRNA cluster 3R‑TAS (telomere‑associated sequence)',
+    melanogaster: { region: 'piRNA cluster 3R‑TAS',
       eves:[{x:.15,y:.35,type:'intact'},{x:.30,y:.55,type:'useful'},{x:.55,y:.25,type:'broken'},{x:.72,y:.60,type:'unique'},{x:.85,y:.40,type:'intact'}]},
     simulans: { region: 'Heterochromatin region 2L‑proximal',
       eves:[{x:.12,y:.50,type:'broken'},{x:.28,y:.30,type:'useful'},{x:.43,y:.62,type:'intact'},{x:.67,y:.40,type:'intact'},{x:.82,y:.55,type:'unique'}]},
@@ -415,7 +391,7 @@ const KidsGame = (() => {
               toast('Great work! All 5 species complete — Kids badge unlocked!', wrap);
               confettiBurst(); claps(); playChime();
             } else {
-              toast(`Nice! ${completed.size}/${SPECIES.length} species complete — click "Next species →"`, wrap);
+              toast(`Nice! ${completed.size}/${SPECIES.length} species complete — click "Next species"`, wrap);
               document.getElementById('kids-next')?.classList.add('pulse-once');
               setTimeout(()=>document.getElementById('kids-next')?.classList.remove('pulse-once'), 1500);
             }
@@ -484,7 +460,7 @@ const KidsGame = (() => {
 })();
 document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('kids-game')) KidsGame.init(); });
 
-// ---------------- Teens Game ----------------
+// ==================== TEENS GAME ====================
 const IntermediateGame = (() => {
   const S = ['melanogaster','simulans','yakuba','virilis','pseudoananassae'];
   const LABEL_FULL = { melanogaster:'D. melanogaster', simulans:'D. simulans', yakuba:'D. yakuba', virilis:'D. virilis', pseudoananassae:'D. pseudoananassae' };
@@ -675,8 +651,8 @@ const IntermediateGame = (() => {
       if (!IntermediateGame._won){
         IntermediateGame._won = true;
         window.Achievements?.markComplete('teens');
-        if (Timer.timeLeft('teens')>0){ confettiBurst(); claps(); playChime(); }
-        Timer.stop('teens');
+        confettiBurst(); claps(); playChime();
+        resetTimer('teens', 60);
       }
       if (steps) steps.textContent = `Pairs: {${A.join(', ')}} and {${B.join(', ')}}, Outgroup: ${O}`;
     } else {
@@ -749,11 +725,10 @@ const IntermediateGame = (() => {
 })();
 document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('inspect-grid')) IntermediateGame.init(); });
 
-// ---------------- Adults Game ----------------
+// ==================== ADULTS GAME ====================
 const AdvancedGame = (() => {
   const SPECIES = ['melanogaster','simulans','yakuba','virilis','pseudoananassae'];
   const LABEL = { melanogaster:'D. melanogaster', simulans:'D. simulans', yakuba:'D. yakuba', virilis:'D. virilis', pseudoananassae:'D. pseudoananassae' };
-  const RESHUFFLE_ON_RESET = true;
 
   const CATALOG = {
     melanogaster: [
@@ -763,7 +738,7 @@ const AdvancedGame = (() => {
       { id:'EVE-X', type:'dna',   state:'useful', family:'DV2', note:'DNA virus' }
     ],
     simulans: [
-      { id:'EVE-A′', type:'retro', state:'intact', family:'RV1', note:'intact copy' },
+      { id:"EVE-A'", type:'retro', state:'intact', family:'RV1', note:'intact copy' },
       { id:'EVE-Z',  type:'dna',   state:'useful', family:'DV1', note:'DNA virus' }
     ],
     yakuba: [{ id:'EVE-Y1', type:'retro', state:'broken', family:'RV1', note:'fragment' }],
@@ -772,15 +747,16 @@ const AdvancedGame = (() => {
   };
 
   const STEP1_CORRECT = 'EVE-A';
-  const STEP2_RESIST = 'pseudoananassae', STEP2_VULN = 'yakuba';
+  const STEP2_RESIST = 'pseudoananassae';
+  const STEP2_VULN = 'yakuba';
 
   let passed = { s1:false, s2:false, s3:false };
-
-  function shuffled(arr){ return [...arr].sort(()=>Math.random()-0.5); }
+  let adultsWon = false;
 
   function init(){
     renderStep1(); renderStep2(); renderStep3(); clearFeedback();
   }
+  
   function clearFeedback(){
     const o1 = document.getElementById('adv-feedback-1'); if (o1) o1.textContent='';
     const o2 = document.getElementById('adv-feedback-2'); if (o2) o2.textContent='';
@@ -820,34 +796,15 @@ const AdvancedGame = (() => {
     }).join('');
   }
   
-  function hint(step){
-    if (step===1){ alert('Pick an active retro EVE that matches RV1.'); }
-    else if (step===2){ alert('Resistant: useful/intact retro near RV1a. Vulnerable: only broken retro or only DNA EVEs.'); }
-    else if (step===3){ alert('Active/intact retro vs RV1/RV1a may still recognize RV1b.'); }
-  }
-  
-  function checkStep1(){
-    const val = (document.querySelector('input[name="step1-choice"]:checked')||{}).value;
-    const out = document.getElementById('adv-feedback-1');
-    if (!val){ out.textContent='Select an EVE above.'; out.style.color='#b91c1c'; return; }
-    if (val === STEP1_CORRECT){
-      out.textContent='✓ Task 1 Complete! EVE-A is a retro EVE with active piRNAs against RV1.'; out.style.color='#0f766e';
-      passed.s1=true; maybeUnlock();
-    } else {
-      out.textContent='✗ Not quite. Choose an active retro EVE matching RV1 (not DNA, not broken).'; out.style.color='#b91c1c';
-    }
-  }
-  
   function renderStep2(){
     const resistBox = document.getElementById('adv-resist-radios');
     const vulnBox = document.getElementById('adv-vuln-radios');
     if (!resistBox || !vulnBox) return;
     
-    const species = ['melanogaster', 'simulans', 'yakuba', 'virilis', 'pseudoananassae'];
     resistBox.innerHTML = '';
     vulnBox.innerHTML = '';
     
-    species.forEach(s => {
+    SPECIES.forEach(s => {
       const eves = CATALOG[s] || [];
       let chipsHtml = '';
       eves.forEach(eve => {
@@ -896,10 +853,9 @@ const AdvancedGame = (() => {
   
   function renderStep3(){
     const c = document.getElementById('adv-mutation-checks'); if (!c) return;
-    const species = ['melanogaster', 'simulans', 'yakuba', 'virilis', 'pseudoananassae'];
     c.innerHTML = '';
     
-    species.forEach(s => {
+    SPECIES.forEach(s => {
       const eves = CATALOG[s] || [];
       let chipsHtml = '';
       eves.forEach(eve => {
@@ -936,55 +892,70 @@ const AdvancedGame = (() => {
     });
   }
   
-  function selectCard(col, el){ col.querySelectorAll('.species-card').forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); }
+  function hint(step){
+    if (step===1){ alert('Pick an active retro EVE that matches RV1.'); }
+    else if (step===2){ alert('Resistant: useful/intact retro near RV1a. Vulnerable: only broken retro or only DNA EVEs.'); }
+    else if (step===3){ alert('Active/intact retro vs RV1/RV1a may still recognize RV1b.'); }
+  }
+  
+  function checkStep1(){
+    const val = (document.querySelector('input[name="step1-choice"]:checked')||{}).value;
+    const out = document.getElementById('adv-feedback-1');
+    if (!val){ out.textContent='Select an EVE above.'; out.style.color='#b91c1c'; return; }
+    if (val === STEP1_CORRECT){
+      out.innerHTML='✓ Task 1 Complete! EVE-A is a retro EVE with active piRNAs against RV1.'; out.style.color='#0f766e';
+      passed.s1=true; maybeUnlock();
+    } else {
+      out.innerHTML='✗ Not quite. Choose an active retro EVE matching RV1 (not DNA, not broken).'; out.style.color='#b91c1c';
+    }
+  }
   
   function checkStep2(){
     const resist = document.querySelector('input[name="resist"]:checked')?.value;
     const vuln = document.querySelector('input[name="vuln"]:checked')?.value;
     const out = document.getElementById('adv-feedback-2');
-    if (!resist || !vuln){ out.textContent='Select a species in each column.'; out.style.color='#b91c1c'; return; }
+    if (!resist || !vuln){ out.innerHTML='Select a species in each column.'; out.style.color='#b91c1c'; return; }
     const ok = (resist === STEP2_RESIST) && (vuln === STEP2_VULN);
     if (ok){
-      out.textContent = `✓ Task 2 Complete! ${LABEL[resist]} is most resistant; ${LABEL[vuln]} is most vulnerable.`; out.style.color='#0f766e';
+      out.innerHTML = `✓ Task 2 Complete! ${LABEL[resist]} is most resistant; ${LABEL[vuln]} is most vulnerable.`; out.style.color='#0f766e';
       passed.s2=true; maybeUnlock();
     } else {
-      out.textContent = '✗ Try again: look for useful/intact retro near RV1a (resistant) and species lacking such retro EVEs (vulnerable).'; out.style.color='#b91c1c';
+      out.innerHTML = '✗ Try again: look for useful/intact retro near RV1a (resistant) and species lacking such retro EVEs (vulnerable).'; out.style.color='#b91c1c';
     }
   }
   
   function checkStep3(){
     const chosen = Array.from(document.querySelectorAll('#adv-mutation-checks input:checked')).map(cb => cb.value);
     const out = document.getElementById('adv-feedback-3');
-    if (!chosen.length){ out.textContent='Select at least one species.'; out.style.color='#b91c1c'; return; }
+    if (!chosen.length){ out.innerHTML='Select at least one species.'; out.style.color='#b91c1c'; return; }
     const correct = ['melanogaster', 'simulans', 'pseudoananassae'];
     const allCorrect = correct.every(s => chosen.includes(s)) && chosen.length === 3;
     if (allCorrect){
-      out.textContent='✓ Task 3 Complete! D. mel., D. sim., and D. pse. likely retain protection against RV1b.'; out.style.color='#0f766e';
+      out.innerHTML='✓ Task 3 Complete! D. mel., D. sim., and D. pse. likely retain protection against RV1b.'; out.style.color='#0f766e';
       passed.s3=true; maybeUnlock();
     } else {
-      out.textContent='✗ Close—active/intact retro EVEs vs RV1/RV1a may still recognize RV1b; broken or DNA EVEs won’t.'; out.style.color='#b91c1c';
+      out.innerHTML='✗ Close—active/intact retro EVEs vs RV1/RV1a may still recognize RV1b; broken or DNA EVEs won\'t.'; out.style.color='#b91c1c';
     }
   }
   
   function maybeUnlock(){
-    if (passed.s1 && passed.s2 && passed.s3){
-      if (!AdvancedGame._won){
-        AdvancedGame._won = true;
-        window.Achievements?.markComplete('adults');
-        toast('Advanced badge unlocked!');
-        if (Timer.timeLeft('adults')>0){ confettiBurst(); claps(); playChime(); }
-        Timer.stop('adults');
-      }
+    if (passed.s1 && passed.s2 && passed.s3 && !adultsWon){
+      adultsWon = true;
+      window.Achievements?.markComplete('adults');
+      toast('🎉 Advanced badge unlocked! 🎉');
+      confettiBurst(); claps(); playChime();
+      resetTimer('adults', 60);
     }
   }
   
   function reset(){
     passed = { s1:false, s2:false, s3:false };
-    AdvancedGame._won = false;
+    adultsWon = false;
     renderStep1(); renderStep2(); renderStep3(); clearFeedback();
-    Timer.stop('adults');
+    resetTimer('adults', 60);
   }
-  function restart(){ reset(); Timer.start('adults', 60); }
+  
+  function restart(){ reset(); startTimer('adults', 60); }
   function togglePortfolios(){}
 
   return { init, hint, checkStep1, checkStep2, checkStep3, reset, restart, togglePortfolios };
