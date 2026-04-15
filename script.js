@@ -251,59 +251,41 @@ function playChime(){
   }catch(e){}
 }
 
-// ---------------- Timer (FULLY WORKING) ----------------
+// ---------------- Timer (SINGLE WORKING VERSION) ----------------
 const Timer = (() => {
   let activeTimers = {};
   
-  function ensureBar(panelId) {
-    const panel = document.getElementById(panelId);
-    if (!panel) return null;
-    
-    let wrap = panel.querySelector('.timer-wrap');
-    if (!wrap) {
-      wrap = document.createElement('div');
-      wrap.className = 'timer-wrap';
-      wrap.innerHTML = `
-        <div class="timer-bar">
-          <div class="timer-fill" style="width:100%"></div>
-        </div>
-        <strong class="tleft">60s</strong>
-        <button class="btn small timer-start-btn">Start 60s</button>
-        <button class="btn small timer-restart-btn">Restart</button>
-      `;
-      panel.insertBefore(wrap, panel.firstChild.nextSibling);
-      
-      // Add event listeners to the new buttons
-      const startBtn = wrap.querySelector('.timer-start-btn');
-      const restartBtn = wrap.querySelector('.timer-restart-btn');
-      if (startBtn) startBtn.onclick = () => start(panelId, 60);
-      if (restartBtn) restartBtn.onclick = () => { stop(panelId); start(panelId, 60); };
-    }
-    return wrap;
-  }
-  
   function start(panelId, seconds) {
+    console.log(`Timer.start called for ${panelId} with ${seconds}s`);
+    
     const panel = document.getElementById(panelId);
     if (!panel) {
       console.error(`Timer: Panel "${panelId}" not found`);
       return;
     }
     
-    // Ensure timer bar exists
+    // Get or create timer-wrap
     let wrap = panel.querySelector('.timer-wrap');
     if (!wrap) {
-      wrap = ensureBar(panelId);
+      wrap = document.createElement('div');
+      wrap.className = 'timer-wrap';
+      wrap.innerHTML = `
+        <div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div>
+        <strong class="tleft">${seconds}s</strong>
+        <button class="btn small" onclick="Timer.start('${panelId}', ${seconds})">Start</button>
+        <button class="btn small" onclick="Timer.reset('${panelId}', ${seconds})">Reset</button>
+      `;
+      panel.insertBefore(wrap, panel.firstChild.nextSibling);
     }
     
     const fill = wrap.querySelector('.timer-fill');
     const tleft = wrap.querySelector('.tleft');
-    
     if (!fill || !tleft) {
       console.error(`Timer: Could not find timer elements in ${panelId}`);
       return;
     }
     
-    // Stop any existing timer for this panel
+    // Stop existing timer
     if (activeTimers[panelId]) {
       clearInterval(activeTimers[panelId]);
       delete activeTimers[panelId];
@@ -313,31 +295,46 @@ const Timer = (() => {
     fill.style.width = '100%';
     tleft.textContent = timeLeft + 's';
     
-    // Start new timer
     activeTimers[panelId] = setInterval(() => {
       timeLeft--;
-      
-      // Calculate percentage width
       const percent = (timeLeft / seconds) * 100;
       fill.style.width = Math.max(0, percent) + '%';
       tleft.textContent = timeLeft + 's';
       
-      // Stop when reaches zero
       if (timeLeft <= 0) {
         clearInterval(activeTimers[panelId]);
         delete activeTimers[panelId];
         console.log(`Timer finished for ${panelId}`);
+        // Optional: add visual feedback when timer ends
+        fill.style.background = '#ef4444';
       }
     }, 1000);
+  }
+  
+  function reset(panelId, seconds) {
+    console.log(`Timer.reset called for ${panelId}`);
     
-    console.log(`Timer started for ${panelId} with ${seconds} seconds`);
+    if (activeTimers[panelId]) {
+      clearInterval(activeTimers[panelId]);
+      delete activeTimers[panelId];
+    }
+    
+    const panel = document.getElementById(panelId);
+    if (panel) {
+      const fill = panel.querySelector('.timer-fill');
+      const tleft = panel.querySelector('.tleft');
+      if (fill) {
+        fill.style.width = '100%';
+        fill.style.background = 'linear-gradient(90deg, #0e8a68, #22c55e)';
+      }
+      if (tleft) tleft.textContent = seconds + 's';
+    }
   }
   
   function stop(panelId) {
     if (activeTimers[panelId]) {
       clearInterval(activeTimers[panelId]);
       delete activeTimers[panelId];
-      console.log(`Timer stopped for ${panelId}`);
     }
   }
   
@@ -350,10 +347,7 @@ const Timer = (() => {
     return isNaN(val) ? 0 : val;
   }
   
-  // Expose for debugging
-  window.TimerDebug = { activeTimers };
-  
-  return { start, stop, timeLeft };
+  return { start, reset, stop, timeLeft };
 })();
 
 // ---------------- Toast helper for in-game messages ----------------
@@ -963,50 +957,6 @@ function setEquals(a,b){ if (a.size!==b.size) return false; for (const x of a) i
   });
 })();
 
-// ==================== FIX: TIMER BARS FOR TEENS AND ADULTS ====================
-// Ensure timer bars display properly
-(function fixTimers() {
-  const originalTimerStart = Timer.start;
-  Timer.start = function(panelId, seconds) {
-    const panel = document.getElementById(panelId);
-    if (!panel) return;
-    
-    // Ensure timer-wrap exists with proper structure
-    let wrap = panel.querySelector('.timer-wrap');
-    if (!wrap) {
-      wrap = document.createElement('div');
-      wrap.className = 'timer-wrap';
-      wrap.innerHTML = '<div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div><strong class="tleft">' + seconds + 's</strong>';
-      // Insert at top of panel
-      panel.insertBefore(wrap, panel.firstChild);
-    }
-    
-    const fill = wrap.querySelector('.timer-fill');
-    const tleft = wrap.querySelector('.tleft');
-    if (!fill || !tleft) return;
-    
-    // Stop existing timer
-    if (window.timers && window.timers[panelId]) {
-      clearInterval(window.timers[panelId]);
-    }
-    
-    let t = seconds;
-    fill.style.width = '100%';
-    tleft.textContent = t + 's';
-    
-    if (!window.timers) window.timers = {};
-    window.timers[panelId] = setInterval(function() {
-      t = Math.max(0, t - 1);
-      fill.style.width = (t / seconds * 100) + '%';
-      tleft.textContent = t + 's';
-      if (t === 0) {
-        clearInterval(window.timers[panelId]);
-        delete window.timers[panelId];
-      }
-    }, 1000);
-  };
-})();
-
 // ==================== FIX: ADD MISSING togglePortfolios FUNCTION ====================
 if (typeof AdvancedGame !== 'undefined' && !AdvancedGame.togglePortfolios) {
   AdvancedGame.togglePortfolios = function() {
@@ -1417,62 +1367,6 @@ if (typeof AdvancedGame !== 'undefined' && !AdvancedGame.togglePortfolios) {
   }, 500);
 })();
 
-// ==================== FIX: TIMER BAR DECREASES PROPERLY ====================
-(function fixTimerDecrement() {
-  // Store active timers
-  if (!window.activeTimers) window.activeTimers = {};
-  
-  // Override Timer.start to ensure it works correctly
-  if (typeof Timer !== 'undefined') {
-    Timer.start = function(panelId, seconds) {
-      const panel = document.getElementById(panelId);
-      if (!panel) return;
-      
-      // Find or create timer-wrap
-      let wrap = panel.querySelector('.timer-wrap');
-      if (!wrap) {
-        wrap = document.createElement('div');
-        wrap.className = 'timer-wrap';
-        wrap.innerHTML = '<div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div><strong class="tleft">' + seconds + 's</strong>';
-        panel.insertBefore(wrap, panel.firstChild);
-      }
-      
-      const fill = wrap.querySelector('.timer-fill');
-      const tleft = wrap.querySelector('.tleft');
-      if (!fill || !tleft) return;
-      
-      // Stop existing timer for this panel
-      if (window.activeTimers[panelId]) {
-        clearInterval(window.activeTimers[panelId]);
-      }
-      
-      let timeLeft = seconds;
-      fill.style.width = '100%';
-      tleft.textContent = timeLeft + 's';
-      
-      // Start new timer
-      window.activeTimers[panelId] = setInterval(function() {
-        timeLeft--;
-        const percent = (timeLeft / seconds) * 100;
-        fill.style.width = Math.max(0, percent) + '%';
-        tleft.textContent = timeLeft + 's';
-        
-        if (timeLeft <= 0) {
-          clearInterval(window.activeTimers[panelId]);
-          delete window.activeTimers[panelId];
-        }
-      }, 1000);
-    };
-    
-    Timer.stop = function(panelId) {
-      if (window.activeTimers[panelId]) {
-        clearInterval(window.activeTimers[panelId]);
-        delete window.activeTimers[panelId];
-      }
-    };
-  }
-})();
-
 // ==================== FIX: ADULTS GAME - USE COLOURED CIRCLES (●) ====================
 (function fixAdultsEveCircles() {
   
@@ -1607,97 +1501,6 @@ if (typeof AdvancedGame !== 'undefined' && !AdvancedGame.togglePortfolios) {
     setTimeout(updateAllAdultsCards, 100);
     setTimeout(updateAllAdultsCards, 500);
   }
-})();
-
-
-// ==================== SIMPLE WORKING TIMER (FALLBACK) ====================
-(function setupSimpleTimers() {
-  
-  function createTimerBar(panelId) {
-    const panel = document.getElementById(panelId);
-    if (!panel) return null;
-    
-    // Check if timer bar already exists
-    let existing = panel.querySelector('.simple-timer');
-    if (existing) return existing;
-    
-    const timerDiv = document.createElement('div');
-    timerDiv.className = 'timer-wrap simple-timer';
-    timerDiv.innerHTML = `
-      <div class="timer-bar">
-        <div class="timer-fill" style="width:100%"></div>
-      </div>
-      <span class="tleft" id="timer-${panelId}">60</span>
-      <span style="font-size:0.8rem;">seconds</span>
-      <button class="btn small start-timer-btn" data-panel="${panelId}">Start</button>
-      <button class="btn small reset-timer-btn" data-panel="${panelId}">Reset</button>
-    `;
-    
-    panel.insertBefore(timerDiv, panel.firstChild.nextSibling);
-    
-    // Add event listeners
-    timerDiv.querySelector('.start-timer-btn').onclick = () => startSimpleTimer(panelId, 60);
-    timerDiv.querySelector('.reset-timer-btn').onclick = () => resetSimpleTimer(panelId, 60);
-    
-    return timerDiv;
-  }
-  
-  let simpleTimers = {};
-  
-  function startSimpleTimer(panelId, seconds) {
-    // Stop any existing timer
-    if (simpleTimers[panelId]) {
-      clearInterval(simpleTimers[panelId]);
-    }
-    
-    const panel = document.getElementById(panelId);
-    if (!panel) return;
-    
-    let timeLeft = seconds;
-    const tleft = panel.querySelector(`#timer-${panelId}`);
-    const fill = panel.querySelector('.timer-fill');
-    
-    if (!tleft || !fill) return;
-    
-    tleft.textContent = timeLeft;
-    fill.style.width = '100%';
-    
-    simpleTimers[panelId] = setInterval(() => {
-      timeLeft--;
-      tleft.textContent = timeLeft;
-      const percent = (timeLeft / seconds) * 100;
-      fill.style.width = Math.max(0, percent) + '%';
-      
-      if (timeLeft <= 0) {
-        clearInterval(simpleTimers[panelId]);
-        delete simpleTimers[panelId];
-      }
-    }, 1000);
-  }
-  
-  function resetSimpleTimer(panelId, seconds) {
-    if (simpleTimers[panelId]) {
-      clearInterval(simpleTimers[panelId]);
-      delete simpleTimers[panelId];
-    }
-    
-    const panel = document.getElementById(panelId);
-    if (panel) {
-      const tleft = panel.querySelector(`#timer-${panelId}`);
-      const fill = panel.querySelector('.timer-fill');
-      if (tleft) tleft.textContent = seconds;
-      if (fill) fill.style.width = '100%';
-    }
-  }
-  
-  // Initialize timers for teens and adults panels
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(() => {
-      createTimerBar('teens');
-      createTimerBar('adults');
-    }, 500);
-  });
-  
 })();
 
 // ==================== FIX: ADULTS GAME - SINGLE ICON PER CARD ====================
