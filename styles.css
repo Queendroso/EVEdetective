@@ -610,3 +610,44 @@ html{scroll-behavior:smooth}
   color: #0e8a68;
   font-weight: 700;
 }
+
+/* Card outlines - make them visible */
+.glossary-card, .paper, .badge, .card, .adv-step, .eve-card, .species-card {
+  border: 2px solid #cbd5e1 !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+}
+
+.glossary-card:hover, .paper:hover, .badge:hover, .card:hover {
+  border-color: #0e8a68 !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+
+/* Achievement badges */
+.badge {
+  background: white;
+  border-radius: 16px;
+  padding: 16px;
+}
+
+.badge.unlocked {
+  border-color: #16a34a !important;
+  background: linear-gradient(135deg, #ffffff, #f0fdf4);
+}
+
+.badge.locked {
+  border-color: #cbd5e1 !important;
+  opacity: 0.8;
+}
+
+/* Timer bar */
+.timer-fill {
+  transition: width 1s linear !important;
+  border-radius: 10px;
+}
+
+.timer-wrap {
+  background: #f1f5f9;
+  border-radius: 60px;
+  padding: 8px 16px;
+  border: 1px solid #cbd5e1;
+}
