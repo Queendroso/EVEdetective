@@ -198,7 +198,6 @@ function svgFront(data){
     <div class="hdr"><div class="title">🔍 Find the EVEs</div><div class="species">${data.short}</div></div>
     <div class="sub">${data.full} — ${data.region}</div>
     <div class="sub" style="color:#d4a017; margin-bottom:2mm">✨ Use hand lens (5-10×) - colour = EVE type!</div>
-    <div class="sub" style="color:#94a3b8; margin-bottom:2mm">⚪ White dots = NOT real EVEs (distractors)</div>
     <svg width="63mm" height="88mm" viewBox="0 0 ${W} ${H}">
       ${gridLines(W,H,3,'#eef2f7')}
       ${dots.join('')}
