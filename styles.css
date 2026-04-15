@@ -447,3 +447,16 @@ html{scroll-behavior:smooth}
   border-radius: 0.5rem !important;
   font-weight: 500 !important;
 }
+
+/* Remove extra > characters */
+#adults .eve-card .card-chips,
+#adults .species-card .card-chips {
+  display: contents;
+}
+
+/* Fix any stray > */
+#adults .eve-card::before,
+#adults .species-card::before {
+  display: none;
+  content: none;
+}
