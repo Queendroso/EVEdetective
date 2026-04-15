@@ -42,7 +42,7 @@
     opacity: 0.25 !important;
   }
   
-  /* DUMMY EVEs: White/grey circles that are NOT real EVEs - visible but not colourful */
+  /* DUMMY EVEs: White/grey circles that are NOT real EVEs */
   .front-eve.dummy {
     opacity: 0.4 !important;
     fill: #cbd5e1 !important;
@@ -88,7 +88,7 @@
 <section class="sheet" id="backs"></section>
 
 <script>
-// EVE colours matching online game - ALL USE CIRCLES (no X, no star, no diamond)
+// EVE colours matching online game - ALL USE CIRCLES
 const EVE_COLOURS = {
   intact: '#16a34a',   // green circle ●
   useful: '#ef4444',   // red circle ●
@@ -96,26 +96,27 @@ const EVE_COLOURS = {
   unique: '#f59e0b'    // golden circle ●
 };
 
+// FIXED: EVE positions - all y coordinates between 0.15 and 0.75 to prevent cutting off
 const speciesData = [
   { key:'melanogaster', short:'D. mel.', full:'Drosophila melanogaster',
     region:'piRNA cluster 3R‑TAS',
-    intact:[[0.12,0.22],[0.52,0.15]], useful:[[0.35,0.45]], broken:[[0.18,0.65]], unique:[[0.76,0.42],[0.88,0.30]]
+    intact:[[0.15,0.25],[0.55,0.18]], useful:[[0.38,0.48]], broken:[[0.20,0.68]], unique:[[0.75,0.45],[0.88,0.32]]
   },
   { key:'simulans', short:'D. sim.', full:'Drosophila simulans',
     region:'piRNA cluster 2L‑TAS',
-    intact:[[0.22,0.20],[0.60,0.22]], useful:[[0.36,0.55]], broken:[[0.18,0.70]], unique:[[0.82,0.36]]
+    intact:[[0.25,0.22],[0.62,0.25]], useful:[[0.40,0.58]], broken:[[0.20,0.70]], unique:[[0.80,0.40]]
   },
   { key:'yakuba', short:'D. yak.', full:'Drosophila yakuba',
     region:'Heterochromatin island H3',
-    intact:[[0.22,0.18]], useful:[[0.52,0.55]], broken:[[0.28,0.72]], unique:[[0.78,0.20]]
+    intact:[[0.25,0.20]], useful:[[0.55,0.58]], broken:[[0.30,0.70]], unique:[[0.75,0.25]]
   },
   { key:'virilis', short:'D. vir.', full:'Drosophila virilis',
     region:'piRNA cluster 3L‑TAS',
-    intact:[[0.20,0.28],[0.62,0.18]], useful:[[0.48,0.50]], broken:[[0.26,0.74]], unique:[[0.82,0.22]]
+    intact:[[0.22,0.30],[0.65,0.20]], useful:[[0.50,0.52]], broken:[[0.28,0.72]], unique:[[0.80,0.28]]
   },
   { key:'pseudoananassae', short:'D. pse.', full:'Drosophila pseudoananassae',
     region:'Subtelomeric repeat S1',
-    intact:[[0.18,0.20],[0.46,0.18]], useful:[[0.66,0.55]], broken:[[0.28,0.72]], unique:[[0.70,0.18]]
+    intact:[[0.20,0.22],[0.48,0.20]], useful:[[0.68,0.58]], broken:[[0.30,0.70]], unique:[[0.72,0.22]]
   }
 ];
 
@@ -127,8 +128,8 @@ function generateDummyEVEs(realPositions, count = 8) {
   for (let i = 0; i < count; i++) {
     let x, y, attempts = 0;
     do {
-      x = 0.05 + Math.random() * 0.9;
-      y = 0.05 + Math.random() * 0.9;
+      x = 0.08 + Math.random() * 0.84;  // Keep within 0.08 to 0.92
+      y = 0.12 + Math.random() * 0.76;  // Keep within 0.12 to 0.88 (safe from edges)
       attempts++;
       if (attempts > 100) break;
     } while (taken.has(`${x},${y}`));
@@ -162,7 +163,7 @@ function renderSheets() {
 }
 
 function svgFront(data){
-  const W=63, H=88, PAD=4; 
+  const W=63, H=88, PAD=6;  // Increased padding from 4mm to 6mm for more margin
   const dmm = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--eve-size-mm')) || 0.4;
   const r = dmm/2; 
   const dots = [];
@@ -175,7 +176,6 @@ function svgFront(data){
       const x = PAD + nx*(W-2*PAD);
       const y = PAD + ny*(H-2*PAD);
       realPositions.push([nx, ny]);
-      // ALL REAL EVES use CIRCLES with faint opacity
       dots.push(`<circle class="front-eve real" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r}" fill="${colour}" opacity="0.25" stroke="rgba(0,0,0,0.15)" stroke-width="0.1"/>`);
     });
   }
@@ -216,12 +216,12 @@ function svgFront(data){
 }
 
 function svgBack(data){
-  const W=63, H=88, PAD=4; 
+  const W=63, H=88, PAD=6;  // Increased padding
   const dmm = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--eve-back-mm')) || 1.4;
   const r = dmm/2; 
   const dots = [];
   
-  // BACK: ALL REAL EVES use CIRCLES (no X, no star, no diamond) - fully visible
+  // BACK: ALL REAL EVES use CIRCLES - fully visible
   function place(list, colour){
     (list||[]).forEach(([nx,ny])=>{
       const x = PAD + nx*(W-2*PAD);
