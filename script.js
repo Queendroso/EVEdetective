@@ -251,46 +251,108 @@ function playChime(){
   }catch(e){}
 }
 
-// ---------------- Timer ----------------
+// ---------------- Timer (FULLY WORKING) ----------------
 const Timer = (() => {
-  let timers = {};
-  function ensureBar(panelId){
+  let activeTimers = {};
+  
+  function ensureBar(panelId) {
     const panel = document.getElementById(panelId);
     if (!panel) return null;
+    
     let wrap = panel.querySelector('.timer-wrap');
-    if (!wrap){
+    if (!wrap) {
       wrap = document.createElement('div');
-      wrap.className='timer-wrap';
-      wrap.innerHTML = '<div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div><strong class="tleft">60s</strong>';
-      panel.insertBefore(wrap, panel.firstElementChild.nextSibling);
+      wrap.className = 'timer-wrap';
+      wrap.innerHTML = `
+        <div class="timer-bar">
+          <div class="timer-fill" style="width:100%"></div>
+        </div>
+        <strong class="tleft">60s</strong>
+        <button class="btn small timer-start-btn">Start 60s</button>
+        <button class="btn small timer-restart-btn">Restart</button>
+      `;
+      panel.insertBefore(wrap, panel.firstChild.nextSibling);
+      
+      // Add event listeners to the new buttons
+      const startBtn = wrap.querySelector('.timer-start-btn');
+      const restartBtn = wrap.querySelector('.timer-restart-btn');
+      if (startBtn) startBtn.onclick = () => start(panelId, 60);
+      if (restartBtn) restartBtn.onclick = () => { stop(panelId); start(panelId, 60); };
     }
     return wrap;
   }
-  function start(panelId, seconds){
-    const panel = document.getElementById(panelId); if (!panel) return;
-    const wrap = panel.querySelector('.timer-wrap') || ensureBar(panelId);
+  
+  function start(panelId, seconds) {
+    const panel = document.getElementById(panelId);
+    if (!panel) {
+      console.error(`Timer: Panel "${panelId}" not found`);
+      return;
+    }
+    
+    // Ensure timer bar exists
+    let wrap = panel.querySelector('.timer-wrap');
+    if (!wrap) {
+      wrap = ensureBar(panelId);
+    }
+    
     const fill = wrap.querySelector('.timer-fill');
     const tleft = wrap.querySelector('.tleft');
-    stop(panelId);
-    let t = seconds;
-    fill.style.width = '100%'; tleft.textContent = t+'s';
-    timers[panelId] = setInterval(()=>{
-      t = Math.max(0, t-1);
-      const pct = (t/seconds)*100;
-      fill.style.width = pct+'%';
-      tleft.textContent = t+'s';
-      if (t===0) stop(panelId);
+    
+    if (!fill || !tleft) {
+      console.error(`Timer: Could not find timer elements in ${panelId}`);
+      return;
+    }
+    
+    // Stop any existing timer for this panel
+    if (activeTimers[panelId]) {
+      clearInterval(activeTimers[panelId]);
+      delete activeTimers[panelId];
+    }
+    
+    let timeLeft = seconds;
+    fill.style.width = '100%';
+    tleft.textContent = timeLeft + 's';
+    
+    // Start new timer
+    activeTimers[panelId] = setInterval(() => {
+      timeLeft--;
+      
+      // Calculate percentage width
+      const percent = (timeLeft / seconds) * 100;
+      fill.style.width = Math.max(0, percent) + '%';
+      tleft.textContent = timeLeft + 's';
+      
+      // Stop when reaches zero
+      if (timeLeft <= 0) {
+        clearInterval(activeTimers[panelId]);
+        delete activeTimers[panelId];
+        console.log(`Timer finished for ${panelId}`);
+      }
     }, 1000);
+    
+    console.log(`Timer started for ${panelId} with ${seconds} seconds`);
   }
-  function stop(panelId){
-    if (timers[panelId]){ clearInterval(timers[panelId]); delete timers[panelId]; }
+  
+  function stop(panelId) {
+    if (activeTimers[panelId]) {
+      clearInterval(activeTimers[panelId]);
+      delete activeTimers[panelId];
+      console.log(`Timer stopped for ${panelId}`);
+    }
   }
-  function timeLeft(panelId){
-    const wrap = document.getElementById(panelId)?.querySelector('.tleft');
-    if (!wrap) return 0;
-    const v = parseInt(wrap.textContent||'0',10);
-    return isNaN(v)?0:v;
+  
+  function timeLeft(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return 0;
+    const tleft = panel.querySelector('.tleft');
+    if (!tleft) return 0;
+    const val = parseInt(tleft.textContent, 10);
+    return isNaN(val) ? 0 : val;
   }
+  
+  // Expose for debugging
+  window.TimerDebug = { activeTimers };
+  
   return { start, stop, timeLeft };
 })();
 
