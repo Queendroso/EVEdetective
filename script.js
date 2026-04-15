@@ -178,6 +178,7 @@ let timerIntervals = {};
 function startTimer(panelId, seconds) {
   console.log(`startTimer(${panelId}, ${seconds})`);
   
+  // Stop existing timer
   if (timerIntervals[panelId]) {
     clearInterval(timerIntervals[panelId]);
   }
@@ -185,6 +186,7 @@ function startTimer(panelId, seconds) {
   const panel = document.getElementById(panelId);
   if (!panel) return;
   
+  // Find timer elements
   let fill = panel.querySelector('.timer-fill');
   let tleft = panel.querySelector('.tleft');
   
@@ -194,9 +196,10 @@ function startTimer(panelId, seconds) {
       wrap = document.createElement('div');
       wrap.className = 'timer-wrap';
       wrap.innerHTML = `
-        <div class="timer-bar"><div class="timer-fill" style="width:100%; background: linear-gradient(90deg, #0e8a68, #22c55e);"></div></div>
+        <div class="timer-bar"><div class="timer-fill" style="width:100%; background: #22c55e;"></div></div>
         <strong class="tleft">${seconds}s</strong>
         <button class="btn small" onclick="startTimer('${panelId}', ${seconds})">Start 60s</button>
+        <button class="btn small" onclick="resetTimer('${panelId}', ${seconds})">Restart</button>
         <button class="btn small" onclick="resetTimer('${panelId}', ${seconds})">Reset</button>
       `;
       panel.insertBefore(wrap, panel.firstChild.nextSibling);
@@ -208,19 +211,24 @@ function startTimer(panelId, seconds) {
   if (!fill || !tleft) return;
   
   let timeLeft = seconds;
+  // Start with GREEN full bar
   fill.style.width = '100%';
-  fill.style.background = 'linear-gradient(90deg, #0e8a68, #22c55e)';
+  fill.style.backgroundColor = '#22c55e';
+  fill.style.background = '#22c55e';
   tleft.textContent = timeLeft + 's';
   
   timerIntervals[panelId] = setInterval(function() {
     timeLeft--;
+    // Calculate percentage width
     const percent = (timeLeft / seconds) * 100;
     fill.style.width = Math.max(0, percent) + '%';
     tleft.textContent = timeLeft + 's';
     
+    // When timer hits 0, turn RED
     if (timeLeft <= 0) {
       clearInterval(timerIntervals[panelId]);
       delete timerIntervals[panelId];
+      fill.style.backgroundColor = '#ef4444';
       fill.style.background = '#ef4444';
       fill.style.width = '0%';
     }
@@ -250,31 +258,86 @@ window.resetTimer = resetTimer;
 
 // ---------- Confetti (10 seconds) + Claps (3 seconds) + Sound ----------
 function confettiBurst(){
-  let c = document.getElementById('confetti-canvas');
-  if (!c){ c = document.createElement('canvas'); c.id='confetti-canvas'; document.body.appendChild(c); }
-  const ctx = c.getContext('2d');
-  const dpr = window.devicePixelRatio || 1;
-  const W = c.width = innerWidth*dpr, H = c.height = innerHeight*dpr;
-  c.style.width = innerWidth+'px'; c.style.height = innerHeight+'px';
-  const N = 300, parts=[];
-  for(let i=0;i<N;i++){
-    parts.push({ x: Math.random()*W, y: -Math.random()*H*0.2, vy: 2+Math.random()*5, vx: (Math.random()-0.5)*3,
-      w: 8*dpr, h: 12*dpr, r: Math.random()*Math.PI,
-      col: ['#60a5fa','#34d399','#f472b6','#facc15','#a78bfa','#ef4444','#16a34a'][Math.floor(Math.random()*7)] });
+  // Create canvas if it doesn't exist
+  let canvas = document.getElementById('confetti-canvas');
+  if (!canvas) {
+    canvas = document.createElement('canvas');
+    canvas.id = 'confetti-canvas';
+    canvas.style.position = 'fixed';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.zIndex = '99999';
+    document.body.appendChild(canvas);
   }
-  let frames = 0;
-  function step(){
-    ctx.clearRect(0,0,W,H);
-    parts.forEach(p=>{
-      p.x+=p.vx; p.y+=p.vy; p.r+=0.1;
-      ctx.save(); ctx.translate(p.x,p.y); ctx.rotate(p.r);
-      ctx.fillStyle=p.col; ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h); ctx.restore();
+  
+  // Set canvas size to full screen
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  
+  // Create confetti particles
+  const particles = [];
+  const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff', '#ffa500', '#ff69b4', '#16a34a', '#ef4444', '#f59e0b', '#0ea5e9'];
+  
+  for (let i = 0; i < 300; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height - canvas.height,
+      size: Math.random() * 10 + 5,
+      speedX: (Math.random() - 0.5) * 8,
+      speedY: Math.random() * 12 + 8,
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 15,
+      color: colors[Math.floor(Math.random() * colors.length)]
     });
-    frames++;
-    if (frames < 300) requestAnimationFrame(step);
-    else c.remove();
   }
-  step();
+  
+  let startTime = Date.now();
+  const duration = 10000; // 10 seconds
+  
+  function animate() {
+    const now = Date.now();
+    const elapsed = now - startTime;
+    
+    if (elapsed >= duration) {
+      // Stop after 10 seconds
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      canvas.remove();
+      return;
+    }
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    for (let p of particles) {
+      p.x += p.speedX;
+      p.y += p.speedY;
+      p.rotation += p.rotationSpeed;
+      
+      // Reset particles that fall off the bottom
+      if (p.y > canvas.height) {
+        p.y = -20;
+        p.x = Math.random() * canvas.width;
+      }
+      // Reset particles that go off sides
+      if (p.x < -50) p.x = canvas.width + 50;
+      if (p.x > canvas.width + 50) p.x = -50;
+      
+      // Draw confetti (rotated rectangles)
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size/2);
+      ctx.restore();
+    }
+    
+    requestAnimationFrame(animate);
+  }
+  
+  animate();
 }
 
 function claps(){
