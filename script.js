@@ -30,7 +30,6 @@ tabs.forEach(tab => {
     const id = tab.getAttribute('aria-controls');
     document.getElementById(id)?.classList.add('is-active');
 
-    // Defer to ensure panel is visible
     if (id === 'kids') setTimeout(() => KidsGame.resize(), 50);
     if (id === 'teens') setTimeout(() => { IntermediateGame.init(); Timer.start('teens', 60); }, 50);
     if (id === 'adults') setTimeout(() => { AdvancedGame.init(); Timer.start('adults', 60); }, 50);
@@ -38,7 +37,6 @@ tabs.forEach(tab => {
 });
 
 // -------- Simple counters via CountAPI (static-friendly) --------
-// Uses a stable namespace; update if you fork to avoid mixing counts across sites.
 const COUNTER_NS = 'queendroso-evdetective';
 
 async function counterHit(key){
@@ -63,7 +61,6 @@ function setText(id, val){
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // Count 1 visit per calendar day per browser (prevents inflating totals on refresh)
   const today = new Date().toISOString().slice(0,10);
   const last = localStorage.getItem('eve.visitYMD');
   if (last !== today){
@@ -74,8 +71,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const v = await counterGet('site-visits');
     setText('visits-count', v);
   }
-
-  // Initialize sticker download total
   const dls = await counterGet('sticker-downloads-total');
   setText('dl-total-count', dls);
 });
@@ -119,7 +114,6 @@ function achvToast(msg){
       if(!this.state[level]){
         this.state[level] = true; this.save(); this.render();
         achvToast(`Unlocked: ${level.charAt(0).toUpperCase()+level.slice(1)} badge!`);
-        // If all three are now done, also refresh champion card state
         this.render();
       }
     },
@@ -145,12 +139,10 @@ function achvToast(msg){
         document.body.appendChild(a); a.click(); a.remove();
         URL.revokeObjectURL(url);
       }catch(_){
-        // Fallback to opening first candidate in a new tab (lets user save manually)
         const a = document.createElement('a');
         a.href = candidates[0] || '#'; a.target = '_blank'; a.rel = 'noopener';
         document.body.appendChild(a); a.click(); a.remove();
       } finally {
-        // Count the download and update footer UI
         const next = await counterHit('sticker-downloads-total');
         setText('dl-total-count', next);
         await counterHit(`sticker-downloads-${level}`);
@@ -197,7 +189,7 @@ function achvToast(msg){
   document.addEventListener('DOMContentLoaded', () => { Achievements.load(); Achievements.render(); });
 })();
 
-// ---------- Confetti + Claps + Sound ----------
+// ---------- Confetti (10 seconds) + Claps (3 seconds) + Sound ----------
 function confettiBurst(){
   let c = document.getElementById('confetti-canvas');
   if (!c){ c = document.createElement('canvas'); c.id='confetti-canvas'; document.body.appendChild(c); }
@@ -205,13 +197,13 @@ function confettiBurst(){
   const dpr = window.devicePixelRatio || 1;
   const W = c.width = innerWidth*dpr, H = c.height = innerHeight*dpr;
   c.style.width = innerWidth+'px'; c.style.height = innerHeight+'px';
-  const N = 150, parts=[];
+  const N = 300, parts=[];
   for(let i=0;i<N;i++){
-    parts.push({ x: Math.random()*W, y: -Math.random()*H*0.2, vy: 2+Math.random()*4, vx: (Math.random()-0.5)*2,
-      w: 6*dpr, h: 10*dpr, r: Math.random()*Math.PI,
-      col: ['#60a5fa','#34d399','#f472b6','#facc15','#a78bfa'][Math.floor(Math.random()*5)] });
+    parts.push({ x: Math.random()*W, y: -Math.random()*H*0.2, vy: 2+Math.random()*5, vx: (Math.random()-0.5)*3,
+      w: 8*dpr, h: 12*dpr, r: Math.random()*Math.PI,
+      col: ['#60a5fa','#34d399','#f472b6','#facc15','#a78bfa','#ef4444','#16a34a'][Math.floor(Math.random()*7)] });
   }
-  let t=0; const T=90;
+  let t=0; const T=300; // 10 seconds at 30fps approx
   function step(){
     ctx.clearRect(0,0,W,H);
     parts.forEach(p=>{
@@ -223,6 +215,7 @@ function confettiBurst(){
   }
   step();
 }
+
 function claps(){
   let e = document.querySelector('.claps');
   if(!e){
@@ -243,8 +236,9 @@ function claps(){
     document.body.appendChild(e);
   }
   e.style.opacity = '1';
-  setTimeout(() => { e.style.opacity = '0'; }, 2500);
+  setTimeout(() => { e.style.opacity = '0'; }, 3000);
 }
+
 function playChime(){
   try{
     const ctx = new (window.AudioContext||window.webkitAudioContext)();
@@ -261,48 +255,42 @@ function playChime(){
   }catch(e){}
 }
 
-// ---------------- Timer (SINGLE WORKING VERSION) ----------------
+// ---------------- WORKING TIMER ----------------
 const Timer = (() => {
   let activeTimers = {};
   
   function start(panelId, seconds) {
-    console.log(`Timer.start called for ${panelId} with ${seconds}s`);
-    
+    console.log(`Timer.start(${panelId}, ${seconds})`);
     const panel = document.getElementById(panelId);
-    if (!panel) {
-      console.error(`Timer: Panel "${panelId}" not found`);
-      return;
-    }
+    if (!panel) return;
     
-    // Get or create timer-wrap
-    let wrap = panel.querySelector('.timer-wrap');
-    if (!wrap) {
-      wrap = document.createElement('div');
-      wrap.className = 'timer-wrap';
-      wrap.innerHTML = `
-        <div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div>
-        <strong class="tleft">${seconds}s</strong>
-        <button class="btn small" onclick="Timer.start('${panelId}', ${seconds})">Start</button>
-        <button class="btn small" onclick="Timer.reset('${panelId}', ${seconds})">Reset</button>
-      `;
-      panel.insertBefore(wrap, panel.firstChild.nextSibling);
-    }
+    let fill = panel.querySelector('.timer-fill');
+    let tleft = panel.querySelector('.tleft');
     
-    const fill = wrap.querySelector('.timer-fill');
-    const tleft = wrap.querySelector('.tleft');
     if (!fill || !tleft) {
-      console.error(`Timer: Could not find timer elements in ${panelId}`);
-      return;
+      let wrap = panel.querySelector('.timer-wrap');
+      if (!wrap) {
+        wrap = document.createElement('div');
+        wrap.className = 'timer-wrap';
+        wrap.innerHTML = `
+          <div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div>
+          <strong class="tleft">${seconds}s</strong>
+          <button class="btn small" onclick="Timer.start('${panelId}', ${seconds})">Start</button>
+          <button class="btn small" onclick="Timer.reset('${panelId}', ${seconds})">Reset</button>
+        `;
+        panel.insertBefore(wrap, panel.firstChild.nextSibling);
+        fill = wrap.querySelector('.timer-fill');
+        tleft = wrap.querySelector('.tleft');
+      }
     }
     
-    // Stop existing timer
-    if (activeTimers[panelId]) {
-      clearInterval(activeTimers[panelId]);
-      delete activeTimers[panelId];
-    }
+    if (!fill || !tleft) return;
+    
+    if (activeTimers[panelId]) clearInterval(activeTimers[panelId]);
     
     let timeLeft = seconds;
     fill.style.width = '100%';
+    fill.style.background = 'linear-gradient(90deg, #0e8a68, #22c55e)';
     tleft.textContent = timeLeft + 's';
     
     activeTimers[panelId] = setInterval(() => {
@@ -314,21 +302,16 @@ const Timer = (() => {
       if (timeLeft <= 0) {
         clearInterval(activeTimers[panelId]);
         delete activeTimers[panelId];
-        console.log(`Timer finished for ${panelId}`);
-        // Optional: add visual feedback when timer ends
         fill.style.background = '#ef4444';
       }
     }, 1000);
   }
   
   function reset(panelId, seconds) {
-    console.log(`Timer.reset called for ${panelId}`);
-    
     if (activeTimers[panelId]) {
       clearInterval(activeTimers[panelId]);
       delete activeTimers[panelId];
     }
-    
     const panel = document.getElementById(panelId);
     if (panel) {
       const fill = panel.querySelector('.timer-fill');
@@ -360,7 +343,6 @@ const Timer = (() => {
   return { start, reset, stop, timeLeft };
 })();
 
-// ---------------- Toast helper for in-game messages ----------------
 function toast(msg, parent){
   const w = parent || document.body;
   const t = document.createElement('div');
@@ -370,7 +352,7 @@ function toast(msg, parent){
   setTimeout(()=>{ t.remove(); }, 1800);
 }
 
-// ---------------- Beginner (Kids) — Magnifier (gated across 5 species) ----------------
+// ---------------- Kids Game ----------------
 const KidsGame = (() => {
   const speciesConfigs = {
     melanogaster: { region: 'piRNA cluster 3R‑TAS (telomere‑associated sequence)',
@@ -433,7 +415,7 @@ const KidsGame = (() => {
               toast('Great work! All 5 species complete — Kids badge unlocked!', wrap);
               confettiBurst(); claps(); playChime();
             } else {
-              toast(`Nice! ${completed.size}/${SPECIES.length} species complete — click “Next species →”`, wrap);
+              toast(`Nice! ${completed.size}/${SPECIES.length} species complete — click "Next species →"`, wrap);
               document.getElementById('kids-next')?.classList.add('pulse-once');
               setTimeout(()=>document.getElementById('kids-next')?.classList.remove('pulse-once'), 1500);
             }
@@ -502,7 +484,7 @@ const KidsGame = (() => {
 })();
 document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('kids-game')) KidsGame.init(); });
 
-// ---------------- Intermediate (Teens) — Flip/Compare + Drag Builder ----------------
+// ---------------- Teens Game ----------------
 const IntermediateGame = (() => {
   const S = ['melanogaster','simulans','yakuba','virilis','pseudoananassae'];
   const LABEL_FULL = { melanogaster:'D. melanogaster', simulans:'D. simulans', yakuba:'D. yakuba', virilis:'D. virilis', pseudoananassae:'D. pseudoananassae' };
@@ -628,7 +610,6 @@ const IntermediateGame = (() => {
   }
   function wireDrops(){
     document.querySelectorAll('.slot').forEach(slot => {
-      // Use {passive:false} not needed; just ensure we don't attach multiple times
       slot.addEventListener('dragover', e => e.preventDefault());
       slot.addEventListener('drop', onDrop);
     });
@@ -768,7 +749,7 @@ const IntermediateGame = (() => {
 })();
 document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('inspect-grid')) IntermediateGame.init(); });
 
-// ---------------- Advanced (Adults) — with Restart and optional reshuffle ----------------
+// ---------------- Adults Game ----------------
 const AdvancedGame = (() => {
   const SPECIES = ['melanogaster','simulans','yakuba','virilis','pseudoananassae'];
   const LABEL = { melanogaster:'D. melanogaster', simulans:'D. simulans', yakuba:'D. yakuba', virilis:'D. virilis', pseudoananassae:'D. pseudoananassae' };
@@ -792,16 +773,12 @@ const AdvancedGame = (() => {
 
   const STEP1_CORRECT = 'EVE-A';
   const STEP2_RESIST = 'pseudoananassae', STEP2_VULN = 'yakuba';
-  const STEP3_SET = new Set(['melanogaster','simulans','pseudoananassae']);
 
   let passed = { s1:false, s2:false, s3:false };
-  let orderStep2 = [...SPECIES];
-  let orderStep3 = [...SPECIES];
 
   function shuffled(arr){ return [...arr].sort(()=>Math.random()-0.5); }
 
   function init(){
-    if (RESHUFFLE_ON_RESET){ orderStep2 = shuffled(SPECIES); orderStep3 = shuffled(SPECIES); }
     renderStep1(); renderStep2(); renderStep3(); clearFeedback();
   }
   function clearFeedback(){
@@ -809,669 +786,78 @@ const AdvancedGame = (() => {
     const o2 = document.getElementById('adv-feedback-2'); if (o2) o2.textContent='';
     const o3 = document.getElementById('adv-feedback-3'); if (o3) o3.textContent='';
   }
-  function chip(type, text){
-    const cls = type==='retro' ? 'dot-retro' : type==='dna' ? 'dot-dna' : type;
-    return `<span class="card-chip"><span class="dot ${cls}"></span>${text}</span>`;
-  }
+  
   function renderStep1(){
     const box = document.getElementById('adv-eves-mel'); if (!box) return;
     const list = CATALOG.melanogaster;
     box.innerHTML = list.map(e => {
-      const type = chip(e.type, e.type), state = chip(e.state, e.state), fam = chip('fam', `family ${e.family}`);
-      return `<label class="eve-card"><input type="radio" name="step1-choice" value="${e.id}" /><div><div><strong>${e.id}</strong></div><div class="card-chips">${type}${state}${fam}</div><div class="card-note">${e.note}</div></div></label>`;
+      let stateColour = '';
+      if (e.state === 'useful') stateColour = '#ef4444';
+      else if (e.state === 'intact') stateColour = '#16a34a';
+      else if (e.state === 'silent') stateColour = '#f59e0b';
+      else if (e.state === 'broken') stateColour = '#111827';
+      
+      const typeColour = e.type === 'retro' ? '#0ea5e9' : '#a16207';
+      const icon = e.type === 'retro' ? '🦠' : '🧬';
+      
+      return `
+        <label class="eve-card" style="display: flex; align-items: center; gap: 12px; padding: 12px; margin: 8px 0; background: #fff; border: 2px solid #e2e8f0; border-radius: 16px; cursor: pointer;">
+          <input type="radio" name="step1-choice" value="${e.id}" style="transform: scale(1.2); margin-right: 4px;">
+          <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, ${typeColour}, ${typeColour}cc); display: flex; align-items: center; justify-content: center; font-size: 24px;">${icon}</div>
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
+              <strong style="font-size: 1rem;">${e.id}</strong>
+              <span style="background: ${typeColour}20; color: ${typeColour}; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600;">${e.type}</span>
+              <span style="display: inline-flex; align-items: center; gap: 5px; background: ${stateColour}20; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600;">
+                <span style="color: ${stateColour}; font-size: 1rem;">●</span> ${e.state}
+              </span>
+              <span style="background: #64748b20; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem;">family ${e.family}</span>
+            </div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 6px;">${e.note}</div>
+          </div>
+        </label>
+      `;
     }).join('');
   }
+  
   function hint(step){
     if (step===1){ alert('Pick an active retro EVE that matches RV1.'); }
     else if (step===2){ alert('Resistant: useful/intact retro near RV1a. Vulnerable: only broken retro or only DNA EVEs.'); }
     else if (step===3){ alert('Active/intact retro vs RV1/RV1a may still recognize RV1b.'); }
   }
+  
   function checkStep1(){
     const val = (document.querySelector('input[name="step1-choice"]:checked')||{}).value;
     const out = document.getElementById('adv-feedback-1');
     if (!val){ out.textContent='Select an EVE above.'; out.style.color='#b91c1c'; return; }
     if (val === STEP1_CORRECT){
-      out.textContent='Correct: EVE-A is a retro EVE with active piRNAs against RV1.'; out.style.color='#0f766e';
+      out.textContent='✓ Task 1 Complete! EVE-A is a retro EVE with active piRNAs against RV1.'; out.style.color='#0f766e';
       passed.s1=true; maybeUnlock();
     } else {
-      out.textContent='Not quite. Choose an active retro EVE matching RV1 (not DNA, not broken).'; out.style.color='#b91c1c';
+      out.textContent='✗ Not quite. Choose an active retro EVE matching RV1 (not DNA, not broken).'; out.style.color='#b91c1c';
     }
   }
+  
   function renderStep2(){
     const resistBox = document.getElementById('adv-resist-radios');
     const vulnBox = document.getElementById('adv-vuln-radios');
     if (!resistBox || !vulnBox) return;
-    resistBox.className='species-cards'; vulnBox.className='species-cards';
-    const cards2 = (RESHUFFLE_ON_RESET ? shuffled(SPECIES) : SPECIES).map(s => speciesCard(s));
-    resistBox.innerHTML = cards2.join('');
-    vulnBox.innerHTML   = cards2.join('');
-    resistBox.querySelectorAll('.species-card').forEach(el => el.addEventListener('click', ()=>selectCard(resistBox, el)));
-    vulnBox.querySelectorAll('.species-card').forEach(el => el.addEventListener('click', ()=>selectCard(vulnBox, el)));
-  }
-  function speciesCard(s){
-    const eves = (CATALOG[s]||[]);
-    const chips = eves.map(e => `${chip(e.type, e.type)}${chip(e.state, e.state)}${chip('fam', e.family)}`).join('');
-    const notes = eves.map(e => e.id).join(', ') || 'No EVEs';
-    return `<div class="species-card" data-species="${s}"><h5>${LABEL[s]}</h5><div class="card-chips">${chips}</div><div class="card-note">${notes}</div></div>`;
-  }
-  function selectCard(col, el){ col.querySelectorAll('.species-card').forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); }
-  function checkStep2(){
-    const resist = document.querySelector('#adv-resist-radios .species-card.selected')?.dataset.species;
-    const vuln   = document.querySelector('#adv-vuln-radios .species-card.selected')?.dataset.species;
-    const out = document.getElementById('adv-feedback-2');
-    if (!resist || !vuln){ out.textContent='Select a species in each column.'; out.style.color='#b91c1c'; return; }
-    const ok = (resist===STEP2_RESIST) && (vuln===STEP2_VULN);
-    if (ok){
-      out.textContent = `${LABEL[resist]} is most resistant; ${LABEL[vuln]} is most vulnerable.`; out.style.color='#0f766e';
-      passed.s2=true; maybeUnlock();
-    } else {
-      out.textContent = 'Try again: look for useful/intact retro near RV1a (resistant) and species lacking such retro EVEs (vulnerable).'; out.style.color='#b91c1c';
-    }
-  }
-  function renderStep3(){
-    const c = document.getElementById('adv-mutation-checks'); if (!c) return;
-    c.className='species-cards';
-    const cards3 = (RESHUFFLE_ON_RESET ? shuffled(SPECIES) : SPECIES).map(s => `<div class="species-card" data-species="${s}"><h5>${LABEL[s]}</h5><div class="card-chips">${
-      (CATALOG[s]||[]).map(e=>`${chip(e.type,e.type)}${chip(e.state,e.state)}${chip('fam',e.family)}`).join('')
-    }</div></div>`);
-    c.innerHTML = cards3.join('');
-    c.querySelectorAll('.species-card').forEach(el => el.addEventListener('click', ()=>el.classList.toggle('selected')));
-  }
-  function checkStep3(){
-    const chosen = Array.from(document.querySelectorAll('#adv-mutation-checks .species-card.selected')).map(x=>x.dataset.species);
-    const out = document.getElementById('adv-feedback-3');
-    if (!chosen.length){ out.textContent='Select at least one species.'; out.style.color='#b91c1c'; return; }
-    const set = new Set(chosen);
-    let allOk = true;
-    for (const s of new Set(['melanogaster','simulans','pseudoananassae'])){ if (!set.has(s)) allOk = false; }
-    for (const s of set){ if (!new Set(['melanogaster','simulans','pseudoananassae']).has(s)) allOk = false; }
-    if (allOk){
-      out.textContent='Correct: D. mel., D. sim., and D. pse. likely retain protection against RV1b.'; out.style.color='#0f766e';
-      passed.s3=true; maybeUnlock();
-    } else {
-      out.textContent='Close—active/intact retro EVEs vs RV1/RV1a may still recognize RV1b; broken or DNA EVEs won’t.'; out.style.color='#b91c1c';
-    }
-  }
-  function maybeUnlock(){
-    if (passed.s1 && passed.s2 && passed.s3){
-      if (!AdvancedGame._won){
-        AdvancedGame._won = true;
-        window.Achievements?.markComplete('adults');
-        toast('Advanced badge unlocked!');
-        if (Timer.timeLeft('adults')>0){ confettiBurst(); claps(); playChime(); }
-        Timer.stop('adults');
-      }
-    }
-  }
-  function reset(){
-    passed = { s1:false, s2:false, s3:false };
-    AdvancedGame._won = false;
-    if (RESHUFFLE_ON_RESET){ orderStep2 = shuffled(SPECIES); orderStep3 = shuffled(SPECIES); }
-    renderStep1(); renderStep2(); renderStep3(); clearFeedback();
-    Timer.stop('adults');
-  }
-  function restart(){ reset(); Timer.start('adults', 60); }
-
-  return { init, hint, checkStep1, checkStep2, checkStep3, reset, restart };
-})();
-document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('adv-eves-mel')) AdvancedGame.init(); });
-
-// Helpers
-function setEquals(a,b){ if (a.size!==b.size) return false; for (const x of a) if (!b.has(x)) return false; return true; }
-
-// ==================== FIX: EVE SIZE SLIDER FOR MICRO EVES ====================
-// This ensures the slider affects div-based EVE dots in print-kids-cards-micro.html
-(function fixMicroEveSlider() {
-  // Override the existing applySize to also handle div-based EVEs
-  const originalApplySize = window.applySize;
-  
-  window.applySize = function(px, scopeEl) {
-    const pxClamped = Math.max(1, Math.min(40, Number(px) || 12));
     
-    // Set CSS variable
-    (scopeEl || document.documentElement).style.setProperty('--eve-size', pxClamped + 'px');
+    const species = ['melanogaster', 'simulans', 'yakuba', 'virilis', 'pseudoananassae'];
+    resistBox.innerHTML = '';
+    vulnBox.innerHTML = '';
     
-    // Handle SVG circles
-    document.querySelectorAll('circle.eve-dot, circle.micro-eve, circle.print-eve').forEach(c => {
-      c.setAttribute('r', (pxClamped/2).toString());
-      c.setAttribute('stroke', 'rgba(0,0,0,.35)');
-      c.setAttribute('stroke-width', Math.max(0.2, pxClamped * 0.05));
-    });
-    
-    // FIX: Handle div-based EVE dots (for print pages)
-    document.querySelectorAll('.micro-eve, .print-eve, .eve-dot').forEach(el => {
-      el.style.width = pxClamped + 'px';
-      el.style.height = pxClamped + 'px';
-      el.style.minWidth = pxClamped + 'px';
-      el.style.minHeight = pxClamped + 'px';
-    });
-    
-    // Update readout
-    const out = document.getElementById('eveSizeVal');
-    if (out) out.textContent = pxClamped + ' px';
-    
-    try { localStorage.setItem('eve.size.px', String(pxClamped)); } catch(e) {}
-  };
-  
-  // Also ensure slider exists and works on micro page
-  document.addEventListener('DOMContentLoaded', function() {
-    const slider = document.getElementById('eveSize') || document.querySelector('input[type="range"][id*="eve"]');
-    if (slider) {
-      const saved = localStorage.getItem('eve.size.px');
-      if (saved) slider.value = saved;
-      slider.addEventListener('input', function(e) {
-        if (window.applySize) window.applySize(e.target.value);
-      });
-      if (window.applySize) window.applySize(slider.value);
-    }
-  });
-})();
-
-// ==================== FIX: ADD MISSING togglePortfolios FUNCTION ====================
-if (typeof AdvancedGame !== 'undefined' && !AdvancedGame.togglePortfolios) {
-  AdvancedGame.togglePortfolios = function() {
-    const el = document.getElementById('adv-portfolios');
-    if (!el) return;
-    if (el.hasAttribute('hidden')) {
-      el.removeAttribute('hidden');
-      // Build portfolio content if empty
-      if (el.innerHTML.trim() === '' || el.innerHTML.includes('No content')) {
-        const SPECIES = ['melanogaster', 'simulans', 'yakuba', 'virilis', 'pseudoananassae'];
-        const LABEL = { melanogaster:'D. melanogaster', simulans:'D. simulans', yakuba:'D. yakuba', virilis:'D. virilis', pseudoananassae:'D. pseudoananassae' };
-        const CATALOG = {
-          melanogaster: [{id:'EVE-A',type:'retro',state:'useful',family:'RV1'},{id:'EVE-D',type:'retro',state:'silent',family:'RV1'},{id:'EVE-C',type:'retro',state:'broken',family:'RV0'},{id:'EVE-X',type:'dna',state:'useful',family:'DV2'}],
-          simulans: [{id:"EVE-A'",type:'retro',state:'intact',family:'RV1'},{id:'EVE-Z',type:'dna',state:'useful',family:'DV1'}],
-          yakuba: [{id:'EVE-Y1',type:'retro',state:'broken',family:'RV1'}],
-          virilis: [{id:'EVE-D1',type:'dna',state:'useful',family:'DV1'}],
-          pseudoananassae: [{id:'EVE-P',type:'retro',state:'useful',family:'RV1a'}]
-        };
-        let html = '<h4>EVE Portfolios by Species</h4>';
-        SPECIES.forEach(s => {
-          html += `<div class="portfolio"><h5>${LABEL[s]}</h5>`;
-          (CATALOG[s] || []).forEach(e => {
-            html += `<div><strong>${e.id}</strong>: ${e.type}, ${e.state}, family ${e.family}</div>`;
-          });
-          html += '</div>';
-        });
-        el.innerHTML = html;
-      }
-    } else {
-      el.setAttribute('hidden', '');
-    }
-  };
-}
-
-// ==================== FIX: COUNTERS THAT WORK WITHOUT EXTERNAL API ====================
-// Replace the counter system with localStorage-based counters that always work
-(function fixCounters() {
-  // Override the counter functions to work offline
-  window.counterHit = function(key) {
-    try {
-      let val = parseInt(localStorage.getItem('eve_counter_' + key) || '0') + 1;
-      localStorage.setItem('eve_counter_' + key, val);
-      return Promise.resolve(val);
-    } catch(e) { return Promise.resolve(0); }
-  };
-  
-  window.counterGet = function(key) {
-    try {
-      let val = parseInt(localStorage.getItem('eve_counter_' + key) || '0');
-      return Promise.resolve(val);
-    } catch(e) { return Promise.resolve(0); }
-  };
-  
-  // Update footer displays on load
-  document.addEventListener('DOMContentLoaded', function() {
-    // Track unique visit (once per session)
-    if (!sessionStorage.getItem('eve_visited')) {
-      sessionStorage.setItem('eve_visited', '1');
-      let visits = parseInt(localStorage.getItem('eve_counter_site-visits') || '0') + 1;
-      localStorage.setItem('eve_counter_site-visits', visits);
-    }
-    let visits = localStorage.getItem('eve_counter_site-visits') || '0';
-    let downloads = localStorage.getItem('eve_counter_sticker-downloads-total') || '0';
-    
-    const visitsEl = document.getElementById('visits-count');
-    const downloadsEl = document.getElementById('dl-total-count');
-    if (visitsEl) visitsEl.textContent = visits;
-    if (downloadsEl) downloadsEl.textContent = downloads;
-    
-    // Track badge downloads
-    document.querySelectorAll('#achievements .badge button').forEach(btn => {
-      btn.addEventListener('click', function() {
-        let total = parseInt(localStorage.getItem('eve_counter_sticker-downloads-total') || '0') + 1;
-        localStorage.setItem('eve_counter_sticker-downloads-total', total);
-        if (downloadsEl) downloadsEl.textContent = total;
-      });
-    });
-  });
-})();
-
-// ==================== FIX: KIDS GAME EVE COLOURS ====================
-// Ensure EVE dots use correct colours from online game
-(function fixKidsEveColours() {
-  if (typeof KidsGame !== 'undefined' && KidsGame.drawOverlay) {
-    const originalDrawOverlay = KidsGame.drawOverlay;
-    KidsGame.drawOverlay = function() {
-      // The colours are already correct in the original:
-      // intact: '#22c55e' (green)
-      // useful: '#ef4444' (red)
-      // broken: '#6b7280' (grey)
-      // unique: '#d4a017' (gold)
-      originalDrawOverlay.call(this);
-    };
-  }
-})();
-
-// ==================== FIX: PREVENT DOWNLOADING UNLOCKED BADGES ====================
-(function fixBadgeDownloads() {
-  // Store which badges are actually earned
-  let earnedBadges = {
-    kids: false,
-    teens: false,
-    adults: false
-  };
-  
-  // Load earned status from localStorage
-  try {
-    const saved = localStorage.getItem('eve_earned_badges');
-    if (saved) earnedBadges = JSON.parse(saved);
-  } catch(e) {}
-  
-  // Save function
-  function saveEarned() {
-    localStorage.setItem('eve_earned_badges', JSON.stringify(earnedBadges));
-  }
-  
-  // Mark a badge as earned (call this when player completes a level)
-  window.markBadgeEarned = function(level) {
-    if (earnedBadges[level] === false) {
-      earnedBadges[level] = true;
-      saveEarned();
-      // Also update the achievements system
-      if (typeof Achievements !== 'undefined' && Achievements.markComplete) {
-        Achievements.markComplete(level);
-      }
-    }
-  };
-  
-  // Check if badge can be downloaded
-  window.canDownloadBadge = function(level) {
-    return earnedBadges[level] === true;
-  };
-  
-  // Override the downloadBadge function to check if earned
-  if (typeof window.downloadBadge === 'function') {
-    const originalDownload = window.downloadBadge;
-    window.downloadBadge = function(level) {
-      if (!canDownloadBadge(level)) {
-        alert(`You need to complete the ${level} challenge first before downloading this badge!`);
-        return;
-      }
-      return originalDownload(level);
-    };
-  }
-  
-  // Also fix the button click handlers
-  document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('#achievements .badge button').forEach(btn => {
-      const badgeLevel = btn.closest('.badge')?.getAttribute('data-badge');
-      if (badgeLevel) {
-        btn.addEventListener('click', function(e) {
-          if (!canDownloadBadge(badgeLevel)) {
-            e.preventDefault();
-            e.stopPropagation();
-            alert(`Complete the ${badgeLevel} challenge first to unlock this badge!`);
-            return false;
-          }
-        });
-      }
-    });
-  });
-  
-  // Hook into game completions
-  // For Kids game completion
-  if (typeof KidsGame !== 'undefined') {
-    const originalKidsComplete = KidsGame.next;
-    // This will be called when all species are completed
-    setTimeout(function() {
-      if (window.Achievements && window.Achievements.state && window.Achievements.state.kids) {
-        markBadgeEarned('kids');
-      }
-    }, 100);
-  }
-  
-  // For Teens game completion  
-  if (typeof IntermediateGame !== 'undefined') {
-    const originalCheckTree = IntermediateGame.checkTree;
-    // Will be marked when checkTree succeeds
-  }
-  
-  // For Adults game completion
-  if (typeof AdvancedGame !== 'undefined') {
-    const originalMaybeUnlock = AdvancedGame.maybeUnlock;
-    // Will be marked when all steps complete
-  }
-})();
-
-// Hook into existing achievement system
-(function hookAchievements() {
-  if (typeof Achievements !== 'undefined' && Achievements.markComplete) {
-    const originalMarkComplete = Achievements.markComplete;
-    Achievements.markComplete = function(level) {
-      originalMarkComplete.call(this, level);
-      if (typeof window.markBadgeEarned === 'function') {
-        window.markBadgeEarned(level);
-      }
-    };
-  }
-})();
-
-// ==================== ADULT GAME: ADD COLOURED EVE SHAPES ====================
-(function enhanceAdultsGame() {
-  // Wait for game to render
-  setTimeout(function() {
-    // Style the EVE cards with coloured icons
-    const style = document.createElement('style');
-    style.textContent = `
-      /* Adult game EVE cards - visual improvements */
-      #adults .eve-card {
-        display: flex !important;
-        align-items: center !important;
-        gap: 12px !important;
-        padding: 12px !important;
-        margin: 8px 0 !important;
-        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
-        border: 2px solid #e2e8f0 !important;
-        border-radius: 16px !important;
-        transition: all 0.2s ease !important;
-        cursor: pointer !important;
-      }
-      
-      #adults .eve-card:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.1) !important;
-        border-color: #0e8a68 !important;
-      }
-      
-      #adults .eve-card input {
-        transform: scale(1.2) !important;
-        margin-right: 4px !important;
-      }
-      
-      /* EVE type icons */
-      #adults .eve-card .eve-icon {
-        width: 40px !important;
-        height: 40px !important;
-        border-radius: 50% !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 20px !important;
-        flex-shrink: 0 !important;
-      }
-      
-      #adults .eve-card .eve-icon.retro {
-        background: linear-gradient(135deg, #0ea5e9, #0284c7) !important;
-        box-shadow: 0 4px 10px rgba(14,165,233,0.3) !important;
-      }
-      
-      #adults .eve-card .eve-icon.dna {
-        background: linear-gradient(135deg, #a16207, #854d0e) !important;
-        box-shadow: 0 4px 10px rgba(161,98,7,0.3) !important;
-      }
-      
-      /* EVE state coloured dots */
-      #adults .eve-card .state-dot {
-        width: 12px !important;
-        height: 12px !important;
-        border-radius: 50% !important;
-        display: inline-block !important;
-        margin-right: 6px !important;
-      }
-      
-      #adults .eve-card .state-dot.intact { background: #16a34a !important; box-shadow: 0 0 0 2px rgba(22,163,74,0.2) !important; }
-      #adults .eve-card .state-dot.useful { background: #ef4444 !important; box-shadow: 0 0 0 2px rgba(239,68,68,0.2) !important; }
-      #adults .eve-card .state-dot.broken { background: #111827 !important; box-shadow: 0 0 0 2px rgba(17,24,39,0.2) !important; }
-      #adults .eve-card .state-dot.silent { background: #f59e0b !important; box-shadow: 0 0 0 2px rgba(245,158,11,0.2) !important; }
-      
-      /* Species cards in adults game */
-      #adults .species-card {
-        background: linear-gradient(135deg, #ffffff, #fefce8) !important;
-        border: 2px solid #e5e9ef !important;
-        border-radius: 20px !important;
-        padding: 16px !important;
-        margin: 10px 0 !important;
-        transition: all 0.2s ease !important;
-      }
-      
-      #adults .species-card.selected {
-        border-color: #0e8a68 !important;
-        background: linear-gradient(135deg, #f0fdf4, #dcfce7) !important;
-        transform: scale(1.02) !important;
-      }
-      
-      #adults .species-card h5 {
-        font-size: 1.1rem !important;
-        font-weight: 700 !important;
-        color: #0a1a2f !important;
-        margin-bottom: 12px !important;
-        border-left: 4px solid #0e8a68 !important;
-        padding-left: 12px !important;
-      }
-      
-      #adults .card-chips {
-        display: flex !important;
-        flex-wrap: wrap !important;
-        gap: 10px !important;
-      }
-      
-      #adults .card-chips .chip {
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 8px !important;
-        padding: 6px 14px !important;
-        border-radius: 40px !important;
-        font-size: 0.8rem !important;
-        font-weight: 600 !important;
-        background: white !important;
-        border: 1px solid #e2e8f0 !important;
-      }
-      
-      /* Timer bar improvements */
-      .timer-wrap {
-        background: linear-gradient(135deg, #f1f5f9, #e2e8f0) !important;
-        padding: 10px 15px !important;
-        border-radius: 60px !important;
-      }
-      
-      .timer-fill {
-        background: linear-gradient(90deg, #0e8a68, #22c55e, #0e8a68) !important;
-        background-size: 200% 100% !important;
-        animation: shimmer 2s ease infinite !important;
-      }
-      
-      @keyframes shimmer {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-      }
-      
-      /* Step containers */
-      .adv-step {
-        background: linear-gradient(135deg, #ffffff, #faf5ff) !important;
-        border-radius: 24px !important;
-        padding: 20px !important;
-        margin: 20px 0 !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05) !important;
-      }
-      
-      .adv-step h4 {
-        color: #0e8a68 !important;
-        font-weight: 700 !important;
-        margin-bottom: 16px !important;
-      }
-      
-      /* Buttons */
-      #adults .btn-primary {
-        background: linear-gradient(135deg, #0e8a68, #16a34a) !important;
-        border: none !important;
-        padding: 10px 24px !important;
-        border-radius: 40px !important;
-        font-weight: 600 !important;
-        transition: all 0.2s ease !important;
-      }
-      
-      #adults .btn-primary:hover {
-        transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(14,138,104,0.3) !important;
-      }
-    `;
-    document.head.appendChild(style);
-    
-    // Add icons to EVE cards
-    function addEveIcons() {
-      document.querySelectorAll('#adults .eve-card').forEach(card => {
-        const text = card.querySelector('div div strong')?.textContent || '';
-        let type = 'retro';
-        let state = 'useful';
-        
-        if (card.innerHTML.includes('retro')) type = 'retro';
-        if (card.innerHTML.includes('dna')) type = 'dna';
-        if (card.innerHTML.includes('intact')) state = 'intact';
-        if (card.innerHTML.includes('useful')) state = 'useful';
-        if (card.innerHTML.includes('broken')) state = 'broken';
-        if (card.innerHTML.includes('silent')) state = 'silent';
-        
-        const iconHtml = `<div class="eve-icon ${type}">${type === 'retro' ? '🦠' : '🧬'}</div>`;
-        const stateDot = `<span class="state-dot ${state}"></span>`;
-        
-        // Insert icon at beginning of card content
-        const contentDiv = card.querySelector('div:not(input)');
-        if (contentDiv && !card.querySelector('.eve-icon')) {
-          contentDiv.insertAdjacentHTML('afterbegin', iconHtml);
-          // Replace text state with dot
-          const chips = contentDiv.querySelectorAll('.card-chips');
-          chips.forEach(chip => {
-            let html = chip.innerHTML;
-            if (html.includes('useful')) html = html.replace('useful', `${stateDot}useful`);
-            if (html.includes('intact')) html = html.replace('intact', `${stateDot}intact`);
-            if (html.includes('broken')) html = html.replace('broken', `${stateDot}broken`);
-            if (html.includes('silent')) html = html.replace('silent', `${stateDot}silent`);
-            chip.innerHTML = html;
-          });
-        }
-      });
-    }
-    
-    // Run after each render
-    const observer = new MutationObserver(function() {
-      addEveIcons();
-    });
-    
-    const adultsPanel = document.getElementById('adults');
-    if (adultsPanel) {
-      observer.observe(adultsPanel, { childList: true, subtree: true });
-      setTimeout(addEveIcons, 100);
-    }
-  }, 500);
-})();
-
-// ==================== FIX: ADULTS GAME - USE COLOURED CIRCLES (●) ====================
-(function fixAdultsEveCircles() {
-  
-  function updateAllAdultsCards() {
-    // Fix Step 1 - EVE cards
-    document.querySelectorAll('#adv-eves-mel .eve-card').forEach(card => {
-      const text = card.innerText;
-      const input = card.querySelector('input');
-      
-      let eveId = '', eveType = 'retro', eveState = 'useful', eveFamily = 'RV1', eveNote = '';
-      
-      if (text.includes('EVE-A')) {
-        eveId = 'EVE-A'; eveType = 'retro'; eveState = 'useful'; eveFamily = 'RV1'; eveNote = 'piRNAs active';
-      } else if (text.includes('EVE-D')) {
-        eveId = 'EVE-D'; eveType = 'retro'; eveState = 'silent'; eveFamily = 'RV1'; eveNote = 'may re-activate';
-      } else if (text.includes('EVE-C')) {
-        eveId = 'EVE-C'; eveType = 'retro'; eveState = 'broken'; eveFamily = 'RV0'; eveNote = 'degraded';
-      } else if (text.includes('EVE-X')) {
-        eveId = 'EVE-X'; eveType = 'dna'; eveState = 'useful'; eveFamily = 'DV2'; eveNote = 'DNA virus';
-      }
-      
-      const icon = eveType === 'retro' ? '🦠' : '🧬';
-      const typeColour = eveType === 'retro' ? '#0ea5e9' : '#a16207';
-      
-      // State colours - ALL USE CIRCLES (●) not X
-      let stateColour = '';
-      let stateText = '';
-      if (eveState === 'useful') { stateColour = '#ef4444'; stateText = 'useful'; }
-      else if (eveState === 'intact') { stateColour = '#16a34a'; stateText = 'intact'; }
-      else if (eveState === 'silent') { stateColour = '#f59e0b'; stateText = 'silent'; }
-      else if (eveState === 'broken') { stateColour = '#111827'; stateText = 'broken'; }
-      
-      // Rebuild with proper coloured circle
-      card.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 12px; padding: 8px;">
-          ${input ? input.outerHTML : ''}
-          <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, ${typeColour}, ${typeColour}cc); display: flex; align-items: center; justify-content: center; font-size: 24px;">${icon}</div>
-          <div style="flex: 1;">
-            <div style="display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;">
-              <strong style="font-size: 1rem;">${eveId}</strong>
-              <span style="background: ${typeColour}20; color: ${typeColour}; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem;">${eveType}</span>
-              <span style="display: inline-flex; align-items: center; gap: 4px; background: ${stateColour}20; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem;">
-                <span style="color: ${stateColour}; font-size: 1rem;">●</span> ${stateText}
-              </span>
-              <span style="background: #64748b20; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem;">family ${eveFamily}</span>
-            </div>
-            <div style="font-size: 0.7rem; color: #64748b; margin-top: 4px;">${eveNote}</div>
-          </div>
-        </div>
-      `;
-    });
-    
-    // Fix Step 2 & 3 - Species cards with coloured circles
-    document.querySelectorAll('#adv-resist-radios .species-card, #adv-vuln-radios .species-card, #adv-mutation-checks .species-card').forEach(card => {
-      const speciesName = card.querySelector('strong, h5')?.innerText || '';
-      const text = card.innerText;
-      
-      let eves = [];
-      if (speciesName.includes('melanogaster') || text.includes('melanogaster')) {
-        eves = [
-          { id: 'EVE-A', type: 'retro', state: 'useful', family: 'RV1' },
-          { id: 'EVE-D', type: 'retro', state: 'silent', family: 'RV1' },
-          { id: 'EVE-C', type: 'retro', state: 'broken', family: 'RV0' },
-          { id: 'EVE-X', type: 'dna', state: 'useful', family: 'DV2' }
-        ];
-      } else if (speciesName.includes('simulans') || text.includes('simulans')) {
-        eves = [
-          { id: "EVE-A'", type: 'retro', state: 'intact', family: 'RV1' },
-          { id: 'EVE-Z', type: 'dna', state: 'useful', family: 'DV1' }
-        ];
-      } else if (speciesName.includes('yakuba') || text.includes('yakuba')) {
-        eves = [
-          { id: 'EVE-Y1', type: 'retro', state: 'broken', family: 'RV1' }
-        ];
-      } else if (speciesName.includes('virilis') || text.includes('virilis')) {
-        eves = [
-          { id: 'EVE-D1', type: 'dna', state: 'useful', family: 'DV1' }
-        ];
-      } else if (speciesName.includes('pseudoananassae') || text.includes('pseudoananassae')) {
-        eves = [
-          { id: 'EVE-P', type: 'retro', state: 'useful', family: 'RV1a' }
-        ];
-      }
-      
-      // Build EVE chips with coloured circles (●)
-      let chipsHtml = '<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">';
+    species.forEach(s => {
+      const eves = CATALOG[s] || [];
+      let chipsHtml = '';
       eves.forEach(eve => {
-        const icon = eve.type === 'retro' ? '🦠' : '🧬';
-        const typeColour = eve.type === 'retro' ? '#0ea5e9' : '#a16207';
-        
         let stateColour = '';
         if (eve.state === 'useful') stateColour = '#ef4444';
         else if (eve.state === 'intact') stateColour = '#16a34a';
         else if (eve.state === 'silent') stateColour = '#f59e0b';
         else if (eve.state === 'broken') stateColour = '#111827';
+        const typeColour = eve.type === 'retro' ? '#0ea5e9' : '#a16207';
+        const icon = eve.type === 'retro' ? '🦠' : '🧬';
         
         chipsHtml += `
           <div style="display: inline-flex; align-items: center; gap: 6px; background: white; border: 1px solid #e2e8f0; border-radius: 40px; padding: 4px 12px 4px 6px;">
@@ -1485,198 +871,124 @@ if (typeof AdvancedGame !== 'undefined' && !AdvancedGame.togglePortfolios) {
           </div>
         `;
       });
-      chipsHtml += '</div>';
       
-      const inputHtml = card.querySelector('input') ? card.querySelector('input').outerHTML : '';
-      const titleHtml = `<strong style="font-size: 0.95rem;">${speciesName}</strong>`;
-      
-      card.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
-          ${inputHtml}
-          ${titleHtml}
-        </div>
-        ${chipsHtml}
-      `;
-    });
-  }
-  
-  // Run after each update
-  const observer = new MutationObserver(function() {
-    setTimeout(updateAllAdultsCards, 50);
-  });
-  
-  const adultsPanel = document.getElementById('adults');
-  if (adultsPanel) {
-    observer.observe(adultsPanel, { childList: true, subtree: true });
-    setTimeout(updateAllAdultsCards, 100);
-    setTimeout(updateAllAdultsCards, 500);
-  }
-})();
-
-// ==================== FIX: ADULTS GAME - SINGLE ICON, NO SHAKING ====================
-(function fixAdultsSingleIcon() {
-  
-  function updateAdultsStep1() {
-    const cards = document.querySelectorAll('#adv-eves-mel .eve-card');
-    cards.forEach(card => {
-      // Skip if already processed to avoid infinite loop
-      if (card.getAttribute('data-fixed') === 'true') return;
-      
-      const text = card.innerText;
-      const input = card.querySelector('input');
-      
-      let eveId = '', eveType = 'retro', eveState = 'useful', eveFamily = 'RV1', eveNote = '';
-      
-      if (text.includes('EVE-A')) {
-        eveId = 'EVE-A'; eveType = 'retro'; eveState = 'useful'; eveFamily = 'RV1'; eveNote = 'piRNAs active';
-      } else if (text.includes('EVE-D')) {
-        eveId = 'EVE-D'; eveType = 'retro'; eveState = 'silent'; eveFamily = 'RV1'; eveNote = 'may re-activate';
-      } else if (text.includes('EVE-C')) {
-        eveId = 'EVE-C'; eveType = 'retro'; eveState = 'broken'; eveFamily = 'RV0'; eveNote = 'degraded';
-      } else if (text.includes('EVE-X')) {
-        eveId = 'EVE-X'; eveType = 'dna'; eveState = 'useful'; eveFamily = 'DV2'; eveNote = 'DNA virus';
-      }
-      
-      const icon = eveType === 'retro' ? '🦠' : '🧬';
-      const typeColour = eveType === 'retro' ? '#0ea5e9' : '#a16207';
-      
-      let stateColour = '';
-      let stateText = '';
-      if (eveState === 'useful') { stateColour = '#ef4444'; stateText = 'useful'; }
-      else if (eveState === 'intact') { stateColour = '#16a34a'; stateText = 'intact'; }
-      else if (eveState === 'silent') { stateColour = '#f59e0b'; stateText = 'silent'; }
-      else if (eveState === 'broken') { stateColour = '#111827'; stateText = 'broken'; }
-      
-      // SINGLE ICON - clean HTML without duplication
-      card.setAttribute('data-fixed', 'true');
-      card.style.animation = 'none';
-      
-      card.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 12px; padding: 12px;">
-          ${input ? input.outerHTML : ''}
-          <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, ${typeColour}, ${typeColour}cc); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;">${icon}</div>
-          <div style="flex: 1;">
-            <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
-              <strong style="font-size: 1rem;">${eveId}</strong>
-              <span style="background: ${typeColour}20; color: ${typeColour}; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600;">${eveType}</span>
-              <span style="display: inline-flex; align-items: center; gap: 5px; background: ${stateColour}20; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600;">
-                <span style="color: ${stateColour}; font-size: 1rem;">●</span> ${stateText}
-              </span>
-              <span style="background: #64748b20; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem;">family ${eveFamily}</span>
-            </div>
-            <div style="font-size: 0.75rem; color: #64748b; margin-top: 6px;">${eveNote}</div>
+      resistBox.innerHTML += `
+        <label class="species-card" style="display: block; padding: 12px; margin: 8px 0; background: #fff; border: 2px solid #e5e9ef; border-radius: 16px; cursor: pointer;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <input type="radio" name="resist" value="${s}">
+            <strong style="font-size: 0.95rem;">${LABEL[s]}</strong>
           </div>
-        </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">${chipsHtml}</div>
+        </label>
+      `;
+      
+      vulnBox.innerHTML += `
+        <label class="species-card" style="display: block; padding: 12px; margin: 8px 0; background: #fff; border: 2px solid #e5e9ef; border-radius: 16px; cursor: pointer;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <input type="radio" name="vuln" value="${s}">
+            <strong style="font-size: 0.95rem;">${LABEL[s]}</strong>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">${chipsHtml}</div>
+        </label>
       `;
     });
   }
   
-  // Run once and don't run repeatedly
-  let hasRun = false;
-  
-  function runOnce() {
-    if (hasRun) return;
-    hasRun = true;
-    setTimeout(updateAdultsStep1, 100);
-  }
-  
-  if (document.getElementById('adults')) {
-    runOnce();
-  }
-  
-  // Also run when check button is clicked (but only update, don't recreate)
-  document.getElementById('step1-check')?.addEventListener('click', () => {
-    setTimeout(updateAdultsStep1, 50);
-  });
-})();
-
-// ==================== FIX: WORKING TIMER ====================
-(function fixWorkingTimer() {
-  // Clear any existing timer intervals
-  if (window._timerIntervals) {
-    Object.values(window._timerIntervals).forEach(clearInterval);
-  }
-  window._timerIntervals = {};
-  
-  // Override Timer.start with a guaranteed working version
-  Timer.start = function(panelId, seconds) {
-    console.log(`Timer.start(${panelId}, ${seconds})`);
+  function renderStep3(){
+    const c = document.getElementById('adv-mutation-checks'); if (!c) return;
+    const species = ['melanogaster', 'simulans', 'yakuba', 'virilis', 'pseudoananassae'];
+    c.innerHTML = '';
     
-    const panel = document.getElementById(panelId);
-    if (!panel) {
-      console.error(`Panel ${panelId} not found`);
-      return;
-    }
-    
-    // Get timer elements
-    let fill = panel.querySelector('.timer-fill');
-    let tleft = panel.querySelector('.tleft');
-    
-    // If timer-wrap doesn't exist, create it
-    if (!fill || !tleft) {
-      let wrap = panel.querySelector('.timer-wrap');
-      if (!wrap) {
-        wrap = document.createElement('div');
-        wrap.className = 'timer-wrap';
-        wrap.innerHTML = `
-          <div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div>
-          <strong class="tleft">${seconds}s</strong>
-          <button class="btn small" onclick="Timer.start('${panelId}', ${seconds})">Start</button>
-          <button class="btn small" onclick="Timer.reset('${panelId}', ${seconds})">Reset</button>
+    species.forEach(s => {
+      const eves = CATALOG[s] || [];
+      let chipsHtml = '';
+      eves.forEach(eve => {
+        let stateColour = '';
+        if (eve.state === 'useful') stateColour = '#ef4444';
+        else if (eve.state === 'intact') stateColour = '#16a34a';
+        else if (eve.state === 'silent') stateColour = '#f59e0b';
+        else if (eve.state === 'broken') stateColour = '#111827';
+        const typeColour = eve.type === 'retro' ? '#0ea5e9' : '#a16207';
+        const icon = eve.type === 'retro' ? '🦠' : '🧬';
+        
+        chipsHtml += `
+          <div style="display: inline-flex; align-items: center; gap: 6px; background: white; border: 1px solid #e2e8f0; border-radius: 40px; padding: 4px 12px 4px 6px;">
+            <span style="background: ${typeColour}; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 14px;">${icon}</span>
+            <span style="font-weight: 600; font-size: 0.8rem;">${eve.id}</span>
+            <span style="background: ${typeColour}20; color: ${typeColour}; padding: 2px 6px; border-radius: 20px; font-size: 0.65rem;">${eve.type}</span>
+            <span style="display: inline-flex; align-items: center; gap: 3px; background: ${stateColour}20; padding: 2px 6px; border-radius: 20px; font-size: 0.65rem;">
+              <span style="color: ${stateColour};">●</span> ${eve.state}
+            </span>
+            <span style="background: #64748b20; padding: 2px 6px; border-radius: 20px; font-size: 0.65rem;">${eve.family}</span>
+          </div>
         `;
-        panel.insertBefore(wrap, panel.firstChild.nextSibling);
-        fill = wrap.querySelector('.timer-fill');
-        tleft = wrap.querySelector('.tleft');
-      }
-    }
-    
-    if (!fill || !tleft) {
-      console.error(`Timer elements not found in ${panelId}`);
-      return;
-    }
-    
-    // Stop existing timer
-    if (window._timerIntervals[panelId]) {
-      clearInterval(window._timerIntervals[panelId]);
-    }
-    
-    let timeLeft = seconds;
-    fill.style.width = '100%';
-    fill.style.background = 'linear-gradient(90deg, #0e8a68, #22c55e)';
-    tleft.textContent = timeLeft + 's';
-    
-    window._timerIntervals[panelId] = setInterval(function() {
-      timeLeft--;
-      const percent = (timeLeft / seconds) * 100;
-      fill.style.width = Math.max(0, percent) + '%';
-      tleft.textContent = timeLeft + 's';
+      });
       
-      if (timeLeft <= 0) {
-        clearInterval(window._timerIntervals[panelId]);
-        delete window._timerIntervals[panelId];
-        fill.style.background = '#ef4444';
-        console.log(`Timer finished for ${panelId}`);
-      }
-    }, 1000);
-  };
+      c.innerHTML += `
+        <label class="species-card" style="display: block; padding: 12px; margin: 8px 0; background: #fff; border: 2px solid #e5e9ef; border-radius: 16px; cursor: pointer;">
+          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <input type="checkbox" value="${s}">
+            <strong style="font-size: 0.95rem;">${LABEL[s]}</strong>
+          </div>
+          <div style="display: flex; flex-wrap: wrap; gap: 8px;">${chipsHtml}</div>
+        </label>
+      `;
+    });
+  }
   
-  Timer.reset = function(panelId, seconds) {
-    console.log(`Timer.reset(${panelId}, ${seconds})`);
-    
-    if (window._timerIntervals[panelId]) {
-      clearInterval(window._timerIntervals[panelId]);
-      delete window._timerIntervals[panelId];
+  function selectCard(col, el){ col.querySelectorAll('.species-card').forEach(x=>x.classList.remove('selected')); el.classList.add('selected'); }
+  
+  function checkStep2(){
+    const resist = document.querySelector('input[name="resist"]:checked')?.value;
+    const vuln = document.querySelector('input[name="vuln"]:checked')?.value;
+    const out = document.getElementById('adv-feedback-2');
+    if (!resist || !vuln){ out.textContent='Select a species in each column.'; out.style.color='#b91c1c'; return; }
+    const ok = (resist === STEP2_RESIST) && (vuln === STEP2_VULN);
+    if (ok){
+      out.textContent = `✓ Task 2 Complete! ${LABEL[resist]} is most resistant; ${LABEL[vuln]} is most vulnerable.`; out.style.color='#0f766e';
+      passed.s2=true; maybeUnlock();
+    } else {
+      out.textContent = '✗ Try again: look for useful/intact retro near RV1a (resistant) and species lacking such retro EVEs (vulnerable).'; out.style.color='#b91c1c';
     }
-    
-    const panel = document.getElementById(panelId);
-    if (panel) {
-      const fill = panel.querySelector('.timer-fill');
-      const tleft = panel.querySelector('.tleft');
-      if (fill) {
-        fill.style.width = '100%';
-        fill.style.background = 'linear-gradient(90deg, #0e8a68, #22c55e)';
+  }
+  
+  function checkStep3(){
+    const chosen = Array.from(document.querySelectorAll('#adv-mutation-checks input:checked')).map(cb => cb.value);
+    const out = document.getElementById('adv-feedback-3');
+    if (!chosen.length){ out.textContent='Select at least one species.'; out.style.color='#b91c1c'; return; }
+    const correct = ['melanogaster', 'simulans', 'pseudoananassae'];
+    const allCorrect = correct.every(s => chosen.includes(s)) && chosen.length === 3;
+    if (allCorrect){
+      out.textContent='✓ Task 3 Complete! D. mel., D. sim., and D. pse. likely retain protection against RV1b.'; out.style.color='#0f766e';
+      passed.s3=true; maybeUnlock();
+    } else {
+      out.textContent='✗ Close—active/intact retro EVEs vs RV1/RV1a may still recognize RV1b; broken or DNA EVEs won’t.'; out.style.color='#b91c1c';
+    }
+  }
+  
+  function maybeUnlock(){
+    if (passed.s1 && passed.s2 && passed.s3){
+      if (!AdvancedGame._won){
+        AdvancedGame._won = true;
+        window.Achievements?.markComplete('adults');
+        toast('Advanced badge unlocked!');
+        if (Timer.timeLeft('adults')>0){ confettiBurst(); claps(); playChime(); }
+        Timer.stop('adults');
       }
-      if (tleft) tleft.textContent = seconds + 's';
     }
-  };
+  }
+  
+  function reset(){
+    passed = { s1:false, s2:false, s3:false };
+    AdvancedGame._won = false;
+    renderStep1(); renderStep2(); renderStep3(); clearFeedback();
+    Timer.stop('adults');
+  }
+  function restart(){ reset(); Timer.start('adults', 60); }
+  function togglePortfolios(){}
+
+  return { init, hint, checkStep1, checkStep2, checkStep3, reset, restart, togglePortfolios };
 })();
+document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('adv-eves-mel')) AdvancedGame.init(); });
+
+function setEquals(a,b){ if (a.size!==b.size) return false; for (const x of a) if (!b.has(x)) return false; return true; }
