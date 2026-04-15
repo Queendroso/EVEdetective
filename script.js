@@ -1410,3 +1410,139 @@ if (typeof AdvancedGame !== 'undefined' && !AdvancedGame.togglePortfolios) {
     };
   }
 })();
+
+// ==================== FIX: ADULTS GAME - USE COLOURED CIRCLES (●) ====================
+(function fixAdultsEveCircles() {
+  
+  function updateAllAdultsCards() {
+    // Fix Step 1 - EVE cards
+    document.querySelectorAll('#adv-eves-mel .eve-card').forEach(card => {
+      const text = card.innerText;
+      const input = card.querySelector('input');
+      
+      let eveId = '', eveType = 'retro', eveState = 'useful', eveFamily = 'RV1', eveNote = '';
+      
+      if (text.includes('EVE-A')) {
+        eveId = 'EVE-A'; eveType = 'retro'; eveState = 'useful'; eveFamily = 'RV1'; eveNote = 'piRNAs active';
+      } else if (text.includes('EVE-D')) {
+        eveId = 'EVE-D'; eveType = 'retro'; eveState = 'silent'; eveFamily = 'RV1'; eveNote = 'may re-activate';
+      } else if (text.includes('EVE-C')) {
+        eveId = 'EVE-C'; eveType = 'retro'; eveState = 'broken'; eveFamily = 'RV0'; eveNote = 'degraded';
+      } else if (text.includes('EVE-X')) {
+        eveId = 'EVE-X'; eveType = 'dna'; eveState = 'useful'; eveFamily = 'DV2'; eveNote = 'DNA virus';
+      }
+      
+      const icon = eveType === 'retro' ? '🦠' : '🧬';
+      const typeColour = eveType === 'retro' ? '#0ea5e9' : '#a16207';
+      
+      // State colours - ALL USE CIRCLES (●) not X
+      let stateColour = '';
+      let stateText = '';
+      if (eveState === 'useful') { stateColour = '#ef4444'; stateText = 'useful'; }
+      else if (eveState === 'intact') { stateColour = '#16a34a'; stateText = 'intact'; }
+      else if (eveState === 'silent') { stateColour = '#f59e0b'; stateText = 'silent'; }
+      else if (eveState === 'broken') { stateColour = '#111827'; stateText = 'broken'; }
+      
+      // Rebuild with proper coloured circle
+      card.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 12px; padding: 8px;">
+          ${input ? input.outerHTML : ''}
+          <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, ${typeColour}, ${typeColour}cc); display: flex; align-items: center; justify-content: center; font-size: 24px;">${icon}</div>
+          <div style="flex: 1;">
+            <div style="display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;">
+              <strong style="font-size: 1rem;">${eveId}</strong>
+              <span style="background: ${typeColour}20; color: ${typeColour}; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem;">${eveType}</span>
+              <span style="display: inline-flex; align-items: center; gap: 4px; background: ${stateColour}20; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem;">
+                <span style="color: ${stateColour}; font-size: 1rem;">●</span> ${stateText}
+              </span>
+              <span style="background: #64748b20; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem;">family ${eveFamily}</span>
+            </div>
+            <div style="font-size: 0.7rem; color: #64748b; margin-top: 4px;">${eveNote}</div>
+          </div>
+        </div>
+      `;
+    });
+    
+    // Fix Step 2 & 3 - Species cards with coloured circles
+    document.querySelectorAll('#adv-resist-radios .species-card, #adv-vuln-radios .species-card, #adv-mutation-checks .species-card').forEach(card => {
+      const speciesName = card.querySelector('strong, h5')?.innerText || '';
+      const text = card.innerText;
+      
+      let eves = [];
+      if (speciesName.includes('melanogaster') || text.includes('melanogaster')) {
+        eves = [
+          { id: 'EVE-A', type: 'retro', state: 'useful', family: 'RV1' },
+          { id: 'EVE-D', type: 'retro', state: 'silent', family: 'RV1' },
+          { id: 'EVE-C', type: 'retro', state: 'broken', family: 'RV0' },
+          { id: 'EVE-X', type: 'dna', state: 'useful', family: 'DV2' }
+        ];
+      } else if (speciesName.includes('simulans') || text.includes('simulans')) {
+        eves = [
+          { id: "EVE-A'", type: 'retro', state: 'intact', family: 'RV1' },
+          { id: 'EVE-Z', type: 'dna', state: 'useful', family: 'DV1' }
+        ];
+      } else if (speciesName.includes('yakuba') || text.includes('yakuba')) {
+        eves = [
+          { id: 'EVE-Y1', type: 'retro', state: 'broken', family: 'RV1' }
+        ];
+      } else if (speciesName.includes('virilis') || text.includes('virilis')) {
+        eves = [
+          { id: 'EVE-D1', type: 'dna', state: 'useful', family: 'DV1' }
+        ];
+      } else if (speciesName.includes('pseudoananassae') || text.includes('pseudoananassae')) {
+        eves = [
+          { id: 'EVE-P', type: 'retro', state: 'useful', family: 'RV1a' }
+        ];
+      }
+      
+      // Build EVE chips with coloured circles (●)
+      let chipsHtml = '<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">';
+      eves.forEach(eve => {
+        const icon = eve.type === 'retro' ? '🦠' : '🧬';
+        const typeColour = eve.type === 'retro' ? '#0ea5e9' : '#a16207';
+        
+        let stateColour = '';
+        if (eve.state === 'useful') stateColour = '#ef4444';
+        else if (eve.state === 'intact') stateColour = '#16a34a';
+        else if (eve.state === 'silent') stateColour = '#f59e0b';
+        else if (eve.state === 'broken') stateColour = '#111827';
+        
+        chipsHtml += `
+          <div style="display: inline-flex; align-items: center; gap: 6px; background: white; border: 1px solid #e2e8f0; border-radius: 40px; padding: 4px 12px 4px 6px;">
+            <span style="background: ${typeColour}; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 14px;">${icon}</span>
+            <span style="font-weight: 600; font-size: 0.8rem;">${eve.id}</span>
+            <span style="background: ${typeColour}20; color: ${typeColour}; padding: 2px 6px; border-radius: 20px; font-size: 0.65rem;">${eve.type}</span>
+            <span style="display: inline-flex; align-items: center; gap: 3px; background: ${stateColour}20; padding: 2px 6px; border-radius: 20px; font-size: 0.65rem;">
+              <span style="color: ${stateColour};">●</span> ${eve.state}
+            </span>
+            <span style="background: #64748b20; padding: 2px 6px; border-radius: 20px; font-size: 0.65rem;">${eve.family}</span>
+          </div>
+        `;
+      });
+      chipsHtml += '</div>';
+      
+      const inputHtml = card.querySelector('input') ? card.querySelector('input').outerHTML : '';
+      const titleHtml = `<strong style="font-size: 0.95rem;">${speciesName}</strong>`;
+      
+      card.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+          ${inputHtml}
+          ${titleHtml}
+        </div>
+        ${chipsHtml}
+      `;
+    });
+  }
+  
+  // Run after each update
+  const observer = new MutationObserver(function() {
+    setTimeout(updateAllAdultsCards, 50);
+  });
+  
+  const adultsPanel = document.getElementById('adults');
+  if (adultsPanel) {
+    observer.observe(adultsPanel, { childList: true, subtree: true });
+    setTimeout(updateAllAdultsCards, 100);
+    setTimeout(updateAllAdultsCards, 500);
+  }
+})();
