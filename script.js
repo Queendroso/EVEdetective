@@ -31,8 +31,8 @@ tabs.forEach(tab => {
     document.getElementById(id)?.classList.add('is-active');
 
     if (id === 'kids') setTimeout(() => KidsGame.resize(), 50);
-    if (id === 'teens') setTimeout(() => { IntermediateGame.init(); startTimer('teens', 60); }, 50);
-    if (id === 'adults') setTimeout(() => { AdvancedGame.init(); startTimer('adults', 60); }, 50);
+    if (id === 'teens') setTimeout(() => { IntermediateGame.init(); startSimpleTimer('teens', 60); }, 50);
+    if (id === 'adults') setTimeout(() => { AdvancedGame.init(); startSimpleTimer('adults', 60); }, 50);
   });
 });
 
