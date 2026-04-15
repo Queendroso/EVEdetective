@@ -1503,11 +1503,15 @@ if (typeof AdvancedGame !== 'undefined' && !AdvancedGame.togglePortfolios) {
   }
 })();
 
-// ==================== FIX: ADULTS GAME - SINGLE ICON PER CARD ====================
+// ==================== FIX: ADULTS GAME - SINGLE ICON, NO SHAKING ====================
 (function fixAdultsSingleIcon() {
   
   function updateAdultsStep1() {
-    document.querySelectorAll('#adv-eves-mel .eve-card').forEach(card => {
+    const cards = document.querySelectorAll('#adv-eves-mel .eve-card');
+    cards.forEach(card => {
+      // Skip if already processed to avoid infinite loop
+      if (card.getAttribute('data-fixed') === 'true') return;
+      
       const text = card.innerText;
       const input = card.querySelector('input');
       
@@ -1533,116 +1537,136 @@ if (typeof AdvancedGame !== 'undefined' && !AdvancedGame.togglePortfolios) {
       else if (eveState === 'silent') { stateColour = '#f59e0b'; stateText = 'silent'; }
       else if (eveState === 'broken') { stateColour = '#111827'; stateText = 'broken'; }
       
-      // SINGLE ICON - only one icon per card
+      // SINGLE ICON - clean HTML without duplication
+      card.setAttribute('data-fixed', 'true');
+      card.style.animation = 'none';
+      
       card.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 12px; padding: 12px; cursor: pointer;">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 12px;">
           ${input ? input.outerHTML : ''}
           <div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, ${typeColour}, ${typeColour}cc); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;">${icon}</div>
           <div style="flex: 1;">
-            <div style="display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap;">
+            <div style="display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;">
               <strong style="font-size: 1rem;">${eveId}</strong>
-              <span style="background: ${typeColour}20; color: ${typeColour}; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem; font-weight: 500;">${eveType}</span>
-              <span style="display: inline-flex; align-items: center; gap: 4px; background: ${stateColour}20; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem;">
-                <span style="color: ${stateColour}; font-size: 0.9rem;">●</span> <span style="font-weight: 500;">${stateText}</span>
+              <span style="background: ${typeColour}20; color: ${typeColour}; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600;">${eveType}</span>
+              <span style="display: inline-flex; align-items: center; gap: 5px; background: ${stateColour}20; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600;">
+                <span style="color: ${stateColour}; font-size: 1rem;">●</span> ${stateText}
               </span>
-              <span style="background: #64748b20; padding: 2px 8px; border-radius: 20px; font-size: 0.7rem;">family ${eveFamily}</span>
+              <span style="background: #64748b20; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem;">family ${eveFamily}</span>
             </div>
-            <div style="font-size: 0.7rem; color: #64748b; margin-top: 6px;">${eveNote}</div>
+            <div style="font-size: 0.75rem; color: #64748b; margin-top: 6px;">${eveNote}</div>
           </div>
         </div>
       `;
     });
   }
   
-  function updateAdultsSpeciesCards() {
-    document.querySelectorAll('#adv-resist-radios .species-card, #adv-vuln-radios .species-card, #adv-mutation-checks .species-card').forEach(card => {
-      const speciesName = card.querySelector('strong, h5')?.innerText || '';
-      const text = card.innerText;
-      
-      let eves = [];
-      if (speciesName.includes('melanogaster') || text.includes('melanogaster')) {
-        eves = [
-          { id: 'EVE-A', type: 'retro', state: 'useful', family: 'RV1' },
-          { id: 'EVE-D', type: 'retro', state: 'silent', family: 'RV1' },
-          { id: 'EVE-C', type: 'retro', state: 'broken', family: 'RV0' },
-          { id: 'EVE-X', type: 'dna', state: 'useful', family: 'DV2' }
-        ];
-      } else if (speciesName.includes('simulans') || text.includes('simulans')) {
-        eves = [
-          { id: "EVE-A'", type: 'retro', state: 'intact', family: 'RV1' },
-          { id: 'EVE-Z', type: 'dna', state: 'useful', family: 'DV1' }
-        ];
-      } else if (speciesName.includes('yakuba') || text.includes('yakuba')) {
-        eves = [
-          { id: 'EVE-Y1', type: 'retro', state: 'broken', family: 'RV1' }
-        ];
-      } else if (speciesName.includes('virilis') || text.includes('virilis')) {
-        eves = [
-          { id: 'EVE-D1', type: 'dna', state: 'useful', family: 'DV1' }
-        ];
-      } else if (speciesName.includes('pseudoananassae') || text.includes('pseudoananassae')) {
-        eves = [
-          { id: 'EVE-P', type: 'retro', state: 'useful', family: 'RV1a' }
-        ];
-      }
-      
-      let chipsHtml = '<div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px;">';
-      eves.forEach(eve => {
-        const icon = eve.type === 'retro' ? '🦠' : '🧬';
-        const typeColour = eve.type === 'retro' ? '#0ea5e9' : '#a16207';
-        
-        let stateColour = '';
-        if (eve.state === 'useful') stateColour = '#ef4444';
-        else if (eve.state === 'intact') stateColour = '#16a34a';
-        else if (eve.state === 'silent') stateColour = '#f59e0b';
-        else if (eve.state === 'broken') stateColour = '#111827';
-        
-        chipsHtml += `
-          <div style="display: inline-flex; align-items: center; gap: 6px; background: white; border: 1px solid #e2e8f0; border-radius: 40px; padding: 4px 12px 4px 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-            <span style="background: ${typeColour}; width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 14px;">${icon}</span>
-            <span style="font-weight: 600; font-size: 0.8rem;">${eve.id}</span>
-            <span style="background: ${typeColour}20; color: ${typeColour}; padding: 2px 6px; border-radius: 20px; font-size: 0.65rem;">${eve.type}</span>
-            <span style="display: inline-flex; align-items: center; gap: 3px; background: ${stateColour}20; padding: 2px 6px; border-radius: 20px; font-size: 0.65rem;">
-              <span style="color: ${stateColour};">●</span> ${eve.state}
-            </span>
-            <span style="background: #64748b20; padding: 2px 6px; border-radius: 20px; font-size: 0.65rem;">${eve.family}</span>
-          </div>
-        `;
-      });
-      chipsHtml += '</div>';
-      
-      const inputHtml = card.querySelector('input') ? card.querySelector('input').outerHTML : '';
-      const titleHtml = `<strong style="font-size: 0.95rem;">${speciesName}</strong>`;
-      
-      card.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
-          ${inputHtml}
-          ${titleHtml}
-        </div>
-        ${chipsHtml}
-      `;
-    });
+  // Run once and don't run repeatedly
+  let hasRun = false;
+  
+  function runOnce() {
+    if (hasRun) return;
+    hasRun = true;
+    setTimeout(updateAdultsStep1, 100);
   }
   
-  function updateAll() {
-    updateAdultsStep1();
-    updateAdultsSpeciesCards();
+  if (document.getElementById('adults')) {
+    runOnce();
   }
   
-  // Run when panel becomes visible
-  const observer = new MutationObserver(() => {
-    setTimeout(updateAll, 50);
+  // Also run when check button is clicked (but only update, don't recreate)
+  document.getElementById('step1-check')?.addEventListener('click', () => {
+    setTimeout(updateAdultsStep1, 50);
   });
-  
-  const adultsPanel = document.getElementById('adults');
-  if (adultsPanel) {
-    observer.observe(adultsPanel, { childList: true, subtree: true });
-    setTimeout(updateAll, 100);
-    setTimeout(updateAll, 500);
+})();
+
+// ==================== FIX: WORKING TIMER ====================
+(function fixWorkingTimer() {
+  // Clear any existing timer intervals
+  if (window._timerIntervals) {
+    Object.values(window._timerIntervals).forEach(clearInterval);
   }
+  window._timerIntervals = {};
   
-  // Also run when check buttons are clicked
-  document.getElementById('step1-check')?.addEventListener('click', () => setTimeout(updateAdultsStep1, 50));
-  document.getElementById('step2-check')?.addEventListener('click', () => setTimeout(updateAdultsSpeciesCards, 50));
-  document.getElementById('step3-check')?.addEventListener('click', () => setTimeout(updateAdultsSpeciesCards, 50));
+  // Override Timer.start with a guaranteed working version
+  Timer.start = function(panelId, seconds) {
+    console.log(`Timer.start(${panelId}, ${seconds})`);
+    
+    const panel = document.getElementById(panelId);
+    if (!panel) {
+      console.error(`Panel ${panelId} not found`);
+      return;
+    }
+    
+    // Get timer elements
+    let fill = panel.querySelector('.timer-fill');
+    let tleft = panel.querySelector('.tleft');
+    
+    // If timer-wrap doesn't exist, create it
+    if (!fill || !tleft) {
+      let wrap = panel.querySelector('.timer-wrap');
+      if (!wrap) {
+        wrap = document.createElement('div');
+        wrap.className = 'timer-wrap';
+        wrap.innerHTML = `
+          <div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div>
+          <strong class="tleft">${seconds}s</strong>
+          <button class="btn small" onclick="Timer.start('${panelId}', ${seconds})">Start</button>
+          <button class="btn small" onclick="Timer.reset('${panelId}', ${seconds})">Reset</button>
+        `;
+        panel.insertBefore(wrap, panel.firstChild.nextSibling);
+        fill = wrap.querySelector('.timer-fill');
+        tleft = wrap.querySelector('.tleft');
+      }
+    }
+    
+    if (!fill || !tleft) {
+      console.error(`Timer elements not found in ${panelId}`);
+      return;
+    }
+    
+    // Stop existing timer
+    if (window._timerIntervals[panelId]) {
+      clearInterval(window._timerIntervals[panelId]);
+    }
+    
+    let timeLeft = seconds;
+    fill.style.width = '100%';
+    fill.style.background = 'linear-gradient(90deg, #0e8a68, #22c55e)';
+    tleft.textContent = timeLeft + 's';
+    
+    window._timerIntervals[panelId] = setInterval(function() {
+      timeLeft--;
+      const percent = (timeLeft / seconds) * 100;
+      fill.style.width = Math.max(0, percent) + '%';
+      tleft.textContent = timeLeft + 's';
+      
+      if (timeLeft <= 0) {
+        clearInterval(window._timerIntervals[panelId]);
+        delete window._timerIntervals[panelId];
+        fill.style.background = '#ef4444';
+        console.log(`Timer finished for ${panelId}`);
+      }
+    }, 1000);
+  };
+  
+  Timer.reset = function(panelId, seconds) {
+    console.log(`Timer.reset(${panelId}, ${seconds})`);
+    
+    if (window._timerIntervals[panelId]) {
+      clearInterval(window._timerIntervals[panelId]);
+      delete window._timerIntervals[panelId];
+    }
+    
+    const panel = document.getElementById(panelId);
+    if (panel) {
+      const fill = panel.querySelector('.timer-fill');
+      const tleft = panel.querySelector('.tleft');
+      if (fill) {
+        fill.style.width = '100%';
+        fill.style.background = 'linear-gradient(90deg, #0e8a68, #22c55e)';
+      }
+      if (tleft) tleft.textContent = seconds + 's';
+    }
+  };
 })();
