@@ -178,7 +178,6 @@ let timerIntervals = {};
 function startTimer(panelId, seconds) {
   console.log(`startTimer(${panelId}, ${seconds})`);
   
-  // Stop existing timer
   if (timerIntervals[panelId]) {
     clearInterval(timerIntervals[panelId]);
   }
@@ -186,7 +185,6 @@ function startTimer(panelId, seconds) {
   const panel = document.getElementById(panelId);
   if (!panel) return;
   
-  // Find or create timer elements
   let fill = panel.querySelector('.timer-fill');
   let tleft = panel.querySelector('.tleft');
   
@@ -196,7 +194,7 @@ function startTimer(panelId, seconds) {
       wrap = document.createElement('div');
       wrap.className = 'timer-wrap';
       wrap.innerHTML = `
-        <div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div>
+        <div class="timer-bar"><div class="timer-fill" style="width:100%; background: linear-gradient(90deg, #0e8a68, #22c55e);"></div></div>
         <strong class="tleft">${seconds}s</strong>
         <button class="btn small" onclick="startTimer('${panelId}', ${seconds})">Start 60s</button>
         <button class="btn small" onclick="resetTimer('${panelId}', ${seconds})">Reset</button>
@@ -224,6 +222,7 @@ function startTimer(panelId, seconds) {
       clearInterval(timerIntervals[panelId]);
       delete timerIntervals[panelId];
       fill.style.background = '#ef4444';
+      fill.style.width = '0%';
     }
   }, 1000);
 }
