@@ -1354,3 +1354,59 @@ if (typeof AdvancedGame !== 'undefined' && !AdvancedGame.togglePortfolios) {
     }
   }, 500);
 })();
+
+// ==================== FIX: TIMER BAR DECREASES PROPERLY ====================
+(function fixTimerDecrement() {
+  // Store active timers
+  if (!window.activeTimers) window.activeTimers = {};
+  
+  // Override Timer.start to ensure it works correctly
+  if (typeof Timer !== 'undefined') {
+    Timer.start = function(panelId, seconds) {
+      const panel = document.getElementById(panelId);
+      if (!panel) return;
+      
+      // Find or create timer-wrap
+      let wrap = panel.querySelector('.timer-wrap');
+      if (!wrap) {
+        wrap = document.createElement('div');
+        wrap.className = 'timer-wrap';
+        wrap.innerHTML = '<div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div><strong class="tleft">' + seconds + 's</strong>';
+        panel.insertBefore(wrap, panel.firstChild);
+      }
+      
+      const fill = wrap.querySelector('.timer-fill');
+      const tleft = wrap.querySelector('.tleft');
+      if (!fill || !tleft) return;
+      
+      // Stop existing timer for this panel
+      if (window.activeTimers[panelId]) {
+        clearInterval(window.activeTimers[panelId]);
+      }
+      
+      let timeLeft = seconds;
+      fill.style.width = '100%';
+      tleft.textContent = timeLeft + 's';
+      
+      // Start new timer
+      window.activeTimers[panelId] = setInterval(function() {
+        timeLeft--;
+        const percent = (timeLeft / seconds) * 100;
+        fill.style.width = Math.max(0, percent) + '%';
+        tleft.textContent = timeLeft + 's';
+        
+        if (timeLeft <= 0) {
+          clearInterval(window.activeTimers[panelId]);
+          delete window.activeTimers[panelId];
+        }
+      }, 1000);
+    };
+    
+    Timer.stop = function(panelId) {
+      if (window.activeTimers[panelId]) {
+        clearInterval(window.activeTimers[panelId]);
+        delete window.activeTimers[panelId];
+      }
+    };
+  }
+})();
