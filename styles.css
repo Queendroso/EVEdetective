@@ -502,3 +502,73 @@ html{scroll-behavior:smooth}
   align-items: center !important;
   gap: 12px !important;
 }
+
+
+/* ==================== FIXES ADDED AT THE END ==================== */
+
+/* Timer bars - ensure they work */
+.timer-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  margin: 16px 0 !important;
+  padding: 12px 16px !important;
+  background: #f1f5f9 !important;
+  border-radius: 60px !important;
+  border: 1px solid #e2e8f0 !important;
+}
+
+.timer-bar {
+  flex: 1 !important;
+  height: 10px !important;
+  background: #e2e8f0 !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+}
+
+.timer-fill {
+  height: 100% !important;
+  width: 100% !important;
+  background: linear-gradient(90deg, #0e8a68, #22c55e) !important;
+  border-radius: 10px !important;
+  transition: width 1s linear !important;
+}
+
+.tleft {
+  font-family: 'Courier New', monospace !important;
+  font-size: 1.2rem !important;
+  font-weight: 700 !important;
+  min-width: 50px !important;
+  text-align: center !important;
+  color: #0a1a2f !important;
+}
+
+.timer-wrap .btn.small {
+  padding: 6px 12px !important;
+  font-size: 0.75rem !important;
+  background: white !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 30px !important;
+  cursor: pointer !important;
+}
+
+.timer-wrap .btn.small:hover {
+  background: #0e8a68 !important;
+  color: white !important;
+  border-color: #0e8a68 !important;
+}
+
+/* Stop shaking on adults cards */
+#adv-eves-mel .eve-card {
+  animation: none !important;
+  transition: none !important;
+}
+
+#adv-eves-mel .eve-card:hover {
+  transform: none !important;
+}
+
+/* Ensure single icon per card */
+#adv-eves-mel .eve-card .eve-icon {
+  display: none;
+}
