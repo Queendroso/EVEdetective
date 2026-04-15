@@ -481,3 +481,24 @@ html{scroll-behavior:smooth}
   display: none;
   content: none;
 }
+
+/* Stop shaking on adults cards */
+#adv-eves-mel .eve-card {
+  animation: none !important;
+  transition: none !important;
+}
+
+#adv-eves-mel .eve-card:hover {
+  transform: none !important;
+}
+
+/* Ensure single icon per card */
+#adv-eves-mel .eve-card .eve-icon {
+  display: none;
+}
+
+#adv-eves-mel .eve-card > div > div:first-child {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
