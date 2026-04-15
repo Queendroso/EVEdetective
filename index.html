@@ -46,6 +46,38 @@
     #team .team-avatar { width:72px; height:72px; border-radius:50%; object-fit:cover; }
     #team .contact-row { display:flex; flex-wrap:wrap; gap:.5rem; margin-top:.25rem; }
     #team .contact-row .chip-link { word-break:break-word; }
+
+    /* FIXED TIMER CSS */
+    .timer-bar {
+      width: 100%;
+      height: 10px;
+      background-color: #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .timer-fill {
+      height: 100%;
+      width: 100%;
+      background-color: #22c55e;
+      border-radius: 10px;
+      transition: width 1s linear;
+    }
+    .timer-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 16px 0;
+      padding: 8px 16px;
+      background: #f1f5f9;
+      border-radius: 60px;
+      border: 1px solid #cbd5e1;
+    }
+    .tleft {
+      font-family: monospace;
+      font-size: 1.2rem;
+      font-weight: 700;
+      min-width: 45px;
+    }
   </style>
 </head>
   <script>
@@ -63,21 +95,17 @@
   }
 
   function applySize(px, scopeEl){
-    const pxClamped = Math.max(1, Math.min(40, Number(px)||12)); // allow 1–40 px
+    const pxClamped = Math.max(1, Math.min(40, Number(px)||12));
     (scopeEl || document.documentElement).style.setProperty('--eve-size', pxClamped + 'px');
 
-    // If there are SVG circles representing EVEs, update their radius
     $all('circle.eve-dot, circle.micro-eve, circle.print-eve', scopeEl || document).forEach(c => {
       c.setAttribute('r', (pxClamped/2).toString());
-      // Optional: keep a thin outline visible at tiny sizes
       c.setAttribute('stroke', 'rgba(0,0,0,.35)');
       c.setAttribute('stroke-width', Math.max(0.2, pxClamped*0.05));
     });
 
-    // Update any live readout
     const out = $('#eveSizeVal');
     if (out) out.textContent = pxClamped + ' px';
-    // Persist (optional)
     try { localStorage.setItem('eve.size.px', String(pxClamped)); } catch(_){}
   }
 
@@ -85,15 +113,13 @@
     const slider = findSlider();
     if (!slider) return;
 
-    const scopeSel = slider.getAttribute('data-scope'); // e.g., "#print-root"
+    const scopeSel = slider.getAttribute('data-scope');
     const scopeEl = scopeSel ? document.querySelector(scopeSel) : null;
 
-    // Init from localStorage or slider default
     let start = Number(localStorage.getItem('eve.size.px'));
     if (!start || Number.isNaN(start)) start = Number(slider.value || 12);
     applySize(start, scopeEl);
 
-    // Ensure slider min/max reasonable for micro EVEs
     if (!slider.hasAttribute('min')) slider.min = '1';
     if (!slider.hasAttribute('max')) slider.max = '40';
     if (!slider.hasAttribute('step')) slider.step = '1';
@@ -106,73 +132,54 @@
 })();
 </script>
   <script>
-// STANDALONE TIMER - WORKS 100%
+// WORKING TIMER - FIXED
 (function() {
-  // Store timers
-  let activeTimer = null;
-  let activePanel = null;
+  let activeTimers = {};
   
-  // Function to update display
-  function updateDisplay(panelId, timeLeft, totalSeconds) {
+  window.startTimer = function(panelId, seconds) {
+    // Stop existing timer for this panel
+    if (activeTimers[panelId]) {
+      clearInterval(activeTimers[panelId]);
+    }
+    
     const panel = document.getElementById(panelId);
     if (!panel) return;
     
     const fill = panel.querySelector('.timer-fill');
     const tleft = panel.querySelector('.tleft');
     
-    if (fill) {
-      const percent = (timeLeft / totalSeconds) * 100;
-      fill.style.width = Math.max(0, percent) + '%';
-      
-      // Change color when low
-      if (timeLeft <= 10) {
-        fill.style.backgroundColor = '#ef4444';
-      } else {
-        fill.style.backgroundColor = '#22c55e';
-      }
-    }
+    if (!fill || !tleft) return;
     
-    if (tleft) {
-      tleft.textContent = timeLeft + 's';
-    }
-  }
-  
-  // Make timer functions global
-  window.startTimer = function(panelId, seconds) {
-    // Stop any existing timer
-    if (activeTimer) {
-      clearInterval(activeTimer);
-      activeTimer = null;
-    }
-    
-    activePanel = panelId;
     let timeLeft = seconds;
-    const totalSeconds = seconds;
+    fill.style.width = '100%';
+    fill.style.backgroundColor = '#22c55e';
+    tleft.textContent = timeLeft + 's';
     
-    // Initial display
-    updateDisplay(panelId, timeLeft, totalSeconds);
-    
-    // Start countdown
-    activeTimer = setInterval(function() {
+    activeTimers[panelId] = setInterval(function() {
       timeLeft--;
-      updateDisplay(panelId, timeLeft, totalSeconds);
+      const percent = (timeLeft / seconds) * 100;
+      fill.style.width = Math.max(0, percent) + '%';
+      tleft.textContent = timeLeft + 's';
+      
+      if (timeLeft <= 10 && timeLeft > 0) {
+        fill.style.backgroundColor = '#f59e0b';
+      }
       
       if (timeLeft <= 0) {
-        clearInterval(activeTimer);
-        activeTimer = null;
-        activePanel = null;
+        clearInterval(activeTimers[panelId]);
+        delete activeTimers[panelId];
+        fill.style.backgroundColor = '#ef4444';
+        fill.style.width = '0%';
       }
     }, 1000);
   };
   
   window.resetTimer = function(panelId, seconds) {
-    // Stop timer
-    if (activeTimer) {
-      clearInterval(activeTimer);
-      activeTimer = null;
+    if (activeTimers[panelId]) {
+      clearInterval(activeTimers[panelId]);
+      delete activeTimers[panelId];
     }
     
-    // Reset display
     const panel = document.getElementById(panelId);
     if (panel) {
       const fill = panel.querySelector('.timer-fill');
@@ -183,11 +190,9 @@
       }
       if (tleft) tleft.textContent = seconds + 's';
     }
-    
-    activePanel = null;
   };
   
-  console.log('Standalone timer loaded');
+  console.log('Timer loaded');
 })();
 </script>
 <body>
@@ -234,7 +239,7 @@
         <article class="card">
           <div class="card-icon" aria-hidden="true">🧬</div>
           <h3>What Are Viral Fossils?</h3>
-          <p>Endogenous Viral Elements (EVEs) are ancient viral DNA sequences that became part of a host’s genome. They’re like fossils written in our genetic code.</p>
+          <p>Endogenous Viral Elements (EVEs) are ancient viral DNA sequences that became part of a host's genome. They're like fossils written in our genetic code.</p>
         </article>
         <article class="card">
           <div class="card-icon" aria-hidden="true">8%</div>
@@ -379,16 +384,17 @@
         <!-- Teens -->
         <div id="teens" role="tabpanel" aria-labelledby="tab-teens" class="panel">
           <h3>Intermediate Level: Create the EVE Family Tree!</h3>
-          <p>Flip “barcode” cards, compare shared EVEs, then drag species into the tree. Shared EVEs = common ancestry.</p>
+          <p>Flip "barcode" cards, compare shared EVEs, then drag species into the tree. Shared EVEs = common ancestry.</p>
 
           <div class="timer-wrap">
-  <div class="timer-bar"><div class="timer-fill" style="width:100%; background-color:#22c55e;"></div></div>
-  <strong class="tleft">60s</strong>
-  <button class="btn small" onclick="startTimer('teens', 60)">Start 60s</button>
-  <button class="btn small" onclick="resetTimer('teens', 60)">Restart</button>
-  <button class="btn small" onclick="IntermediateGame.toggleMatrix()">Show/Hide Matrix</button>
-  <button class="btn small" onclick="IntermediateGame.showHints()">Hints</button>
-</div>
+            <div class="timer-bar"><div class="timer-fill"></div></div>
+            <strong class="tleft">60s</strong>
+            <button class="btn small" onclick="startTimer('teens', 60)">Start 60s</button>
+            <button class="btn small" onclick="resetTimer('teens', 60)">Restart</button>
+            <button class="btn small" onclick="IntermediateGame.toggleMatrix()">Show/Hide Matrix</button>
+            <button class="btn small" onclick="IntermediateGame.showHints()">Hints</button>
+          </div>
+          
           <div id="matrix" class="matrix" hidden aria-live="polite"></div>
           <p class="muted">Darker cells = more shared EVEs.</p>
 
@@ -450,14 +456,15 @@
           <p>Match EVE type/state to an invading virus to predict protection. Useful/Intact retro EVEs can protect; broken/silent do not.</p>
 
           <div class="timer-wrap">
-  <div class="timer-bar"><div class="timer-fill" style="width:100%; background-color:#22c55e;"></div></div>
-  <strong class="tleft">60s</strong>
-  <button class="btn small" onclick="startTimer('adults', 60)">Start 60s</button>
-  <button class="btn small" onclick="resetTimer('adults', 60)">Restart 60s</button>
-  <button class="btn small" onclick="AdvancedGame.reset()">Reset</button>
-</div>
+            <div class="timer-bar"><div class="timer-fill"></div></div>
+            <strong class="tleft">60s</strong>
+            <button class="btn small" onclick="startTimer('adults', 60)">Start 60s</button>
+            <button class="btn small" onclick="resetTimer('adults', 60)">Restart 60s</button>
+            <button class="btn small" onclick="AdvancedGame.reset()">Reset</button>
+          </div>
+          
           <div class="adv-step">
-            <h4>Task 1 — Exact match (retrovirus “RV1” infects D. melanogaster)</h4>
+            <h4>Task 1 — Exact match (retrovirus "RV1" infects D. melanogaster)</h4>
             <p>Which EVE will help the fly fight the virus, and why?</p>
             <div id="adv-eves-mel" class="eves-list" aria-live="polite"></div>
             <div class="build-actions">
@@ -468,7 +475,7 @@
           </div>
 
           <div class="adv-step">
-            <h4>Task 2 — A new retrovirus “RV1a” (Same ancestor) is spreading</h4>
+            <h4>Task 2 — A new retrovirus "RV1a" (Same ancestor) is spreading</h4>
             <p>Select the most resistant and the most vulnerable species.</p>
             <div class="adv-grid" id="adv-step2" aria-live="polite">
               <div>
@@ -488,7 +495,7 @@
           </div>
 
           <div class="adv-step">
-            <h4>Task 3 — Mutated variant (retrovirus “RV1b”)</h4>
+            <h4>Task 3 — Mutated variant (retrovirus "RV1b")</h4>
             <p>Which species might still have protection? (Select all that apply.)</p>
             <div class="adv-grid" id="adv-step3" aria-live="polite">
               <div class="check-col" id="adv-mutation-checks"></div>
@@ -566,11 +573,11 @@
       <div class="glossary-grid">
         <article class="glossary-card">
           <h4>Endogenous Viral Elements (EVEs)</h4>
-          <p>Ancient viral DNA sequences that became part of a host’s genome — “viral fossils” written in DNA.</p>
+          <p>Ancient viral DNA sequences that became part of a host's genome — "viral fossils" written in DNA.</p>
         </article>
         <article class="glossary-card">
           <h4>Retrovirus vs DNA virus</h4>
-          <p>Retroviruses copy RNA → DNA and can integrate; DNA viruses carry DNA and usually don’t integrate.</p>
+          <p>Retroviruses copy RNA → DNA and can integrate; DNA viruses carry DNA and usually don't integrate.</p>
         </article>
         <article class="glossary-card">
           <h4>piRNAs / piRNA clusters</h4>
@@ -635,8 +642,6 @@
           <h3>Adults Cards + Tokens</h3>
           <p><a class="btn btn-primary" href="print/print-adults-cards.html" target="_blank" rel="noopener">Open & Print</a></p>
         </article>
-
-        <!-- Added: Kids Video (download) -->
         <article class="card">
           <h3>Kids Video (Low‑Def)</h3>
           <p class="muted">EVEs kids version — MP4 (~40 MB)</p>
@@ -650,24 +655,24 @@
       <h2>About the Team</h2>
       <div class="card-grid">
         <article class="card team-card">
-  <picture>
-    <img class="team-avatar" src="assets/team-queen.jpg" alt="Queen Droso — Creator of EVE Detective" width="72" height="72" loading="lazy" decoding="async">
-  </picture>
-  <h3>Queen Droso</h3>
-  <p><strong>Evolutionary Geneticist & EVE Detective Creator</strong></p>
-  <p>I investigate how Endogenous Viral Elements (EVEs), which are ancient viral fossils in DNA, vary across Drosophila species. My research also examines EVE polymorphism, RNA expression, and small RNA production. I've discovered that some species carry EVEs still segregating, some have expressed EVEs, and some have fixed EVEs that produce protective small RNAs — revealing how ancient viral infections shape modern immunity.</p>
-  <p><em>Through this game, you'd discover what I've found: EVEs vary across species, some are active, and some produce small RNAs that fight viruses — turning viral "junk DNA" into immune weapons.</em></p>
-  <div class="contact-row">
-    <a class="chip-link" href="mailto:queendroso16@gmail.com">✉️ queendroso16@gmail.com</a>
-    <a class="chip-link" href="https://queendroso.github.io/rabdulazeez.github.io/" target="_blank" rel="noopener">🔗 Visit my website</a>
-  </div>
-</article>
+          <picture>
+            <img class="team-avatar" src="assets/team-queen.jpg" alt="Queen Droso — Creator of EVE Detective" width="72" height="72" loading="lazy" decoding="async">
+          </picture>
+          <h3>Queen Droso</h3>
+          <p><strong>Evolutionary Geneticist & EVE Detective Creator</strong></p>
+          <p>I investigate how Endogenous Viral Elements (EVEs), which are ancient viral fossils in DNA, vary across Drosophila species. My research also examines EVE polymorphism, RNA expression, and small RNA production. I've discovered that some species carry EVEs still segregating, some have expressed EVEs, and some have fixed EVEs that produce protective small RNAs — revealing how ancient viral infections shape modern immunity.</p>
+          <p><em>Through this game, you'd discover what I've found: EVEs vary across species, some are active, and some produce small RNAs that fight viruses — turning viral "junk DNA" into immune weapons.</em></p>
+          <div class="contact-row">
+            <a class="chip-link" href="mailto:queendroso16@gmail.com">✉️ queendroso16@gmail.com</a>
+            <a class="chip-link" href="https://queendroso.github.io/rabdulazeez.github.io/" target="_blank" rel="noopener">🔗 Visit my website</a>
+          </div>
+        </article>
 
         <article class="card team-card">
-          <h3>Obbard’s Lab</h3>
+          <h3>Obbard's Lab</h3>
           <p>We study the demography, population genetics and genome evolution of Drosophila and their pathogens, plus the evolution of RNAi as a defense against viruses.</p>
           <div class="contact-row">
-            <a class="chip-link" href="https://obbard.bio.ed.ac.uk/" target="_blank" rel="noopener">🔗 Visit Darren’s Lab website</a>
+            <a class="chip-link" href="https://obbard.bio.ed.ac.uk/" target="_blank" rel="noopener">🔗 Visit Darren's Lab website</a>
           </div>
         </article>
       </div>
@@ -786,34 +791,30 @@
       }
 
       document.addEventListener('DOMContentLoaded', async () => {
-        // Show current totals
         try {
           const [vis, sticks] = await Promise.all([cget('visits'), cget('stickers')]);
           setCount('visits-count', vis);
           setCount('dl-total-count', sticks);
-        } catch (e) { /* ignore */ }
+        } catch (e) { }
 
-        // Count one visit per tab (session)
         const seenKey = 'eve-visit-counted';
         if (!sessionStorage.getItem(seenKey)) {
           try {
             const next = await chit('visits');
             setCount('visits-count', next);
-          } catch (e) { /* ignore */ }
+          } catch (e) { }
           sessionStorage.setItem(seenKey, '1');
         }
 
-        // Sticker download buttons in Achievements
         document.querySelectorAll('#achievements .badge button').forEach(btn => {
           btn.addEventListener('click', async () => {
             try {
               const next = await chit('stickers');
               setCount('dl-total-count', next);
-            } catch (e) { /* ignore */ }
+            } catch (e) { }
           });
         });
 
-        // If a global downloadBadge function exists, wrap it to ensure counting
         if (typeof window.downloadBadge === 'function' && !window.downloadBadge._wrapped) {
           const orig = window.downloadBadge;
           window.downloadBadge = async function() {
@@ -823,7 +824,6 @@
           window.downloadBadge._wrapped = true;
         }
 
-        // Optional: count Kids video downloads if needed (not shown in footer)
         document.querySelectorAll('a[href$=".mp4"][download]').forEach(a => {
           if (/EVEs-kids-version-LD\.mp4$/.test(a.getAttribute('href')||'')) {
             a.addEventListener('click', () => { chit('video').catch(()=>{}); });
