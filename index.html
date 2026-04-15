@@ -297,14 +297,13 @@
           <p>Flip “barcode” cards, compare shared EVEs, then drag species into the tree. Shared EVEs = common ancestry.</p>
 
           <div class="timer-wrap">
-            <div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div>
-            <strong class="tleft">60s</strong>
-            <button class="btn small" onclick="Timer.reset('teens', 60)">Start 60s</button>
-            <button class="btn small" onclick="IntermediateGame.clearDrops()">Restart</button>
-            <button class="btn small" onclick="IntermediateGame.toggleMatrix()">Show/Hide Matrix</button>
-            <button class="btn small" onclick="IntermediateGame.showHints()">Hints</button>
-          </div>
-
+  <div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div>
+  <strong class="tleft">60s</strong>
+  <button class="btn small" onclick="startTimer('teens', 60)">Start 60s</button>
+  <button class="btn small" onclick="resetTimer('teens', 60)">Restart</button>
+  <button class="btn small" onclick="IntermediateGame.toggleMatrix()">Show/Hide Matrix</button>
+  <button class="btn small" onclick="IntermediateGame.showHints()">Hints</button>
+</div>
           <div id="matrix" class="matrix" hidden aria-live="polite"></div>
           <p class="muted">Darker cells = more shared EVEs.</p>
 
@@ -366,13 +365,12 @@
           <p>Match EVE type/state to an invading virus to predict protection. Useful/Intact retro EVEs can protect; broken/silent do not.</p>
 
           <div class="timer-wrap">
-            <div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div>
-            <strong class="tleft">60s</strong>
-            <button class="btn small" onclick="Timer.reset('adults', 60)">Start 60s</button>
-            <button class="btn small" onclick="AdvancedGame.restart()">Restart 60s</button>
-            <button class="btn small" onclick="AdvancedGame.reset()">Reset</button>
-          </div>
-
+  <div class="timer-bar"><div class="timer-fill" style="width:100%"></div></div>
+  <strong class="tleft">60s</strong>
+  <button class="btn small" onclick="startTimer('adults', 60)">Start 60s</button>
+  <button class="btn small" onclick="resetTimer('adults', 60)">Restart 60s</button>
+  <button class="btn small" onclick="AdvancedGame.reset()">Reset</button>
+</div>
           <div class="adv-step">
             <h4>Task 1 — Exact match (retrovirus “RV1” infects D. melanogaster)</h4>
             <p>Which EVE will help the fly fight the virus, and why?</p>
@@ -579,8 +577,8 @@
         </article>
 
         <article class="card team-card">
-          <h3>Darren’s Lab</h3>
-          <p>We study host–virus evolution, small RNA immunity, and endogenous viral elements (EVEs) across species. Our work connects ancient viral DNA to modern immune defense.</p>
+          <h3>Obbard’s Lab</h3>
+          <p>We study host–virus evolution, small RNA immunity, and endogenous viral elements (EVEs) across species.</p>
           <div class="contact-row">
             <a class="chip-link" href="https://obbard.bio.ed.ac.uk/" target="_blank" rel="noopener">🔗 Visit Darren’s Lab website</a>
           </div>
