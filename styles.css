@@ -572,3 +572,41 @@ html{scroll-behavior:smooth}
 #adv-eves-mel .eve-card .eve-icon {
   display: none;
 }
+
+/* Research papers and glossary styling */
+.glossary-card, .paper {
+  transition: all 0.2s ease;
+}
+
+.glossary-card:hover, .paper:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border-color: #0e8a68;
+}
+
+/* Achievement badges styling */
+.badge {
+  transition: all 0.2s ease;
+  border-width: 2px;
+}
+
+.badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+}
+
+.badge.unlocked {
+  border-color: #16a34a;
+  background: linear-gradient(135deg, #ffffff, #f0fdf4);
+}
+
+/* Timer bar fix - ensure animation works */
+.timer-fill {
+  transition: width 1s linear !important;
+}
+
+/* Task headings instead of Step */
+.adv-step h4 {
+  color: #0e8a68;
+  font-weight: 700;
+}
