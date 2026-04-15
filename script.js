@@ -172,95 +172,63 @@ function achvToast(msg){
   document.addEventListener('DOMContentLoaded', () => { Achievements.load(); Achievements.render(); });
 })();
 
-// ==================== WORKING TIMER ====================
-let timerIntervals = {};
+// ==================== SIMPLE WORKING TIMER ====================
+// Remove all other timer code and use only this
+
+let simpleTimer = null;
 
 function startTimer(panelId, seconds) {
-  console.log(`startTimer(${panelId}, ${seconds})`);
-  
-  // Stop any existing timer for this panel
-  if (timerIntervals[panelId]) {
-    clearInterval(timerIntervals[panelId]);
-    delete timerIntervals[panelId];
+  // Stop any existing timer
+  if (simpleTimer) {
+    clearInterval(simpleTimer);
   }
   
   const panel = document.getElementById(panelId);
-  if (!panel) {
-    console.error(`Panel ${panelId} not found`);
-    return;
-  }
+  if (!panel) return;
   
-  // Find or create timer elements
-  let fill = panel.querySelector('.timer-fill');
-  let tleft = panel.querySelector('.tleft');
+  // Get the fill element and text element
+  const fill = panel.querySelector('.timer-fill');
+  const tleft = panel.querySelector('.tleft');
   
   if (!fill || !tleft) {
-    let wrap = panel.querySelector('.timer-wrap');
-    if (!wrap) {
-      wrap = document.createElement('div');
-      wrap.className = 'timer-wrap';
-      wrap.innerHTML = `
-        <div class="timer-bar"><div class="timer-fill" style="width:100%; background: #22c55e;"></div></div>
-        <strong class="tleft">${seconds}s</strong>
-        <button class="btn small" onclick="startTimer('${panelId}', ${seconds})">Start 60s</button>
-        <button class="btn small" onclick="resetTimer('${panelId}', ${seconds})">Restart</button>
-        <button class="btn small" onclick="resetTimer('${panelId}', ${seconds})">Reset</button>
-      `;
-      panel.insertBefore(wrap, panel.firstChild.nextSibling);
-      fill = wrap.querySelector('.timer-fill');
-      tleft = wrap.querySelector('.tleft');
-    }
-  }
-  
-  if (!fill || !tleft) {
-    console.error(`Timer elements not found in ${panelId}`);
+    console.error('Timer elements not found');
     return;
   }
   
   let timeLeft = seconds;
   
-  // Reset to full green
+  // Set initial state
   fill.style.width = '100%';
   fill.style.backgroundColor = '#22c55e';
-  fill.style.background = '#22c55e';
   tleft.textContent = timeLeft + 's';
   
-  timerIntervals[panelId] = setInterval(function() {
-    if (timeLeft <= 0) {
-      // Timer already at zero, stop
-      if (timerIntervals[panelId]) {
-        clearInterval(timerIntervals[panelId]);
-        delete timerIntervals[panelId];
-      }
-      return;
-    }
-    
+  simpleTimer = setInterval(function() {
     timeLeft--;
-    const percent = (timeLeft / seconds) * 100;
-    fill.style.width = Math.max(0, percent) + '%';
+    
+    // Update the text
     tleft.textContent = timeLeft + 's';
     
-    // When timer hits 0, turn RED
+    // Update the bar width
+    const percent = (timeLeft / seconds) * 100;
+    fill.style.width = percent + '%';
+    
+    console.log('Timer tick:', timeLeft, 'Percent:', percent + '%'); // Debug line
+    
+    // When time is up
     if (timeLeft <= 0) {
-      if (timerIntervals[panelId]) {
-        clearInterval(timerIntervals[panelId]);
-        delete timerIntervals[panelId];
-      }
+      clearInterval(simpleTimer);
+      simpleTimer = null;
       fill.style.backgroundColor = '#ef4444';
-      fill.style.background = '#ef4444';
       fill.style.width = '0%';
-      console.log(`Timer finished for ${panelId}`);
     }
   }, 1000);
 }
 
 function resetTimer(panelId, seconds) {
-  console.log(`resetTimer(${panelId}, ${seconds})`);
-  
-  // Stop existing timer
-  if (timerIntervals[panelId]) {
-    clearInterval(timerIntervals[panelId]);
-    delete timerIntervals[panelId];
+  // Stop timer
+  if (simpleTimer) {
+    clearInterval(simpleTimer);
+    simpleTimer = null;
   }
   
   const panel = document.getElementById(panelId);
@@ -270,13 +238,12 @@ function resetTimer(panelId, seconds) {
     if (fill) {
       fill.style.width = '100%';
       fill.style.backgroundColor = '#22c55e';
-      fill.style.background = '#22c55e';
     }
     if (tleft) tleft.textContent = seconds + 's';
   }
 }
 
-// Make timers globally accessible
+// Make them global
 window.startTimer = startTimer;
 window.resetTimer = resetTimer;
 
