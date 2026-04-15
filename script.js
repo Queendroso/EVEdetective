@@ -178,15 +178,19 @@ let timerIntervals = {};
 function startTimer(panelId, seconds) {
   console.log(`startTimer(${panelId}, ${seconds})`);
   
-  // Stop existing timer
+  // Stop any existing timer for this panel
   if (timerIntervals[panelId]) {
     clearInterval(timerIntervals[panelId]);
+    delete timerIntervals[panelId];
   }
   
   const panel = document.getElementById(panelId);
-  if (!panel) return;
+  if (!panel) {
+    console.error(`Panel ${panelId} not found`);
+    return;
+  }
   
-  // Find timer elements
+  // Find or create timer elements
   let fill = panel.querySelector('.timer-fill');
   let tleft = panel.querySelector('.tleft');
   
@@ -208,45 +212,65 @@ function startTimer(panelId, seconds) {
     }
   }
   
-  if (!fill || !tleft) return;
+  if (!fill || !tleft) {
+    console.error(`Timer elements not found in ${panelId}`);
+    return;
+  }
   
   let timeLeft = seconds;
-  // Start with GREEN full bar
+  
+  // Reset to full green
   fill.style.width = '100%';
   fill.style.backgroundColor = '#22c55e';
   fill.style.background = '#22c55e';
   tleft.textContent = timeLeft + 's';
   
   timerIntervals[panelId] = setInterval(function() {
+    if (timeLeft <= 0) {
+      // Timer already at zero, stop
+      if (timerIntervals[panelId]) {
+        clearInterval(timerIntervals[panelId]);
+        delete timerIntervals[panelId];
+      }
+      return;
+    }
+    
     timeLeft--;
-    // Calculate percentage width
     const percent = (timeLeft / seconds) * 100;
     fill.style.width = Math.max(0, percent) + '%';
     tleft.textContent = timeLeft + 's';
     
     // When timer hits 0, turn RED
     if (timeLeft <= 0) {
-      clearInterval(timerIntervals[panelId]);
-      delete timerIntervals[panelId];
+      if (timerIntervals[panelId]) {
+        clearInterval(timerIntervals[panelId]);
+        delete timerIntervals[panelId];
+      }
       fill.style.backgroundColor = '#ef4444';
       fill.style.background = '#ef4444';
       fill.style.width = '0%';
+      console.log(`Timer finished for ${panelId}`);
     }
   }, 1000);
 }
 
 function resetTimer(panelId, seconds) {
+  console.log(`resetTimer(${panelId}, ${seconds})`);
+  
+  // Stop existing timer
   if (timerIntervals[panelId]) {
     clearInterval(timerIntervals[panelId]);
     delete timerIntervals[panelId];
   }
+  
   const panel = document.getElementById(panelId);
   if (panel) {
     const fill = panel.querySelector('.timer-fill');
     const tleft = panel.querySelector('.tleft');
     if (fill) {
       fill.style.width = '100%';
-      fill.style.background = 'linear-gradient(90deg, #0e8a68, #22c55e)';
+      fill.style.backgroundColor = '#22c55e';
+      fill.style.background = '#22c55e';
     }
     if (tleft) tleft.textContent = seconds + 's';
   }
