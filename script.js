@@ -1608,3 +1608,94 @@ if (typeof AdvancedGame !== 'undefined' && !AdvancedGame.togglePortfolios) {
     setTimeout(updateAllAdultsCards, 500);
   }
 })();
+
+
+// ==================== SIMPLE WORKING TIMER (FALLBACK) ====================
+(function setupSimpleTimers() {
+  
+  function createTimerBar(panelId) {
+    const panel = document.getElementById(panelId);
+    if (!panel) return null;
+    
+    // Check if timer bar already exists
+    let existing = panel.querySelector('.simple-timer');
+    if (existing) return existing;
+    
+    const timerDiv = document.createElement('div');
+    timerDiv.className = 'timer-wrap simple-timer';
+    timerDiv.innerHTML = `
+      <div class="timer-bar">
+        <div class="timer-fill" style="width:100%"></div>
+      </div>
+      <span class="tleft" id="timer-${panelId}">60</span>
+      <span style="font-size:0.8rem;">seconds</span>
+      <button class="btn small start-timer-btn" data-panel="${panelId}">Start</button>
+      <button class="btn small reset-timer-btn" data-panel="${panelId}">Reset</button>
+    `;
+    
+    panel.insertBefore(timerDiv, panel.firstChild.nextSibling);
+    
+    // Add event listeners
+    timerDiv.querySelector('.start-timer-btn').onclick = () => startSimpleTimer(panelId, 60);
+    timerDiv.querySelector('.reset-timer-btn').onclick = () => resetSimpleTimer(panelId, 60);
+    
+    return timerDiv;
+  }
+  
+  let simpleTimers = {};
+  
+  function startSimpleTimer(panelId, seconds) {
+    // Stop any existing timer
+    if (simpleTimers[panelId]) {
+      clearInterval(simpleTimers[panelId]);
+    }
+    
+    const panel = document.getElementById(panelId);
+    if (!panel) return;
+    
+    let timeLeft = seconds;
+    const tleft = panel.querySelector(`#timer-${panelId}`);
+    const fill = panel.querySelector('.timer-fill');
+    
+    if (!tleft || !fill) return;
+    
+    tleft.textContent = timeLeft;
+    fill.style.width = '100%';
+    
+    simpleTimers[panelId] = setInterval(() => {
+      timeLeft--;
+      tleft.textContent = timeLeft;
+      const percent = (timeLeft / seconds) * 100;
+      fill.style.width = Math.max(0, percent) + '%';
+      
+      if (timeLeft <= 0) {
+        clearInterval(simpleTimers[panelId]);
+        delete simpleTimers[panelId];
+      }
+    }, 1000);
+  }
+  
+  function resetSimpleTimer(panelId, seconds) {
+    if (simpleTimers[panelId]) {
+      clearInterval(simpleTimers[panelId]);
+      delete simpleTimers[panelId];
+    }
+    
+    const panel = document.getElementById(panelId);
+    if (panel) {
+      const tleft = panel.querySelector(`#timer-${panelId}`);
+      const fill = panel.querySelector('.timer-fill');
+      if (tleft) tleft.textContent = seconds;
+      if (fill) fill.style.width = '100%';
+    }
+  }
+  
+  // Initialize timers for teens and adults panels
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      createTimerBar('teens');
+      createTimerBar('adults');
+    }, 500);
+  });
+  
+})();
