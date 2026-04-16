@@ -766,68 +766,59 @@
     });
   </script>
 
-  <!-- Footer counters (visits + sticker downloads); optional video download count -->
-  <script>
-    (function() {
-      const NS = ('eve-' + (location.host || 'local')).replace(/[^a-z0-9\-\.]/gi,'-').toLowerCase() + '-2026';
-      async function cget(key) {
-        const r = await fetch(`https://api.countapi.xyz/get/${NS}/${key}`, { cache: 'no-store' });
-        if (!r.ok) return 0;
-        const j = await r.json(); return Number(j.value) || 0;
-      }
-      async function chit(key) {
-        const r = await fetch(`https://api.countapi.xyz/hit/${NS}/${key}`, { cache: 'no-store' });
-        if (!r.ok) return 0;
-        const j = await r.json(); return Number(j.value) || 0;
-      }
-      function setCount(id, n) {
-        const el = document.getElementById(id);
-        if (el) el.textContent = Number(n).toLocaleString();
-      }
+  <!-- Footer counters (visits + sticker downloads) - GLOBAL VERSION -->
+<script>
+(function() {
+  // Use a FIXED namespace - same for everyone
+  const NAMESPACE = 'queendroso-evdetective';
+  
+  async function getCount(key) {
+    try {
+      const r = await fetch(`https://api.countapi.xyz/get/${NAMESPACE}/${key}`);
+      if (!r.ok) return 0;
+      const j = await r.json();
+      return j.value || 0;
+    } catch(e) { return 0; }
+  }
+  
+  async function hitCount(key) {
+    try {
+      const r = await fetch(`https://api.countapi.xyz/hit/${NAMESPACE}/${key}`);
+      if (!r.ok) return 0;
+      const j = await r.json();
+      return j.value || 0;
+    } catch(e) { return 0; }
+  }
+  
+  function setCount(id, n) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = n.toLocaleString();
+  }
 
-      document.addEventListener('DOMContentLoaded', async () => {
-        try {
-          const [vis, sticks] = await Promise.all([cget('visits'), cget('stickers')]);
-          setCount('visits-count', vis);
-          setCount('dl-total-count', sticks);
-        } catch (e) { }
-
-        const seenKey = 'eve-visit-counted';
-        if (!sessionStorage.getItem(seenKey)) {
-          try {
-            const next = await chit('visits');
-            setCount('visits-count', next);
-          } catch (e) { }
-          sessionStorage.setItem(seenKey, '1');
-        }
-
-        document.querySelectorAll('#achievements .badge button').forEach(btn => {
-          btn.addEventListener('click', async () => {
-            try {
-              const next = await chit('stickers');
-              setCount('dl-total-count', next);
-            } catch (e) { }
-          });
-        });
-
-        if (typeof window.downloadBadge === 'function' && !window.downloadBadge._wrapped) {
-          const orig = window.downloadBadge;
-          window.downloadBadge = async function() {
-            try { const next = await chit('stickers'); setCount('dl-total-count', next); } catch(e) {}
-            return orig.apply(this, arguments);
-          };
-          window.downloadBadge._wrapped = true;
-        }
-
-        document.querySelectorAll('a[href$=".mp4"][download]').forEach(a => {
-          if (/EVEs-kids-version-LD\.mp4$/.test(a.getAttribute('href')||'')) {
-            a.addEventListener('click', () => { chit('video').catch(()=>{}); });
-          }
-        });
+  document.addEventListener('DOMContentLoaded', async () => {
+    // Show current totals
+    const visits = await getCount('visits');
+    const downloads = await getCount('downloads');
+    setCount('visits-count', visits);
+    setCount('dl-total-count', downloads);
+    
+    // Count this visit (only once per browser session)
+    if (!sessionStorage.getItem('eve_visit_counted')) {
+      const newVisits = await hitCount('visits');
+      setCount('visits-count', newVisits);
+      sessionStorage.setItem('eve_visit_counted', '1');
+    }
+    
+    // Track sticker downloads
+    document.querySelectorAll('#achievements .badge button').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const newDownloads = await hitCount('downloads');
+        setCount('dl-total-count', newDownloads);
       });
-    })();
-  </script>
-
+    });
+  });
+})();
+</script>
   <!-- Main logic -->
   <script src="script.js" defer></script>
 </body>
