@@ -611,35 +611,29 @@
       </ul>
     </section>
 
-    <!-- Resources -->
+     <!-- Resources -->
     <section id="resources" class="section container">
-      <h2 class="section-title">Resources</h2>
-      <div class="card-grid">
-<!-- COMMENTED OUT - KEPT FOR LATER USE
+  <h2 class="section-title">Resources</h2>
+  <div class="card-grid">
     <article class="card">
-      <h3>Kids Cards (Print pack)</h3>
-      <p><a class="btn btn-primary" href="print/print-kids-cards.html" target="_blank" rel="noopener">Open & Print</a></p>
+      <h3>Kids Cards — Micro EVEs (lens version)</h3>
+      <p><a class="btn btn-primary resource-link" data-resource="micro" href="print/print-kids-cards-micro.html" target="_blank">Open & Print</a></p>
     </article>
-    -->
-        <article class="card">
-          <h3>Kids Cards — Micro EVEs (lens version)</h3>
-          <p><a class="btn btn-primary" href="print/print-kids-cards-micro.html" target="_blank" rel="noopener">Open & Print</a></p>
-        </article>
-        <article class="card">
-          <h3>Teens Cards + 2‑page Mat</h3>
-          <p><a class="btn btn-primary" href="print/print-teens-cards.html" target="_blank" rel="noopener">Open & Print</a></p>
-        </article>
-        <article class="card">
-          <h3>Adults Cards + Tokens</h3>
-          <p><a class="btn btn-primary" href="print/print-adults-cards.html" target="_blank" rel="noopener">Open & Print</a></p>
-        </article>
-        <article class="card">
-          <h3>Kids Video (Low‑Def)</h3>
-          <p class="muted">EVEs kids version — MP4 (~40 MB)</p>
-          <p><a class="btn" href="assets/video/EVEs-kids-version-LD.mp4" download>Download MP4</a></p>
-        </article>
-      </div>
-    </section>
+    <article class="card">
+      <h3>Teens Cards + 2‑page Mat</h3>
+      <p><a class="btn btn-primary resource-link" data-resource="teens" href="print/print-teens-cards.html" target="_blank">Open & Print</a></p>
+    </article>
+    <article class="card">
+      <h3>Adults Cards + Tokens</h3>
+      <p><a class="btn btn-primary resource-link" data-resource="adults" href="print/print-adults-cards.html" target="_blank">Open & Print</a></p>
+    </article>
+    <article class="card">
+      <h3>Kids Video (Low‑Def)</h3>
+      <p class="muted">EVEs kids version — MP4 (~40 MB)</p>
+      <p><a class="btn resource-link" data-resource="video" href="assets/video/EVEs-kids-version-LD.mp4" download>Download MP4</a></p>
+    </article>
+  </div>
+</section>
 
     <!-- Team -->
     <section id="team" class="section container">
@@ -713,12 +707,18 @@
     </div>
 
     <div class="footer-meta">
-      <small>
-        © 2026 Queen Droso. Developed for the Royal Society Summer Science Exhibition 2026.
-        · Visits: <span id="visits-count">—</span>
-        · Sticker downloads: <span id="dl-total-count">—</span>
-      </small>
-    </div>
+  <small>
+    © 2026 Queen Droso. Developed for the Royal Society Summer Science Exhibition 2026.
+    · Visits: <span id="visits-count">—</span>
+    · Sticker downloads: <span id="dl-total-count">—</span>
+  </small>
+  <small style="display: block; margin-top: 5px; font-size: 0.7rem;">
+    📄 Micro EVEs: <span id="micro-count">0</span> | 
+    📄 Teens: <span id="teens-count">0</span> | 
+    📄 Adults: <span id="adults-count">0</span> | 
+    🎬 Video: <span id="video-count">0</span>
+  </small>
+</div>
   </footer>
 
   <!-- Inline: tree fit only (nav & logic are in script.js) -->
@@ -767,11 +767,10 @@
   </script>
 
   <script>
-// Global visitor counter with downloads
+// Global visitor counter with all downloads tracking
 (function() {
   const API_URL = "https://script.google.com/macros/s/AKfycbxmfraPQQBMrZ_i1sic4KaDRCpKkqY1_c3Odm_lxw5MSqZSI5Ya37RIlyN-jtSOlWE/exec";
   
-  // Get or create unique visitor ID
   let visitorId = localStorage.getItem('visitor_id');
   if (!visitorId) {
     visitorId = 'v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
@@ -788,34 +787,60 @@
         const downloadsEl = document.getElementById('dl-total-count');
         
         if (visitsEl) visitsEl.textContent = data.uniqueVisitors;
-        if (downloadsEl) downloadsEl.textContent = data.downloads;
+        if (downloadsEl) downloadsEl.textContent = data.stickerDownloads;
         
-        console.log('Visitors:', data.uniqueVisitors, 'Downloads:', data.downloads);
+        // Optional: Display individual resource counts in console
+        console.log('Resource downloads:', data.resourceDownloads);
       }
     } catch(error) {
       console.log('Counter error:', error);
     }
   }
   
-  // Track sticker downloads
-  function trackDownload() {
-    fetch(`${API_URL}?download=1&visitor=${visitorId}`)
+  // Track any download (sticker or resource)
+  function trackDownload(type, resource = '') {
+    let url = `${API_URL}?visitor=${visitorId}`;
+    if (type === 'sticker') {
+      url += '&action=sticker';
+    } else if (type === 'resource') {
+      url += '&action=resource&resource=' + resource;
+    }
+    
+    fetch(url)
       .then(res => res.json())
       .then(data => {
-        if (data.success) {
+        if (data.success && type === 'sticker') {
           const downloadsEl = document.getElementById('dl-total-count');
-          if (downloadsEl) downloadsEl.textContent = data.downloads;
+          if (downloadsEl) downloadsEl.textContent = data.stickerDownloads;
         }
       })
       .catch(err => console.log(err));
   }
   
+  // Track sticker downloads (badges)
+  function trackStickerDownload() {
+    trackDownload('sticker');
+  }
+  
+  // Track resource downloads (print cards, video)
+  function trackResourceDownload(resource) {
+    trackDownload('resource', resource);
+  }
+  
   // Run when page loads
   document.addEventListener('DOMContentLoaded', updateCounts);
   
-  // Hook into download buttons
+  // Hook into sticker download buttons
   document.querySelectorAll('#achievements .badge button').forEach(btn => {
-    btn.addEventListener('click', trackDownload);
+    btn.addEventListener('click', trackStickerDownload);
+  });
+  
+  // Hook into resource links
+  document.querySelectorAll('.resource-link').forEach(link => {
+    link.addEventListener('click', function() {
+      const resource = this.getAttribute('data-resource');
+      trackResourceDownload(resource);
+    });
   });
 })();
 </script>
