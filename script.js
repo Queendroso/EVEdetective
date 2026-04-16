@@ -36,6 +36,7 @@ tabs.forEach(tab => {
   });
 });
 
+/*
 // ==================== WORKING COUNTERS (localStorage) ====================
 let visitCount = parseInt(localStorage.getItem('eve_visits') || '0');
 let downloadCount = parseInt(localStorage.getItem('eve_downloads') || '0');
@@ -59,6 +60,7 @@ function trackDownload() {
   localStorage.setItem('eve_downloads', downloadCount);
   if (downloadsEl) downloadsEl.textContent = downloadCount;
 }
+*/
 
 // ---------------- Achievements (badges) ----------------
 function achvToast(msg){
