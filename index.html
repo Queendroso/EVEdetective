@@ -766,34 +766,43 @@
     });
   </script>
 
-  <!-- Footer counters - SIMPLE WORKING VERSION -->
-<script>
+  <script>
+// Global visitor counter - working!
 (function() {
-  // Get or initialize counts from localStorage
-  let visits = parseInt(localStorage.getItem('eve_global_visits') || '1247');
-  let downloads = parseInt(localStorage.getItem('eve_global_downloads') || '89');
+  const API_URL = "https://script.google.com/macros/s/AKfycbxmfraPQQBMrZ_i1sic4KaDRCpKkqY1_c3Odm_lxw5MSqZSI5Ya37RIlyN-jtSOlWE/exec";
   
-  // Display counts
-  const visitsEl = document.getElementById('visits-count');
-  const downloadsEl = document.getElementById('dl-total-count');
-  
-  if (visitsEl) visitsEl.textContent = visits.toLocaleString();
-  if (downloadsEl) downloadsEl.textContent = downloads.toLocaleString();
-  
-  // Count this visit (only once per browser session)
-  if (!sessionStorage.getItem('eve_visit_counted')) {
-    visits++;
-    localStorage.setItem('eve_global_visits', visits);
-    if (visitsEl) visitsEl.textContent = visits.toLocaleString();
-    sessionStorage.setItem('eve_visit_counted', '1');
+  // Get or create unique visitor ID (stored in browser)
+  let visitorId = localStorage.getItem('visitor_id');
+  if (!visitorId) {
+    visitorId = 'v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+    localStorage.setItem('visitor_id', visitorId);
   }
+  
+  async function updateCounts() {
+    try {
+      const response = await fetch(`${API_URL}?visitor=${visitorId}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        // Update the visit counter display
+        const visitsEl = document.getElementById('visits-count');
+        if (visitsEl) visitsEl.textContent = data.uniqueVisitors;
+        
+        console.log('Counter updated:', data.uniqueVisitors, 'unique visitors');
+      }
+    } catch(error) {
+      console.log('Counter error:', error);
+    }
+  }
+  
+  // Run when page loads
+  document.addEventListener('DOMContentLoaded', updateCounts);
   
   // Track sticker downloads
   document.querySelectorAll('#achievements .badge button').forEach(btn => {
     btn.addEventListener('click', function() {
-      downloads++;
-      localStorage.setItem('eve_global_downloads', downloads);
-      if (downloadsEl) downloadsEl.textContent = downloads.toLocaleString();
+      // Increment download counter in Google Sheet
+      fetch(`${API_URL}?download=1`).catch(err => console.log(err));
     });
   });
 })();
