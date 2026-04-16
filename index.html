@@ -767,11 +767,11 @@
   </script>
 
   <script>
-// Global visitor counter - working!
+// Global visitor counter with downloads
 (function() {
   const API_URL = "https://script.google.com/macros/s/AKfycbxmfraPQQBMrZ_i1sic4KaDRCpKkqY1_c3Odm_lxw5MSqZSI5Ya37RIlyN-jtSOlWE/exec";
   
-  // Get or create unique visitor ID (stored in browser)
+  // Get or create unique visitor ID
   let visitorId = localStorage.getItem('visitor_id');
   if (!visitorId) {
     visitorId = 'v_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
@@ -784,26 +784,38 @@
       const data = await response.json();
       
       if (data.success) {
-        // Update the visit counter display
         const visitsEl = document.getElementById('visits-count');
-        if (visitsEl) visitsEl.textContent = data.uniqueVisitors;
+        const downloadsEl = document.getElementById('dl-total-count');
         
-        console.log('Counter updated:', data.uniqueVisitors, 'unique visitors');
+        if (visitsEl) visitsEl.textContent = data.uniqueVisitors;
+        if (downloadsEl) downloadsEl.textContent = data.downloads;
+        
+        console.log('Visitors:', data.uniqueVisitors, 'Downloads:', data.downloads);
       }
     } catch(error) {
       console.log('Counter error:', error);
     }
   }
   
+  // Track sticker downloads
+  function trackDownload() {
+    fetch(`${API_URL}?download=1&visitor=${visitorId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          const downloadsEl = document.getElementById('dl-total-count');
+          if (downloadsEl) downloadsEl.textContent = data.downloads;
+        }
+      })
+      .catch(err => console.log(err));
+  }
+  
   // Run when page loads
   document.addEventListener('DOMContentLoaded', updateCounts);
   
-  // Track sticker downloads
+  // Hook into download buttons
   document.querySelectorAll('#achievements .badge button').forEach(btn => {
-    btn.addEventListener('click', function() {
-      // Increment download counter in Google Sheet
-      fetch(`${API_URL}?download=1`).catch(err => console.log(err));
-    });
+    btn.addEventListener('click', trackDownload);
   });
 })();
 </script>
