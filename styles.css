@@ -676,3 +676,19 @@ html{scroll-behavior:smooth}
   border-radius: 10px;
   overflow: hidden;
 }
+
+/* Ensures tiny circles print as perfect dots, not blurry */
+.front-eve {
+  vector-effect: non-scaling-stroke;
+  shape-rendering: crispEdges;
+}
+
+/* Front dots should be visible but not obvious to the naked eye */
+.front-eve.real {
+  opacity: 0.9 !important; /* High opacity, but physically tiny */
+}
+
+.front-eve.dummy {
+  opacity: 0.6 !important;
+  fill: #cbd5e1 !important;
+}
