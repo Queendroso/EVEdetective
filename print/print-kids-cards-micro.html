@@ -33,23 +33,27 @@
     --eve-broken:#111827;
     --eve-useful:#ef4444;
     --eve-unique:#f59e0b;
-    --eve-size-mm: 0.4;
-    --eve-back-mm: 1.4;
+    --eve-size-mm: 0.25;
+    --eve-back-mm: 1.6;
   }
 
-  /* FRONT CARDS: Real EVEs are very faint - need hand lens! */
-  .front-eve.real {
-    opacity: 0.25 !important;
+  /* FRONT CARDS: Extremely tiny dots - need hand lens to see colours! */
+  .front-eve {
+    vector-effect: non-scaling-stroke;
+    shape-rendering: crispEdges;
   }
   
-  /* DUMMY EVEs: White/grey circles that are NOT real EVEs */
+  .front-eve.real {
+    opacity: 0.9 !important;
+  }
+  
+  /* DUMMY EVEs: Light grey - camouflage with the grid */
   .front-eve.dummy {
-    opacity: 0.4 !important;
+    opacity: 0.5 !important;
     fill: #cbd5e1 !important;
-    stroke: #cbd5e1 !important;
   }
 
-  /* BACK CARDS: EVEs are fully visible for answer key */
+  /* BACK CARDS: EVEs are large and fully visible for answer key */
   .back-eve {
     opacity: 1 !important;
   }
@@ -66,22 +70,23 @@
 <body>
 
 <div class="screen-note">
-  🔬 MICRO EVEs: <strong>Real EVEs</strong> are very faint (25% opacity) - need 5-10× hand lens!<br>
-  ⚪ <strong>White/grey dots</strong> are DUMMY EVEs (not real)!<br>
-  📖 Back cards show answer key. Adjust sizes below for your hand lens.
+  🔬 <strong>MICRO EVEs - Physical Card Game:</strong><br>
+  • <strong>FRONT (Hunt):</strong> Hundreds of tiny grey dots. Real EVEs are hidden among them - requires 5-10× hand lens to see colours!<br>
+  • <strong>BACK (Answer Key):</strong> Large, colourful dots show exactly where the EVEs are.<br>
+  • Adjust the "Front size" slider to match your hand lens magnification (smaller = harder).
 </div>
 <div class="toolbar">
-  <label>Front size (mm):
-    <input id="frontSize" type="range" min="0.2" max="1.2" step="0.05" value="0.4"
+  <label>🔬 Front dot size (mm) - make TINY for hand lens:
+    <input id="frontSize" type="range" min="0.15" max="0.8" step="0.05" value="0.25"
            oninput="updateEveSize('front', this.value)">
-    <span id="frontSizeVal">0.4</span> mm
+    <span id="frontSizeVal">0.25</span> mm
   </label>
-  <label>Back size (mm):
-    <input id="backSize" type="range" min="0.8" max="2.5" step="0.05" value="1.4"
+  <label>📖 Back dot size (mm):
+    <input id="backSize" type="range" min="1.0" max="2.5" step="0.05" value="1.6"
            oninput="updateEveSize('back', this.value)">
-    <span id="backSizeVal">1.4</span> mm
+    <span id="backSizeVal">1.6</span> mm
   </label>
-  <button onclick="window.print()">🖨️ Print</button>
+  <button onclick="window.print()">🖨️ Print Cards</button>
 </div>
 
 <section class="sheet" id="fronts"></section>
@@ -96,7 +101,7 @@ const EVE_COLOURS = {
   unique: '#f59e0b'    // golden circle ●
 };
 
-// FIXED: EVE positions - all y coordinates between 0.15 and 0.75 to prevent cutting off
+// EVE positions for each species
 const speciesData = [
   { key:'melanogaster', short:'D. mel.', full:'Drosophila melanogaster',
     region:'piRNA cluster 3R‑TAS',
@@ -120,18 +125,18 @@ const speciesData = [
   }
 ];
 
-// Generate dummy EVE positions (white/grey circles that are NOT real EVEs)
-function generateDummyEVEs(realPositions, count = 8) {
+// Generate MANY dummy EVEs to camouflage the real ones
+function generateDummyEVEs(realPositions, count = 45) {
   const dummies = [];
   const taken = new Set(realPositions.map(p => `${p[0]},${p[1]}`));
   
   for (let i = 0; i < count; i++) {
     let x, y, attempts = 0;
     do {
-      x = 0.08 + Math.random() * 0.84;  // Keep within 0.08 to 0.92
-      y = 0.12 + Math.random() * 0.76;  // Keep within 0.12 to 0.88 (safe from edges)
+      x = 0.08 + Math.random() * 0.84;
+      y = 0.12 + Math.random() * 0.76;
       attempts++;
-      if (attempts > 100) break;
+      if (attempts > 150) break;
     } while (taken.has(`${x},${y}`));
     dummies.push([x, y]);
     taken.add(`${x},${y}`);
@@ -163,45 +168,47 @@ function renderSheets() {
 }
 
 function svgFront(data){
-  const W=63, H=88, PAD=6;  // Increased padding from 4mm to 6mm for more margin
-  const dmm = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--eve-size-mm')) || 0.4;
+  const W=63, H=88, PAD=6;
+  // FRONT: Extremely tiny dots (0.15mm to 0.8mm)
+  const dmm = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--eve-size-mm')) || 0.25;
   const r = dmm/2; 
   const dots = [];
   
-  // Collect real EVE positions
   const realPositions = [];
   
-  function placeReal(list, colour, typeName){
+  // Place Real EVEs (Coloured, but extremely tiny)
+  function placeReal(list, colour){
     (list||[]).forEach(([nx,ny])=>{
       const x = PAD + nx*(W-2*PAD);
       const y = PAD + ny*(H-2*PAD);
       realPositions.push([nx, ny]);
-      dots.push(`<circle class="front-eve real" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r}" fill="${colour}" opacity="0.25" stroke="rgba(0,0,0,0.15)" stroke-width="0.1"/>`);
+      dots.push(`<circle class="front-eve real" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r}" fill="${colour}" stroke="none"/>`);
     });
   }
   
-  placeReal(data.intact, EVE_COLOURS.intact, 'intact');
-  placeReal(data.useful, EVE_COLOURS.useful, 'useful');
-  placeReal(data.broken, EVE_COLOURS.broken, 'broken');
-  placeReal(data.unique, EVE_COLOURS.unique, 'unique');
+  placeReal(data.intact, EVE_COLOURS.intact);
+  placeReal(data.useful, EVE_COLOURS.useful);
+  placeReal(data.broken, EVE_COLOURS.broken);
+  placeReal(data.unique, EVE_COLOURS.unique);
   
-  // Generate and add DUMMY EVEs (white/grey circles - not real)
-  const dummies = generateDummyEVEs(realPositions, 10);
+  // Generate MANY Dummy EVEs (light grey - camouflage)
+  const dummies = generateDummyEVEs(realPositions, 50);
   dummies.forEach(([nx, ny]) => {
     const x = PAD + nx*(W-2*PAD);
     const y = PAD + ny*(H-2*PAD);
-    dots.push(`<circle class="front-eve dummy" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r}" fill="#cbd5e1" opacity="0.4" stroke="none"/>`);
+    dots.push(`<circle class="front-eve dummy" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r}" fill="#cbd5e1" stroke="none"/>`);
   });
   
   return `
   <div class="card"><div class="pad">
-    <div class="hdr"><div class="title">🔍 Find the EVEs</div><div class="species">${data.short}</div></div>
+    <div class="hdr"><div class="title">🔍 HUNT</div><div class="species">${data.short}</div></div>
     <div class="sub">${data.full} — ${data.region}</div>
-    <div class="sub" style="color:#d4a017; margin-bottom:2mm">✨ Use hand lens (5-10×) - colour = EVE type!</div>
+    <div class="sub" style="color:#d4a017; margin-bottom:2mm">🔬 USE HAND LENS (5-10×) | 👁️ Find the coloured dots</div>
     <svg width="63mm" height="88mm" viewBox="0 0 ${W} ${H}">
       ${gridLines(W,H,3,'#eef2f7')}
       ${dots.join('')}
     </svg>
+    <div class="sub" style="color:#94a3b8; font-size:7pt; margin-top:2mm; text-align:center">⚪ Grey dots = NOT real EVEs (distractors)</div>
   </div>
   <div class="cutmarks" aria-hidden="true"><svg>
     <line x1="6mm" y1="0" x2="6mm" y2="4mm" />
@@ -216,17 +223,18 @@ function svgFront(data){
 }
 
 function svgBack(data){
-  const W=63, H=88, PAD=6;  // Increased padding
-  const dmm = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--eve-back-mm')) || 1.4;
+  const W=63, H=88, PAD=6;
+  // BACK: Large, fully visible dots
+  const dmm = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--eve-back-mm')) || 1.6;
   const r = dmm/2; 
   const dots = [];
   
-  // BACK: ALL REAL EVES use CIRCLES - fully visible
+  // BACK: All REAL EVEs are large and fully visible
   function place(list, colour){
     (list||[]).forEach(([nx,ny])=>{
       const x = PAD + nx*(W-2*PAD);
       const y = PAD + ny*(H-2*PAD);
-      dots.push(`<circle class="back-eve" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r}" fill="${colour}" stroke="rgba(0,0,0,0.2)" stroke-width="0.15"/>`);
+      dots.push(`<circle class="back-eve" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r}" fill="${colour}" stroke="rgba(0,0,0,0.15)" stroke-width="0.2"/>`);
     });
   }
   
@@ -237,7 +245,7 @@ function svgBack(data){
   
   return `
   <div class="card"><div class="pad">
-    <div class="hdr"><div class="title">📖 Answer Key</div><div class="species">${data.short}</div></div>
+    <div class="hdr"><div class="title">📖 ANSWER KEY</div><div class="species">${data.short}</div></div>
     <div class="sub">${data.full} — ${data.region}</div>
     <svg width="63mm" height="88mm" viewBox="0 0 ${W} ${H}">
       ${gridLines(W,H,3,'#e8edf3')}
