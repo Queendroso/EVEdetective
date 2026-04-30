@@ -515,15 +515,11 @@ const KidsGame = (() => {
 })();
 document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('kids-game')) KidsGame.init(); });
 
-/* ==================== TEENS GAME — Curved tree + card-sized slots + pseudoobscura ====================
-   Replace your entire IntermediateGame block and its DOMContentLoaded hook with this.
-   - Uses curved Bezier branches (more tree-like)
-   - Smaller, non-overlapping rounded-rect slots sized for cards
+/* ==================== TEENS GAME — Curved tree + small slots + robust image fallback ====================
    - Species: melanogaster, simulans, yakuba, virilis, pseudoobscura
-   - Correct answer: Pair A = (melanogaster, simulans), Pair B = (yakuba, virilis), Outgroup = pseudoobscura
+   - Correct: Pair A = (melanogaster, simulans), Pair B = (yakuba, virilis), Outgroup = pseudoobscura
 */
 const IntermediateGame = (() => {
-  // Species set and labels (pseudoobscura)
   const S = ['melanogaster','simulans','yakuba','virilis','pseudoobscura'];
   const LABEL_FULL = {
     melanogaster:'D. melanogaster',
@@ -538,7 +534,7 @@ const IntermediateGame = (() => {
   };
   let useShort = true;
 
-  // EVE bands on each card (you can tailor these)
+  // EVE bands on each card (tweak if you like)
   const PALETTE = { intact:'#16a34a', useful:'#ef4444', broken:'#111827', unique:'#f59e0b' };
   const EVE_BANDS = {
     melanogaster:   ['intact','useful','broken','unique','intact'],
@@ -567,10 +563,10 @@ const IntermediateGame = (() => {
       #teens .tree-svg { position: relative; min-height: 340px; }
       #teens .tree-svg svg { display:block; width:100%; height:auto; max-height:440px; }
       #teens .socket-label { font-size: 12px; fill: #0a1a2f; opacity:.95; }
-      #teens .socket-tag { font-size: 11px; fill: #475569; }
       #teens .socket-slot { fill:#f8fafc; stroke:#2563eb; stroke-width:2; }
       #teens .socket.hover .socket-slot { stroke:#0ea5e9; stroke-width:3; }
       #teens .socket.occupied .socket-slot { fill:#e0f2fe; }
+      #teens .branch { stroke:#60a5fa; stroke-width:3; fill:none; stroke-linecap:round; }
 
       #teens .deck { display:flex; flex-wrap:wrap; gap:.5rem; background:#fff; border:1px solid var(--ash-200); border-radius:.5rem; padding:.5rem; }
       #teens .species-card {
@@ -578,16 +574,12 @@ const IntermediateGame = (() => {
         border-radius:.75rem; padding:.4rem .55rem; cursor:grab; user-select:none; min-width: 170px; max-width: 230px;
       }
       #teens .species-card:active { cursor:grabbing; }
-      #teens .species-card img {
-        width:38px; height:38px; border-radius:10px; object-fit:cover; background:#f1f5f9; border:1px solid #e5e9ef;
-      }
+      #teens .species-card img { width:38px; height:38px; border-radius:10px; object-fit:cover; background:#f1f5f9; border:1px solid #e5e9ef; }
       #teens .card-col { display:flex; flex-direction:column; gap:2px; }
       #teens .card-title { font-size:.85rem; font-weight:700; color:#0a1a2f; line-height:1.1; }
       #teens .chrom { display:flex; gap:3px; margin-top:1px; }
       #teens .band { width:8px; height:14px; border-radius:2px; border:1px solid rgba(0,0,0,.12); }
       #teens .drag-builder { display:none !important; }
-      /* Curved branches styling */
-      #teens .branch { stroke:#60a5fa; stroke-width:3; fill:none; stroke-linecap:round; }
     `;
     const el = document.createElement('style');
     el.id = 'teens-tree-css-curved';
@@ -596,6 +588,9 @@ const IntermediateGame = (() => {
   }
 
   function init() {
+    // Clear any stale state so the deck rebuilds
+    assign.clear(); placedBySpecies.clear(); deckBuilt = false;
+
     const sl = document.getElementById('short-labels');
     if (sl) { useShort = sl.checked; sl.onchange = (e)=>setShort(e.target.checked); }
 
@@ -611,14 +606,22 @@ const IntermediateGame = (() => {
     renderMatrix();
   }
 
-  /* ---------- Deck (image + band row) ---------- */
-  function imgPathFor(sp) {
-    // Tries SVG first, then PNG, then JPG in assets/species/, then falls back
-    const base = `assets/species/${sp}`;
-    const candidates = [`${base}.svg`, `${base}.png`, `${base}.jpg`, `assets/${sp}.png`, `assets/${sp}.jpg`, 'assets/eve_logo.webp'];
-    return candidates[0]; // we set src to the first; onerror will fall back to eve_logo.webp
+  /* ---------- Image loading with robust fallback (png -> jpg -> svg -> logo) ---------- */
+  function imgCandidates(sp) {
+    const baseA = `assets/species/${sp}`;
+    const baseB = `assets/${sp}`;
+    return [`${baseA}.png`, `${baseA}.jpg`, `${baseA}.svg`, `${baseB}.png`, `${baseB}.jpg`, 'assets/eve_logo.webp'];
+  }
+  function nextImg(img) {
+    const rest = img.getAttribute('data-cand');
+    if (!rest) { img.onerror = null; img.src = 'assets/eve_logo.webp'; return; }
+    const list = rest.split('|').filter(Boolean);
+    const nx = list.shift();
+    img.setAttribute('data-cand', list.join('|'));
+    img.src = nx || 'assets/eve_logo.webp';
   }
 
+  /* ---------- Deck (image + band row) ---------- */
   function bandRowFor(sp) {
     const bands = EVE_BANDS[sp] || [];
     return `<div class="chrom">${bands.map(state => (
@@ -628,10 +631,11 @@ const IntermediateGame = (() => {
 
   function speciesCardHTML(sp) {
     const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
-    const img = imgPathFor(sp);
+    const cands = imgCandidates(sp);
+    const first = cands.shift();
     return `
       <div class="species-card" draggable="true" data-sp="${sp}" aria-label="${label}">
-        <img src="${img}" alt="${label}" onerror="this.onerror=null;this.src='assets/eve_logo.webp'">
+        <img src="${first}" alt="${label}" data-cand="${cands.join('|')}" onerror="IntermediateGame._nextImg(this)">
         <div class="card-col">
           <div class="card-title">${label}</div>
           ${bandRowFor(sp)}
@@ -649,7 +653,6 @@ const IntermediateGame = (() => {
       deck.querySelectorAll('.species-card[draggable="true"]').forEach(card => {
         card.addEventListener('dragstart', onDragStart);
       });
-      // Return-to-deck drop
       deck.addEventListener('dragover', e => e.preventDefault());
       deck.addEventListener('drop', e => {
         e.preventDefault();
@@ -661,13 +664,13 @@ const IntermediateGame = (() => {
     }
   }
 
-  // Small drag ghost (chip) to avoid giant preview
+  // Small drag ghost
   function smallGhost(sp) {
     const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
     const g = document.createElement('div');
     g.style.cssText = 'position:absolute;top:-1000px;left:-1000px;pointer-events:none;background:#fff;border:1px solid #e5e9ef;border-radius:10px;padding:3px 6px;display:flex;gap:6px;align-items:center;font:600 12px Inter,system-ui';
     const img = document.createElement('img');
-    img.src = imgPathFor(sp);
+    img.src = imgCandidates(sp)[0];
     img.width = 18; img.height = 18;
     img.style.cssText = 'border-radius:6px;object-fit:cover;border:1px solid #e5e9ef';
     img.onerror = () => { img.src='assets/eve_logo.webp'; };
@@ -685,17 +688,15 @@ const IntermediateGame = (() => {
     setTimeout(() => { try { document.body.removeChild(ghost); } catch(_){} }, 0);
   }
 
-  /* ---------- Tree: curved Bezier branches + small non-overlapping slots ---------- */
+  /* ---------- Curved Bezier tree + small, non-overlapping slots ---------- */
   function renderTree() {
     const box = document.getElementById('tree-svg');
     if (!box) return;
 
     const w = Math.max(680, Math.min(920, box.clientWidth || 780));
-
-    // Slot size & spacing
-    const SLOT_W = Math.round(Math.min(190, w * 0.25)); // ~150–190
-    const SLOT_H = 54;
-    const GAP = SLOT_H + 20;
+    const SLOT_W = Math.round(Math.min(180, w * 0.24)); // keep compact
+    const SLOT_H = 50;
+    const GAP = SLOT_H + 18;
     const TOP = 60;
     const totalHeight = TOP + GAP*4 + SLOT_H + 60;
     const h = Math.max(340, totalHeight);
@@ -706,9 +707,7 @@ const IntermediateGame = (() => {
     svg.setAttribute('width', w);
     svg.setAttribute('height', h);
 
-    // X positions (flow left->right)
-    const X = { root: 80, out: 210, clade: 210, a: 330, b: 330, leaf: w - 90 };
-    // Evenly spaced Y rows
+    const X = { root: 80, out: 200, clade: 200, a: 310, b: 310, leaf: w - 90 };
     const Y = {
       aTop: TOP,
       aBot: TOP + GAP,
@@ -718,8 +717,7 @@ const IntermediateGame = (() => {
       root: TOP + GAP*2
     };
 
-    // Draw a smooth rightward curve between two points
-    function curvePath(x1,y1,x2,y2, bend=0.35) {
+    function curvePath(x1,y1,x2,y2, bend=0.4) {
       const dx = x2 - x1;
       const c1x = x1 + dx * bend, c1y = y1;
       const c2x = x2 - dx * bend, c2y = y2;
@@ -744,7 +742,7 @@ const IntermediateGame = (() => {
     svg.appendChild(curve(X.b, (Y.bTop+Y.bBot)/2, X.leaf, Y.bBot));
     svg.appendChild(curve(X.out, Y.out, X.leaf, Y.out));                         // out -> leaf
 
-    // Slot builder (rounded rect areas sized for the card)
+    // Slot builder
     const R = 10;
     function slot(socketId, cx, cy, tagPrimary='') {
       const g = document.createElementNS(svgNS,'g');
@@ -752,7 +750,6 @@ const IntermediateGame = (() => {
       g.setAttribute('class','socket');
 
       const x = cx - SLOT_W/2, y = cy - SLOT_H/2;
-
       const rect = document.createElementNS(svgNS,'rect');
       rect.setAttribute('x', x); rect.setAttribute('y', y);
       rect.setAttribute('rx', R); rect.setAttribute('ry', R);
@@ -767,10 +764,8 @@ const IntermediateGame = (() => {
         label.textContent = tagPrimary;
         g.appendChild(label);
       }
-
       g.appendChild(rect);
 
-      // Drop target handlers
       g.addEventListener('dragover', e => { e.preventDefault(); g.classList.add('hover'); });
       g.addEventListener('dragleave', () => g.classList.remove('hover'));
       g.addEventListener('drop', e => {
@@ -782,7 +777,7 @@ const IntermediateGame = (() => {
       return g;
     }
 
-    // Create 5 slots (non-overlapping)
+    // 5 non-overlapping slots
     const sA1 = slot('A1', X.leaf, Y.aTop, 'Pair A (closest)');
     const sA2 = slot('A2', X.leaf, Y.aBot);
     const sB1 = slot('B1', X.leaf, Y.bTop, 'Pair B (next closest)');
@@ -805,34 +800,28 @@ const IntermediateGame = (() => {
   // Placement helpers
   function placeOnSocket(socketId, sp) {
     const existingSock = placedBySpecies.get(sp);
-    if (existingSock && existingSock !== socketId) {
-      clearSocket(existingSock);
-    }
+    if (existingSock && existingSock !== socketId) clearSocket(existingSock);
     const current = assign.get(socketId);
-    if (current && current !== sp) {
-      returnToDeck(current);
-    }
+    if (current && current !== sp) returnToDeck(current);
     assign.set(socketId, sp);
     placedBySpecies.set(sp, socketId);
     mountTokenOnSocket(socketId, sp);
     document.querySelector(`#species-deck .species-card[data-sp="${sp}"]`)?.remove();
   }
 
-  function mountTokenOnSocket(socketId, sp, SLOT_W=180, SLOT_H=54) {
+  function mountTokenOnSocket(socketId, sp, SLOT_W=170, SLOT_H=50) {
     const svg = document.querySelector('#teens .tree-svg svg');
     if (!svg) return;
     const g = svg.querySelector(`[data-socket="${socketId}"]`);
     if (!g) return;
     g.classList.add('occupied');
 
-    // Remove prior token
     g.querySelector('foreignObject')?.remove();
 
-    // Compact token that fits inside slot
-    const fo = document.createElementNS('http://www.w3.org/2000/svg','foreignObject');
     const rect = g.querySelector('.socket-slot');
     const x = Number(rect.getAttribute('x')), y = Number(rect.getAttribute('y'));
 
+    const fo = document.createElementNS('http://www.w3.org/2000/svg','foreignObject');
     fo.setAttribute('x', x + 4);
     fo.setAttribute('y', y + 4);
     fo.setAttribute('width', SLOT_W - 8);
@@ -843,15 +832,18 @@ const IntermediateGame = (() => {
     const div = document.createElement('div');
     div.setAttribute('xmlns','http://www.w3.org/1999/xhtml');
     div.style.cssText = `
-      display:flex; align-items:center; gap:8px; width:100%; height:100%;
+      display:flex; align-items:center; gap:6px; width:100%; height:100%;
       background:#ffffff; border:1px solid #e2e8f0; border-radius:10px; padding:4px 6px;
       box-sizing:border-box; box-shadow:0 1px 2px rgba(2,6,23,0.05);
     `;
     const img = document.createElement('img');
-    img.src = imgPathFor(sp); img.alt = label;
-    img.width = 26; img.height = 26;
-    img.style.cssText = 'border-radius:8px; object-fit:cover; border:1px solid #e5e9ef;';
-    img.onerror = () => { img.src='assets/eve_logo.webp'; };
+    const cands = imgCandidates(sp);
+    img.src = cands[0];
+    img.setAttribute('data-cand', cands.slice(1).join('|'));
+    img.onerror = () => nextImg(img);
+    img.alt = label;
+    img.width = 24; img.height = 24;
+    img.style.cssText = 'border-radius:6px; object-fit:cover; border:1px solid #e5e9ef;';
 
     const col = document.createElement('div');
     col.style.cssText = 'display:flex; flex-direction:column; gap:1px;';
@@ -860,13 +852,12 @@ const IntermediateGame = (() => {
     t.textContent = label;
     t.style.cssText = 'font:700 12px/1.1 Inter, system-ui; color:#0a1a2f;';
 
-    // Tiny band row inside slot (matches deck)
     const chrom = document.createElement('div');
     chrom.style.cssText = 'display:flex; gap:2px;';
     (EVE_BANDS[sp]||[]).forEach(state => {
       const b = document.createElement('span');
       b.title = state;
-      b.style.cssText = `width:7px;height:12px;border-radius:2px;border:1px solid rgba(0,0,0,.12);background:${PALETTE[state]||'#cbd5e1'};`;
+      b.style.cssText = `width:6px;height:10px;border-radius:2px;border:1px solid rgba(0,0,0,.12);background:${PALETTE[state]||'#cbd5e1'};`;
       chrom.appendChild(b);
     });
 
@@ -889,10 +880,8 @@ const IntermediateGame = (() => {
   }
 
   function returnToDeck(sp) {
-    // Unassign from any socket
     const sock = placedBySpecies.get(sp);
     if (sock) clearSocket(sock);
-    // Put back to deck if not already there
     const deck = document.getElementById('species-deck');
     if (!deck) return;
     if (!deck.querySelector(`.species-card[data-sp="${sp}"]`)) {
@@ -937,7 +926,9 @@ const IntermediateGame = (() => {
   function heatClass(val, diag, max){ if (diag) return 'med'; const r = val/max; return r>=0.95?'max': r>=0.65?'high': r>=0.35?'med':'low'; }
   function keyPair(a,b){ return [a,b].sort().join('|'); }
 
-  /* ---------- Public actions ---------- */
+  // Expose image fallback for inline onerror in deck cards
+  function _nextImg(img){ nextImg(img); }
+
   function checkTree() {
     const A = [assign.get('A1'), assign.get('A2')].filter(Boolean);
     const B = [assign.get('B1'), assign.get('B2')].filter(Boolean);
@@ -953,10 +944,7 @@ const IntermediateGame = (() => {
     const okO = (O === GOLD.out);
 
     const txt = document.getElementById('your-tree');
-    if (txt) {
-      const newick = `((${A.join(',')}),(${B.join(',')}),${O});`;
-      txt.textContent = newick;
-    }
+    if (txt) txt.textContent = `((${A.join(',')}),(${B.join(',')}),${O});`;
 
     if (okA && okB && okO){
       toast('Excellent! Your tree matches the EVE evidence.', document.getElementById('teens'));
@@ -1001,13 +989,15 @@ const IntermediateGame = (() => {
 
   return {
     init, setShort, toggleMatrix, showHints,
-    checkTree, clearDrops
+    checkTree, clearDrops, _nextImg
   };
 })();
 
+// Build Teens when Teens panel exists
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('teens')) IntermediateGame.init();
 });
+
 
 
 
