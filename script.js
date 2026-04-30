@@ -1021,23 +1021,28 @@ function setEquals(a,b){ if (a.size!==b.size) return false; for (const x of a) i
 
 // ==================== TEENS TREE GAME (Drag & Drop) ====================
 const TeensTreeGame = (() => {
-  // Species data with EVE bands matching your EVE_DB
+  // Species data with EVE bands (using your actual EVE_DB data)
   const speciesList = [
-    { id: 'melanogaster', name: 'D. melanogaster', short: 'D. mel.',
-      eves: ['E3', 'E4'],  // intact + useful
-      bandColors: ['intact', 'useful'] },
-    { id: 'simulans', name: 'D. simulans', short: 'D. sim.',
-      eves: ['E3', 'E5'],  // intact + intact
-      bandColors: ['intact', 'intact'] },
-    { id: 'virilis', name: 'D. virilis', short: 'D. vir.',
-      eves: ['E6'],        // intact
-      bandColors: ['intact'] },
-    { id: 'pseudoananassae', name: 'D. pseudoananassae', short: 'D. pse.',
-      eves: ['E6', 'E7'],  // intact + useful
-      bandColors: ['intact', 'useful'] },
-    { id: 'yakuba', name: 'D. yakuba', short: 'D. yak.',
-      eves: ['E2', 'E8'],  // broken + unique
-      bandColors: ['broken', 'unique'] }
+    { id: 'melanogaster', name: 'D. melanogaster', 
+      eves: ['E3', 'E4'], 
+      bandColors: ['intact', 'useful'],
+      sharedWith: 'simulans (shares E3 intact)' },
+    { id: 'simulans', name: 'D. simulans', 
+      eves: ['E3', 'E5'], 
+      bandColors: ['intact', 'intact'],
+      sharedWith: 'melanogaster (shares E3 intact)' },
+    { id: 'virilis', name: 'D. virilis', 
+      eves: ['E6'], 
+      bandColors: ['intact'],
+      sharedWith: 'pseudoananassae (shares E6 intact)' },
+    { id: 'pseudoananassae', name: 'D. pseudoananassae', 
+      eves: ['E6', 'E7'], 
+      bandColors: ['intact', 'useful'],
+      sharedWith: 'virilis (shares E6 intact)' },
+    { id: 'yakuba', name: 'D. yakuba', 
+      eves: ['E2', 'E8'], 
+      bandColors: ['broken', 'unique'],
+      sharedWith: 'none - outgroup species' }
   ];
 
   // Correct tree mapping (slot -> species id)
@@ -1051,20 +1056,10 @@ const TeensTreeGame = (() => {
 
   let currentDrops = {};
 
-  // EVE Matrix data (shared EVEs between species)
-  const matrixData = {
-    'melanogaster + simulans': 'E3 (Intact)',
-    'virilis + pseudoananassae': 'E6 (Intact)',
-    'melanogaster + virilis': 'None',
-    'simulans + pseudoananassae': 'None',
-    'yakuba': 'Unique EVEs (E2 broken, E8 unique) - Outgroup'
-  };
-
   function init() {
     renderSpeciesDeck();
-    attachDragEvents();
-    attachDropZones();
     renderMatrix();
+    setupDragAndDrop();
   }
 
   function renderSpeciesDeck() {
@@ -1072,44 +1067,65 @@ const TeensTreeGame = (() => {
     if (!deck) return;
     
     deck.innerHTML = speciesList.map(sp => `
-      <div class="species-card-drag" draggable="true" data-species-id="${sp.id}" data-species-name="${sp.name}" style="width: 140px; background: white; border: 2px solid #cbd5e1; border-radius: 16px; padding: 12px; cursor: grab; text-align: center; transition: all 0.2s ease;">
+      <div class="species-card-drag" draggable="true" data-species-id="${sp.id}" data-species-name="${sp.name}" 
+           style="width: 150px; background: white; border: 2px solid #cbd5e1; border-radius: 16px; padding: 12px; cursor: grab; text-align: center; transition: all 0.2s ease;">
         <div style="font-weight: 700; font-size: 1rem; margin-bottom: 8px;">${sp.name}</div>
-        <div class="chromosome" style="display: flex; justify-content: center; gap: 6px; margin: 8px 0; flex-wrap: wrap;">
-          ${sp.bandColors.map(color => `<span class="eve-band ${color}" style="width: 20px; height: 20px; border-radius: 50%; background: ${color === 'intact' ? '#16a34a' : color === 'useful' ? '#ef4444' : color === 'broken' ? '#111827' : '#f59e0b'}; box-shadow: 0 1px 2px rgba(0,0,0,0.1);"></span>`).join('')}
+        <div class="chromosome" style="display: flex; justify-content: center; gap: 8px; margin: 10px 0;">
+          ${sp.bandColors.map(color => `<span class="eve-band ${color}" style="width: 22px; height: 22px; border-radius: 50%; background: ${color === 'intact' ? '#16a34a' : color === 'useful' ? '#ef4444' : color === 'broken' ? '#111827' : '#f59e0b'}; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display: inline-block;"></span>`).join('')}
         </div>
-        <div style="font-size: 0.65rem; color: #64748b; margin-top: 6px;">📌 Drag to tree</div>
+        <div style="font-size: 0.7rem; color: #0e8a68; margin-top: 6px;">🔍 Shares: ${sp.sharedWith}</div>
+        <div style="font-size: 0.65rem; color: #64748b; margin-top: 4px;">📌 Drag to tree</div>
       </div>
     `).join('');
-  }
-
-  function attachDragEvents() {
+    
+    // Make draggable
     document.querySelectorAll('.species-card-drag').forEach(card => {
-      card.addEventListener('dragstart', e => {
-        e.dataTransfer.setData('text/plain', JSON.stringify({
-          id: card.dataset.speciesId,
-          name: card.dataset.speciesName
-        }));
-        e.dataTransfer.effectAllowed = 'copy';
-      });
+      card.addEventListener('dragstart', handleDragStart);
+      card.addEventListener('dragend', handleDragEnd);
     });
   }
 
-  function attachDropZones() {
-    document.querySelectorAll('.drop-slot').forEach(slot => {
-      // Remove existing listeners to avoid duplicates
-      const newSlot = slot.cloneNode(true);
-      slot.parentNode.replaceChild(newSlot, slot);
-      
-      newSlot.addEventListener('dragover', e => {
+  function handleDragStart(e) {
+    const card = e.target.closest('.species-card-drag');
+    if (!card) return;
+    e.dataTransfer.setData('text/plain', JSON.stringify({
+      id: card.dataset.speciesId,
+      name: card.dataset.speciesName
+    }));
+    e.dataTransfer.effectAllowed = 'copy';
+    card.style.opacity = '0.5';
+  }
+
+  function handleDragEnd(e) {
+    const card = e.target.closest('.species-card-drag');
+    if (card) card.style.opacity = '1';
+  }
+
+  function setupDragAndDrop() {
+    const dropZones = document.querySelectorAll('.drop-slot');
+    
+    dropZones.forEach(zone => {
+      zone.addEventListener('dragover', (e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'copy';
+        zone.style.fill = '#e8f7f1';
+        zone.style.stroke = '#0e8a68';
       });
       
-      newSlot.addEventListener('drop', e => {
+      zone.addEventListener('dragleave', (e) => {
+        zone.style.fill = '#f0fdf4';
+        zone.style.stroke = '#22c55e';
+      });
+      
+      zone.addEventListener('drop', (e) => {
         e.preventDefault();
-        const slotId = newSlot.dataset.slot;
+        zone.style.fill = '#f0fdf4';
+        zone.style.stroke = '#22c55e';
+        
+        const slotId = zone.dataset.slot;
         const rawData = e.dataTransfer.getData('text/plain');
         if (!rawData) return;
+        
         const species = JSON.parse(rawData);
         
         // Remove from previous slot if exists
@@ -1117,7 +1133,9 @@ const TeensTreeGame = (() => {
           if (prevSpecies === species.id) {
             const prevSlotEl = document.querySelector(`.drop-slot[data-slot="${prevSlot}"]`);
             if (prevSlotEl) {
-              prevSlotEl.innerHTML = '';
+              // Clear the text content
+              const textEl = prevSlotEl.querySelector('.slot-text');
+              if (textEl) textEl.remove();
               prevSlotEl.classList.remove('dropped');
             }
             delete currentDrops[prevSlot];
@@ -1127,14 +1145,38 @@ const TeensTreeGame = (() => {
         // Add to new slot
         currentDrops[slotId] = species.id;
         
-        // Get slot position to place text
-        const x = parseFloat(newSlot.getAttribute('x')) || 470;
-        const y = parseFloat(newSlot.getAttribute('y')) || 52;
+        // Add text to the drop zone
+        const existingText = zone.querySelector('.slot-text');
+        if (existingText) existingText.remove();
         
-        newSlot.innerHTML = `<text x="475" y="58" font-size="10" fill="#0e8a68" font-weight="bold">${species.name}</text>`;
-        newSlot.classList.add('dropped');
+        const textSpan = document.createElement('text');
+        textSpan.className = 'slot-text';
+        textSpan.setAttribute('x', zone.getAttribute('x') || '620');
+        textSpan.setAttribute('y', zone.getAttribute('y') || '75');
+        textSpan.setAttribute('font-size', '11');
+        textSpan.setAttribute('fill', '#0e8a68');
+        textSpan.setAttribute('font-weight', 'bold');
+        textSpan.setAttribute('text-anchor', 'middle');
+        textSpan.textContent = species.name;
+        zone.appendChild(textSpan);
+        zone.classList.add('dropped');
+        
+        // Update feedback to show progress
+        updateProgressFeedback();
       });
     });
+  }
+
+  function updateProgressFeedback() {
+    let correctCount = 0;
+    for (let [slot, speciesId] of Object.entries(currentDrops)) {
+      if (correctTree[slot] === speciesId) correctCount++;
+    }
+    const feedback = document.getElementById('teens-feedback');
+    if (feedback && correctCount < 5) {
+      feedback.innerHTML = `📊 Progress: ${correctCount}/5 species placed correctly. Keep going!`;
+      feedback.style.color = '#0e8a68';
+    }
   }
 
   function renderMatrix() {
@@ -1142,20 +1184,33 @@ const TeensTreeGame = (() => {
     if (!container) return;
     
     container.innerHTML = `
-      <table style="border-collapse: collapse; width: 100%; font-size: 12px; background: white; border-radius: 12px; overflow: hidden;">
+      <table style="border-collapse: collapse; width: 100%; font-size: 13px; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
         <thead>
           <tr style="background: #0e8a68; color: white;">
-            <th style="padding: 8px;">Species Pair</th>
-            <th style="padding: 8px;">Shared EVEs</th>
+            <th style="padding: 10px;">Species Pair</th>
+            <th style="padding: 10px;">Shared EVEs</th>
+            <th style="padding: 10px;">Relationship</th>
           </tr>
         </thead>
         <tbody>
-          <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 8px;">D. melanogaster + D. simulans</td><td style="padding: 8px;"><span class="chip chip-intact" style="background:#16a34a20;">E3 (Intact)</span></td></tr>
-          <tr style="border-bottom: 1px solid #e2e8f0;"><td style="padding: 8px;">D. virilis + D. pseudoananassae</td><td style="padding: 8px;"><span class="chip chip-intact" style="background:#16a34a20;">E6 (Intact)</span></td></tr>
-          <tr><td style="padding: 8px;">D. yakuba</td><td style="padding: 8px;"><span class="chip chip-broken" style="background:#11182720;">E2 (Broken)</span> + <span class="chip chip-unique" style="background:#f59e0b20;">E8 (Unique)</span> - Outgroup</td></tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px;"><strong>D. melanogaster</strong> + <strong>D. simulans</strong></td>
+            <td style="padding: 10px;"><span class="chip chip-intact" style="background:#16a34a20; padding:4px 12px;">E3 (Intact)</span></td>
+            <td style="padding: 10px; color: #0e8a68;">⭐ Closest relatives</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 10px;"><strong>D. virilis</strong> + <strong>D. pseudoananassae</strong></td>
+            <td style="padding: 10px;"><span class="chip chip-intact" style="background:#16a34a20; padding:4px 12px;">E6 (Intact)</span></td>
+            <td style="padding: 10px; color: #0e8a68;">📌 Next closest relatives</td>
+          </tr>
+          <tr>
+            <td style="padding: 10px;"><strong>D. yakuba</strong></td>
+            <td style="padding: 10px;"><span class="chip chip-broken" style="background:#11182720; padding:4px 12px;">E2 (Broken)</span> + <span class="chip chip-unique" style="background:#f59e0b20; padding:4px 12px;">E8 (Unique)</span></td>
+            <td style="padding: 10px; color: #b91c1c;">🌳 Outgroup (oldest lineage)</td>
+          </tr>
         </tbody>
       </table>
-      <p class="muted" style="margin-top: 8px; font-size: 11px;">💡 More shared EVEs = closer relationship on the tree</p>
+      <p class="muted" style="margin-top: 12px; font-size: 12px; text-align: center;">💡 <strong>How to read this:</strong> Species that share more EVEs (especially Intact/Useful ones) are more closely related. D. yakuba has unique EVEs, making it the outgroup.</p>
     `;
   }
 
@@ -1174,43 +1229,71 @@ const TeensTreeGame = (() => {
   }
 
   function showHints() {
-    alert("💡 HINT:\n\n• D. melanogaster and D. simulans share EVE E3 (Intact) → they are closest.\n• D. virilis and D. pseudoananassae share EVE E6 (Intact) → next closest.\n• D. yakuba has unique EVEs (E2 broken, E8 unique) → Outgroup (oldest).\n\nDrag each species card onto the matching slot on the tree!");
+    alert("🔍 HINTS (not answers):\n\n" +
+          "1️⃣ Compare the coloured bands on each species card.\n" +
+          "2️⃣ 🟢 Green bands (Intact) = complete viral sequences\n" +
+          "3️⃣ 🔴 Red bands (Useful) = provide immunity\n" +
+          "4️⃣ ⚫ Grey bands (Broken) = degraded, no function\n" +
+          "5️⃣ 🟡 Gold bands (Unique) = rare, lineage-specific\n\n" +
+          "❓ Which two species share a green (Intact) band?\n" +
+          "❓ Which two species share another green band?\n" +
+          "❓ Which species has unique gold and grey bands?\n\n" +
+          "📌 The more bands two species share, the closer they are on the tree!");
   }
 
   function clearTree() {
     currentDrops = {};
     document.querySelectorAll('.drop-slot').forEach(slot => {
-      slot.innerHTML = '';
+      const textEl = slot.querySelector('.slot-text');
+      if (textEl) textEl.remove();
       slot.classList.remove('dropped');
+      slot.style.fill = '#f0fdf4';
+      slot.style.stroke = '#22c55e';
     });
     document.getElementById('teens-feedback').innerHTML = '';
   }
 
   function checkTree() {
     let correctCount = 0;
+    let wrongSlots = [];
+    
     for (let [slot, speciesId] of Object.entries(currentDrops)) {
-      if (correctTree[slot] === speciesId) correctCount++;
+      if (correctTree[slot] === speciesId) {
+        correctCount++;
+      } else {
+        wrongSlots.push(slot);
+      }
     }
     
     const feedback = document.getElementById('teens-feedback');
     if (correctCount === 5) {
-      feedback.innerHTML = '✓ Perfect! Your tree matches the EVE evidence. You earned the Teens badge!';
+      feedback.innerHTML = '✓ PERFECT! Your tree matches the EVE evidence. You earned the Teens badge! 🎉';
       feedback.style.color = '#0f766e';
+      feedback.style.fontSize = '1rem';
+      feedback.style.fontWeight = 'bold';
       if (typeof window.Achievements !== 'undefined') window.Achievements.markComplete('teens');
       if (typeof confettiBurst === 'function') { confettiBurst(); claps(); playChime(); }
       if (typeof resetSimpleTimer === 'function') resetSimpleTimer('teens', 60);
     } else {
-      feedback.innerHTML = `✗ Not yet. You have ${correctCount}/5 correct. Remember: mel+sim share E3 (closest), vir+pse share E6 (next), yakuba is outgroup.`;
+      feedback.innerHTML = `📊 You have ${correctCount}/5 correct. ${wrongSlots.length > 0 ? 'Try swapping the species in the wrong slots.' : 'Keep dragging species onto the tree!'}`;
       feedback.style.color = '#b91c1c';
+      
+      // Highlight wrong slots briefly
+      wrongSlots.forEach(slotId => {
+        const slot = document.querySelector(`.drop-slot[data-slot="${slotId}"]`);
+        if (slot) {
+          slot.style.stroke = '#ef4444';
+          slot.style.strokeWidth = '3';
+          setTimeout(() => {
+            slot.style.stroke = '#22c55e';
+            slot.style.strokeWidth = '2';
+          }, 1500);
+        }
+      });
     }
   }
 
-  // Make sure drop zones work after matrix toggle
-  function reattachEvents() {
-    attachDropZones();
-  }
-
-  return { init, toggleMatrix, showHints, clearTree, checkTree, reattachEvents };
+  return { init, toggleMatrix, showHints, clearTree, checkTree };
 })();
 
 // Auto-initialize TeensTreeGame when teens tab becomes active
@@ -1218,17 +1301,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const teensTab = document.getElementById('tab-teens');
   if (teensTab) {
     teensTab.addEventListener('click', () => {
-      setTimeout(() => {
-        TeensTreeGame.init();
-        TeensTreeGame.reattachEvents();
-      }, 100);
+      setTimeout(() => TeensTreeGame.init(), 150);
     });
   }
-  // Also initialize if teens panel is already active
-  if (document.getElementById('teens').classList.contains('is-active')) {
-    setTimeout(() => {
-      TeensTreeGame.init();
-      TeensTreeGame.reattachEvents();
-    }, 100);
+  if (document.getElementById('teens') && document.getElementById('teens').classList.contains('is-active')) {
+    setTimeout(() => TeensTreeGame.init(), 150);
   }
 });
