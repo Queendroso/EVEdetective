@@ -692,3 +692,43 @@ html{scroll-behavior:smooth}
   opacity: 0.6 !important;
   fill: #cbd5e1 !important;
 }
+
+/* Teens Tree Game Styles */
+.species-card-drag {
+  transition: all 0.2s ease;
+}
+.species-card-drag:active {
+  cursor: grabbing;
+}
+.species-card-drag:hover {
+  transform: translateY(-4px);
+  border-color: #0e8a68 !important;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+}
+
+.drop-slot.dropped {
+  stroke: #0e8a68;
+  stroke-width: 2;
+  fill: #e8f7f1;
+}
+
+.eve-band {
+  transition: transform 0.1s ease;
+}
+.eve-band:hover {
+  transform: scale(1.1);
+}
+
+#teens-matrix table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+}
+#teens-matrix th, #teens-matrix td {
+  padding: 8px;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
+}
