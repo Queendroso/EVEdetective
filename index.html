@@ -212,9 +212,9 @@
         <div class="kids-bar"><div class="kids-status"><span id="kids-found">Found: 0</span><span id="kids-total">of 0 EVEs</span></div><div class="kids-actions"><button class="btn" onclick="KidsGame.giveHint()">Hint</button><button class="btn" onclick="KidsGame.reset()">Reset</button><label class="toggle"><input type="checkbox" id="reveal-toggle" onchange="KidsGame.toggleReveal(this.checked)" /><span>Reveal all</span></label></div></div>
       </div>
 
-            <div id="teens" role="tabpanel" class="panel">
+                  <div id="teens" role="tabpanel" class="panel">
         <h3>Intermediate Level: Build the EVE Family Tree</h3>
-        <p>Each species card shows its <strong>EVE barcode</strong> (coloured bands). Drag the cards onto the tree based on <strong>shared EVEs</strong> — more shared bands = closer branches.</p>
+        <p><strong>How to play:</strong> Compare the coloured EVE bands on each species card. <strong>More shared bands = more closely related.</strong> Drag each species onto the tree branch where you think it belongs.</p>
 
         <!-- Timer -->
         <div class="timer-wrap" style="justify-content: space-between;">
@@ -227,38 +227,38 @@
 
         <!-- EVE Matrix (hidden by default) -->
         <div id="teens-matrix" class="matrix" style="display:none; margin-top: 10px;"></div>
-        <p class="muted" id="matrix-hint">Click "Show EVE Matrix" to see which EVEs each species shares.</p>
+        <p class="muted" id="matrix-hint">💡 The EVE Matrix shows which species share which EVEs. More shared EVEs = closer relationship.</p>
 
         <!-- Tree with Drop Zones -->
-        <div class="tree-container" style="text-align: center;">
-          <svg id="phylogenetic-tree" viewBox="0 0 750 380" style="width:100%; height:auto; background:#faf9f6; border-radius:16px; margin:16px 0;">
+        <div class="tree-container" style="text-align: center; position: relative;">
+          <svg id="phylogenetic-tree" viewBox="0 0 750 420" style="width:100%; height:auto; background:#faf9f6; border-radius:16px; margin:16px 0; font-family: Inter, sans-serif;">
             <!-- Tree branches -->
-            <line x1="100" y1="180" x2="280" y2="90" stroke="#60a5fa" stroke-width="3"/>
-            <line x1="100" y1="180" x2="280" y2="270" stroke="#60a5fa" stroke-width="3"/>
-            <line x1="100" y1="180" x2="100" y2="310" stroke="#60a5fa" stroke-width="3"/>
-            <line x1="280" y1="90" x2="460" y2="50" stroke="#60a5fa" stroke-width="3"/>
-            <line x1="280" y1="90" x2="460" y2="130" stroke="#60a5fa" stroke-width="3"/>
-            <line x1="280" y1="270" x2="460" y2="230" stroke="#60a5fa" stroke-width="3"/>
-            <line x1="280" y1="270" x2="460" y2="310" stroke="#60a5fa" stroke-width="3"/>
-            <line x1="100" y1="310" x2="230" y2="350" stroke="#60a5fa" stroke-width="3"/>
+            <line x1="120" y1="200" x2="300" y2="110" stroke="#60a5fa" stroke-width="3"/>
+            <line x1="120" y1="200" x2="300" y2="290" stroke="#60a5fa" stroke-width="3"/>
+            <line x1="120" y1="200" x2="120" y2="340" stroke="#60a5fa" stroke-width="3"/>
+            <line x1="300" y1="110" x2="480" y2="70" stroke="#60a5fa" stroke-width="3"/>
+            <line x1="300" y1="110" x2="480" y2="150" stroke="#60a5fa" stroke-width="3"/>
+            <line x1="300" y1="290" x2="480" y2="250" stroke="#60a5fa" stroke-width="3"/>
+            <line x1="300" y1="290" x2="480" y2="330" stroke="#60a5fa" stroke-width="3"/>
+            <line x1="120" y1="340" x2="250" y2="380" stroke="#60a5fa" stroke-width="3"/>
             
             <!-- Root -->
-            <circle cx="100" cy="180" r="5" fill="#34d399"/>
-            <text x="20" y="185" font-size="11" fill="#4a5568">Common Ancestor</text>
+            <circle cx="120" cy="200" r="6" fill="#34d399"/>
+            <text x="30" y="205" font-size="11" fill="#4a5568" font-weight="600">Common Ancestor</text>
             
-            <!-- Drop Zones (Empty slots on the tree) -->
-            <rect x="460" y="38" width="90" height="28" fill="transparent" stroke="#22c55e" stroke-width="2" stroke-dasharray="4" rx="8" class="drop-slot" data-slot="top1"/>
-            <rect x="460" y="118" width="90" height="28" fill="transparent" stroke="#22c55e" stroke-width="2" stroke-dasharray="4" rx="8" class="drop-slot" data-slot="top2"/>
-            <rect x="460" y="218" width="90" height="28" fill="transparent" stroke="#22c55e" stroke-width="2" stroke-dasharray="4" rx="8" class="drop-slot" data-slot="mid1"/>
-            <rect x="460" y="298" width="90" height="28" fill="transparent" stroke="#22c55e" stroke-width="2" stroke-dasharray="4" rx="8" class="drop-slot" data-slot="mid2"/>
-            <rect x="230" y="340" width="90" height="28" fill="transparent" stroke="#22c55e" stroke-width="2" stroke-dasharray="4" rx="8" class="drop-slot" data-slot="outgroup"/>
+            <!-- Drop Zones -->
+            <rect x="575" y="55" width="110" height="36" fill="#f0fdf4" stroke="#22c55e" stroke-width="2" stroke-dasharray="6,4" rx="10" class="drop-slot" data-slot="top1" data-label="Slot 1"/>
+            <rect x="575" y="135" width="110" height="36" fill="#f0fdf4" stroke="#22c55e" stroke-width="2" stroke-dasharray="6,4" rx="10" class="drop-slot" data-slot="top2" data-label="Slot 2"/>
+            <rect x="575" y="235" width="110" height="36" fill="#f0fdf4" stroke="#22c55e" stroke-width="2" stroke-dasharray="6,4" rx="10" class="drop-slot" data-slot="mid1" data-label="Slot 3"/>
+            <rect x="575" y="315" width="110" height="36" fill="#f0fdf4" stroke="#22c55e" stroke-width="2" stroke-dasharray="6,4" rx="10" class="drop-slot" data-slot="mid2" data-label="Slot 4"/>
+            <rect x="340" y="368" width="110" height="36" fill="#f0fdf4" stroke="#22c55e" stroke-width="2" stroke-dasharray="6,4" rx="10" class="drop-slot" data-slot="outgroup" data-label="Slot 5"/>
             
             <!-- Slot Labels -->
-            <text x="555" y="55" font-size="9" fill="#4a5568">Closest</text>
-            <text x="555" y="135" font-size="9" fill="#4a5568">Closest</text>
-            <text x="555" y="235" font-size="9" fill="#4a5568">Next</text>
-            <text x="555" y="315" font-size="9" fill="#4a5568">Next</text>
-            <text x="250" y="380" font-size="9" fill="#4a5568">Outgroup</text>
+            <text x="690" y="78" font-size="10" fill="#4a5568">Closest relative</text>
+            <text x="690" y="158" font-size="10" fill="#4a5568">Closest relative</text>
+            <text x="690" y="258" font-size="10" fill="#4a5568">Next closest</text>
+            <text x="690" y="338" font-size="10" fill="#4a5568">Next closest</text>
+            <text x="390" y="418" font-size="10" fill="#4a5568">Outgroup (oldest)</text>
           </svg>
         </div>
 
@@ -275,10 +275,10 @@
 
         <!-- Legend -->
         <div class="kids-legend" style="margin-top: 16px;">
-          <span class="chip chip-intact">Intact (green)</span>
-          <span class="chip chip-useful">Useful (red)</span>
-          <span class="chip chip-broken">Broken (grey)</span>
-          <span class="chip chip-unique">Unique (gold)</span>
+          <span class="chip chip-intact">Intact (green) - Complete viral sequence</span>
+          <span class="chip chip-useful">Useful (red) - Provides immunity</span>
+          <span class="chip chip-broken">Broken (grey) - Degraded, no function</span>
+          <span class="chip chip-unique">Unique (gold) - Rare/lineage-specific</span>
         </div>
       </div>
 
