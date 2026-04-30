@@ -515,47 +515,44 @@ const KidsGame = (() => {
 })();
 document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('kids-game')) KidsGame.init(); });
 
-/* ==================== TEENS GAME — Smaller card-sized slots (no overlap) ====================
-   Paste this block into script.js, replacing your current "IntermediateGame" block
-   (from: const IntermediateGame = (() => { ... })(); and its DOMContentLoaded hook).
-
-   Changes in this version:
-   - Slots on the tree are rounded rectangles sized to the card but now much smaller (responsive),
-     spaced vertically by a computed GAP so they never overlap.
-   - Drag ghost (preview) is a small chip (prevents giant preview while dragging).
-   - Correct answer: Pair A = (melanogaster, simulans), Pair B = (yakuba, virilis), Outgroup = pseudoananassae.
+/* ==================== TEENS GAME — Curved tree + card-sized slots + pseudoobscura ====================
+   Replace your entire IntermediateGame block and its DOMContentLoaded hook with this.
+   - Uses curved Bezier branches (more tree-like)
+   - Smaller, non-overlapping rounded-rect slots sized for cards
+   - Species: melanogaster, simulans, yakuba, virilis, pseudoobscura
+   - Correct answer: Pair A = (melanogaster, simulans), Pair B = (yakuba, virilis), Outgroup = pseudoobscura
 */
 const IntermediateGame = (() => {
-  // Species set and labels
-  const S = ['melanogaster','simulans','yakuba','virilis','pseudoananassae'];
+  // Species set and labels (pseudoobscura)
+  const S = ['melanogaster','simulans','yakuba','virilis','pseudoobscura'];
   const LABEL_FULL = {
     melanogaster:'D. melanogaster',
     simulans:'D. simulans',
     yakuba:'D. yakuba',
     virilis:'D. virilis',
-    pseudoananassae:'D. pseudoananassae'
+    pseudoobscura:'D. pseudoobscura'
   };
   const LABEL_SHORT= {
     melanogaster:'D. mel.', simulans:'D. sim.',
-    yakuba:'D. yak.', virilis:'D. vir.', pseudoananassae:'D. pse.'
+    yakuba:'D. yak.', virilis:'D. vir.', pseudoobscura:'D. pse.'
   };
   let useShort = true;
 
-  // EVE bands shown on the "chromosome-like" row in each card
+  // EVE bands on each card (you can tailor these)
   const PALETTE = { intact:'#16a34a', useful:'#ef4444', broken:'#111827', unique:'#f59e0b' };
   const EVE_BANDS = {
-    melanogaster: ['intact','useful','broken','unique','intact'],
-    simulans:     ['intact','intact','broken','unique'],
-    yakuba:       ['broken','intact','unique'],
-    virilis:      ['intact','broken','useful'],
-    pseudoananassae:['broken','useful','unique']
+    melanogaster:   ['intact','useful','broken','unique','intact'],
+    simulans:       ['intact','intact','broken','unique'],
+    yakuba:         ['broken','intact','unique'],
+    virilis:        ['intact','broken','useful'],
+    pseudoobscura:  ['broken','useful','unique']
   };
 
-  // Correct mapping (as requested)
+  // Correct mapping
   const GOLD = {
     pairA: new Set(['melanogaster','simulans']),
     pairB: new Set(['yakuba','virilis']),
-    out:   'pseudoananassae'
+    out:   'pseudoobscura'
   };
 
   // Runtime state
@@ -567,42 +564,38 @@ const IntermediateGame = (() => {
   function injectCSS() {
     if (cssInjected) return; cssInjected = true;
     const css = `
-      /* Teens tree sockets and cards */
-      #teens .tree-svg { position: relative; min-height: 320px; }
-      #teens .tree-svg svg { display:block; width:100%; height:auto; max-height:420px; }
+      #teens .tree-svg { position: relative; min-height: 340px; }
+      #teens .tree-svg svg { display:block; width:100%; height:auto; max-height:440px; }
       #teens .socket-label { font-size: 12px; fill: #0a1a2f; opacity:.95; }
       #teens .socket-tag { font-size: 11px; fill: #475569; }
-      #teens .socket-slot {
-        fill:#f8fafc; stroke:#2563eb; stroke-width:2;
-      }
+      #teens .socket-slot { fill:#f8fafc; stroke:#2563eb; stroke-width:2; }
       #teens .socket.hover .socket-slot { stroke:#0ea5e9; stroke-width:3; }
       #teens .socket.occupied .socket-slot { fill:#e0f2fe; }
 
       #teens .deck { display:flex; flex-wrap:wrap; gap:.5rem; background:#fff; border:1px solid var(--ash-200); border-radius:.5rem; padding:.5rem; }
       #teens .species-card {
         display:flex; align-items:center; gap:.5rem; background:#fff; border:1px solid var(--ash-200);
-        border-radius:.75rem; padding:.4rem .55rem; cursor:grab; user-select:none; min-width: 180px; max-width: 240px;
+        border-radius:.75rem; padding:.4rem .55rem; cursor:grab; user-select:none; min-width: 170px; max-width: 230px;
       }
       #teens .species-card:active { cursor:grabbing; }
       #teens .species-card img {
-        width:40px; height:40px; border-radius:10px; object-fit:cover; background:#f1f5f9; border:1px solid #e5e9ef;
+        width:38px; height:38px; border-radius:10px; object-fit:cover; background:#f1f5f9; border:1px solid #e5e9ef;
       }
       #teens .card-col { display:flex; flex-direction:column; gap:2px; }
       #teens .card-title { font-size:.85rem; font-weight:700; color:#0a1a2f; line-height:1.1; }
       #teens .chrom { display:flex; gap:3px; margin-top:1px; }
       #teens .band { width:8px; height:14px; border-radius:2px; border:1px solid rgba(0,0,0,.12); }
-
-      /* Hide the old builder grid */
       #teens .drag-builder { display:none !important; }
+      /* Curved branches styling */
+      #teens .branch { stroke:#60a5fa; stroke-width:3; fill:none; stroke-linecap:round; }
     `;
     const el = document.createElement('style');
-    el.id = 'teens-tree-css3';
+    el.id = 'teens-tree-css-curved';
     el.textContent = css;
     document.head.appendChild(el);
   }
 
   function init() {
-    // Short labels toggle, if present
     const sl = document.getElementById('short-labels');
     if (sl) { useShort = sl.checked; sl.onchange = (e)=>setShort(e.target.checked); }
 
@@ -618,16 +611,12 @@ const IntermediateGame = (() => {
     renderMatrix();
   }
 
-  /* ---------- Deck: species cards with picture + chromosome-like EVE bands ---------- */
+  /* ---------- Deck (image + band row) ---------- */
   function imgPathFor(sp) {
-    const candidates = [
-      `assets/species/${sp}.jpg`,
-      `assets/species/${sp}.png`,
-      `assets/${sp}.jpg`,
-      `assets/${sp}.png`,
-      'assets/eve_logo.webp'
-    ];
-    return candidates[0];
+    // Tries SVG first, then PNG, then JPG in assets/species/, then falls back
+    const base = `assets/species/${sp}`;
+    const candidates = [`${base}.svg`, `${base}.png`, `${base}.jpg`, `assets/${sp}.png`, `assets/${sp}.jpg`, 'assets/eve_logo.webp'];
+    return candidates[0]; // we set src to the first; onerror will fall back to eve_logo.webp
   }
 
   function bandRowFor(sp) {
@@ -660,7 +649,7 @@ const IntermediateGame = (() => {
       deck.querySelectorAll('.species-card[draggable="true"]').forEach(card => {
         card.addEventListener('dragstart', onDragStart);
       });
-      // Allow dropping back to deck
+      // Return-to-deck drop
       deck.addEventListener('dragover', e => e.preventDefault());
       deck.addEventListener('drop', e => {
         e.preventDefault();
@@ -672,14 +661,14 @@ const IntermediateGame = (() => {
     }
   }
 
-  // Small drag ghost (chip) so preview is not huge
+  // Small drag ghost (chip) to avoid giant preview
   function smallGhost(sp) {
     const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
     const g = document.createElement('div');
-    g.style.cssText = 'position:absolute;top:-1000px;left:-1000px;pointer-events:none;background:#fff;border:1px solid #e5e9ef;border-radius:10px;padding:4px 6px;display:flex;gap:6px;align-items:center;font:600 12px Inter,system-ui';
+    g.style.cssText = 'position:absolute;top:-1000px;left:-1000px;pointer-events:none;background:#fff;border:1px solid #e5e9ef;border-radius:10px;padding:3px 6px;display:flex;gap:6px;align-items:center;font:600 12px Inter,system-ui';
     const img = document.createElement('img');
     img.src = imgPathFor(sp);
-    img.width = 20; img.height = 20;
+    img.width = 18; img.height = 18;
     img.style.cssText = 'border-radius:6px;object-fit:cover;border:1px solid #e5e9ef';
     img.onerror = () => { img.src='assets/eve_logo.webp'; };
     const t = document.createElement('span'); t.textContent = label; t.style.color = '#0a1a2f';
@@ -692,21 +681,21 @@ const IntermediateGame = (() => {
     const sp = e.currentTarget.getAttribute('data-sp');
     e.dataTransfer.setData('text/sp', sp);
     const ghost = smallGhost(sp);
-    e.dataTransfer.setDragImage(ghost, 14, 14);
+    e.dataTransfer.setDragImage(ghost, 12, 12);
     setTimeout(() => { try { document.body.removeChild(ghost); } catch(_){} }, 0);
   }
 
-  /* ---------- Tree: fixed SVG with small, non-overlapping slots ---------- */
+  /* ---------- Tree: curved Bezier branches + small non-overlapping slots ---------- */
   function renderTree() {
     const box = document.getElementById('tree-svg');
     if (!box) return;
 
     const w = Math.max(680, Math.min(920, box.clientWidth || 780));
 
-    // Slot size (smaller), and vertical spacing computed to prevent overlap
-    const SLOT_W = Math.round(Math.min(200, w * 0.26)); // 160–200
-    const SLOT_H = 56;
-    const GAP = SLOT_H + 22; // vertical gap between slot centers
+    // Slot size & spacing
+    const SLOT_W = Math.round(Math.min(190, w * 0.25)); // ~150–190
+    const SLOT_H = 54;
+    const GAP = SLOT_H + 20;
     const TOP = 60;
     const totalHeight = TOP + GAP*4 + SLOT_H + 60;
     const h = Math.max(340, totalHeight);
@@ -717,49 +706,47 @@ const IntermediateGame = (() => {
     svg.setAttribute('width', w);
     svg.setAttribute('height', h);
 
-    // X positions
-    const X = {
-      root: 80,
-      out:  200,
-      clade: 200,
-      a:    320,
-      b:    320,
-      leaf: w - 80
-    };
-
-    // Y positions (evenly spaced rows)
+    // X positions (flow left->right)
+    const X = { root: 80, out: 210, clade: 210, a: 330, b: 330, leaf: w - 90 };
+    // Evenly spaced Y rows
     const Y = {
       aTop: TOP,
       aBot: TOP + GAP,
       out:  TOP + GAP*2,
       bTop: TOP + GAP*3,
       bBot: TOP + GAP*4,
-      root: TOP + GAP*2 // center
+      root: TOP + GAP*2
     };
 
-    // Draw edges
-    function line(x1,y1,x2,y2) {
-      const el = document.createElementNS(svgNS,'line');
-      el.setAttribute('x1',x1); el.setAttribute('y1',y1);
-      el.setAttribute('x2',x2); el.setAttribute('y2',y2);
-      el.setAttribute('stroke', '#60a5fa'); el.setAttribute('stroke-width', '3');
-      el.setAttribute('stroke-linecap', 'round');
-      return el;
+    // Draw a smooth rightward curve between two points
+    function curvePath(x1,y1,x2,y2, bend=0.35) {
+      const dx = x2 - x1;
+      const c1x = x1 + dx * bend, c1y = y1;
+      const c2x = x2 - dx * bend, c2y = y2;
+      return `M ${x1} ${y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${x2} ${y2}`;
     }
-    svg.appendChild(line(X.root, Y.root, X.out, Y.out));                       // root->out
-    const cladeY = (Y.aTop + Y.bBot)/2;
-    svg.appendChild(line(X.root, Y.root, X.clade, cladeY));                     // root->clade
-    svg.appendChild(line(X.clade, cladeY, X.a, (Y.aTop+Y.aBot)/2));             // clade->A
-    svg.appendChild(line(X.clade, cladeY, X.b, (Y.bTop+Y.bBot)/2));             // clade->B
-    svg.appendChild(line(X.a, (Y.aTop+Y.aBot)/2, X.leaf, Y.aTop));              // A->leaf
-    svg.appendChild(line(X.a, (Y.aTop+Y.aBot)/2, X.leaf, Y.aBot));              // A->leaf
-    svg.appendChild(line(X.b, (Y.bTop+Y.bBot)/2, X.leaf, Y.bTop));              // B->leaf
-    svg.appendChild(line(X.b, (Y.bTop+Y.bBot)/2, X.leaf, Y.bBot));              // B->leaf
-    svg.appendChild(line(X.out, Y.out, X.leaf, Y.out));                         // out->leaf
+    function curve(x1,y1,x2,y2) {
+      const p = document.createElementNS(svgNS,'path');
+      p.setAttribute('d', curvePath(x1,y1,x2,y2));
+      p.setAttribute('class','branch');
+      return p;
+    }
 
-    // Slot builder (rounded rect targets sized for the card)
+    // Branches
+    svg.appendChild(curve(X.root, Y.root, X.out,  Y.out));                      // root -> out
+    const cladeY = (Y.aTop + Y.bBot)/2;
+    svg.appendChild(curve(X.root, Y.root, X.clade, cladeY));                    // root -> clade
+    svg.appendChild(curve(X.clade, cladeY, X.a, (Y.aTop+Y.aBot)/2));            // clade -> A
+    svg.appendChild(curve(X.clade, cladeY, X.b, (Y.bTop+Y.bBot)/2));            // clade -> B
+    svg.appendChild(curve(X.a, (Y.aTop+Y.aBot)/2, X.leaf, Y.aTop));             // A -> leaves
+    svg.appendChild(curve(X.a, (Y.aTop+Y.aBot)/2, X.leaf, Y.aBot));
+    svg.appendChild(curve(X.b, (Y.bTop+Y.bBot)/2, X.leaf, Y.bTop));             // B -> leaves
+    svg.appendChild(curve(X.b, (Y.bTop+Y.bBot)/2, X.leaf, Y.bBot));
+    svg.appendChild(curve(X.out, Y.out, X.leaf, Y.out));                         // out -> leaf
+
+    // Slot builder (rounded rect areas sized for the card)
     const R = 10;
-    function slot(socketId, cx, cy, tagPrimary='', tagSecondary='') {
+    function slot(socketId, cx, cy, tagPrimary='') {
       const g = document.createElementNS(svgNS,'g');
       g.setAttribute('data-socket', socketId);
       g.setAttribute('class','socket');
@@ -772,23 +759,18 @@ const IntermediateGame = (() => {
       rect.setAttribute('width', SLOT_W); rect.setAttribute('height', SLOT_H);
       rect.setAttribute('class','socket-slot');
 
-      const label = document.createElementNS(svgNS,'text');
-      label.setAttribute('x', x + 6);
-      label.setAttribute('y', y - 8);
-      label.setAttribute('class','socket-label');
-      label.textContent = tagPrimary;
-
-      const tag2 = document.createElementNS(svgNS,'text');
-      tag2.setAttribute('x', x + 6);
-      tag2.setAttribute('y', y + SLOT_H + 16);
-      tag2.setAttribute('class','socket-tag');
-      tag2.textContent = tagSecondary;
+      if (tagPrimary) {
+        const label = document.createElementNS(svgNS,'text');
+        label.setAttribute('x', x + 6);
+        label.setAttribute('y', y - 8);
+        label.setAttribute('class','socket-label');
+        label.textContent = tagPrimary;
+        g.appendChild(label);
+      }
 
       g.appendChild(rect);
-      if (tagPrimary) g.appendChild(label);
-      if (tagSecondary) g.appendChild(tag2);
 
-      // Make this a drop target
+      // Drop target handlers
       g.addEventListener('dragover', e => { e.preventDefault(); g.classList.add('hover'); });
       g.addEventListener('dragleave', () => g.classList.remove('hover'));
       g.addEventListener('drop', e => {
@@ -800,7 +782,7 @@ const IntermediateGame = (() => {
       return g;
     }
 
-    // Create 5 non-overlapping slots
+    // Create 5 slots (non-overlapping)
     const sA1 = slot('A1', X.leaf, Y.aTop, 'Pair A (closest)');
     const sA2 = slot('A2', X.leaf, Y.aBot);
     const sB1 = slot('B1', X.leaf, Y.bTop, 'Pair B (next closest)');
@@ -811,7 +793,6 @@ const IntermediateGame = (() => {
     svg.appendChild(sB1); svg.appendChild(sB2);
     svg.appendChild(sO);
 
-    // Mount svg
     box.innerHTML = '';
     box.appendChild(svg);
 
@@ -821,27 +802,23 @@ const IntermediateGame = (() => {
     }
   }
 
-  // Place a species onto a socket (handles swapping/return)
+  // Placement helpers
   function placeOnSocket(socketId, sp) {
     const existingSock = placedBySpecies.get(sp);
     if (existingSock && existingSock !== socketId) {
       clearSocket(existingSock);
     }
-
     const current = assign.get(socketId);
     if (current && current !== sp) {
       returnToDeck(current);
     }
-
     assign.set(socketId, sp);
     placedBySpecies.set(sp, socketId);
     mountTokenOnSocket(socketId, sp);
-
-    // Remove card from deck (if still present)
     document.querySelector(`#species-deck .species-card[data-sp="${sp}"]`)?.remove();
   }
 
-  function mountTokenOnSocket(socketId, sp, SLOT_W=200, SLOT_H=56) {
+  function mountTokenOnSocket(socketId, sp, SLOT_W=180, SLOT_H=54) {
     const svg = document.querySelector('#teens .tree-svg svg');
     if (!svg) return;
     const g = svg.querySelector(`[data-socket="${socketId}"]`);
@@ -872,7 +849,7 @@ const IntermediateGame = (() => {
     `;
     const img = document.createElement('img');
     img.src = imgPathFor(sp); img.alt = label;
-    img.width = 28; img.height = 28;
+    img.width = 26; img.height = 26;
     img.style.cssText = 'border-radius:8px; object-fit:cover; border:1px solid #e5e9ef;';
     img.onerror = () => { img.src='assets/eve_logo.webp'; };
 
@@ -883,7 +860,7 @@ const IntermediateGame = (() => {
     t.textContent = label;
     t.style.cssText = 'font:700 12px/1.1 Inter, system-ui; color:#0a1a2f;';
 
-    // Tiny band row inside slot (matches deck look)
+    // Tiny band row inside slot (matches deck)
     const chrom = document.createElement('div');
     chrom.style.cssText = 'display:flex; gap:2px;';
     (EVE_BANDS[sp]||[]).forEach(state => {
@@ -960,7 +937,7 @@ const IntermediateGame = (() => {
   function heatClass(val, diag, max){ if (diag) return 'med'; const r = val/max; return r>=0.95?'max': r>=0.65?'high': r>=0.35?'med':'low'; }
   function keyPair(a,b){ return [a,b].sort().join('|'); }
 
-  /* ---------- Public actions (wire to your buttons) ---------- */
+  /* ---------- Public actions ---------- */
   function checkTree() {
     const A = [assign.get('A1'), assign.get('A2')].filter(Boolean);
     const B = [assign.get('B1'), assign.get('B2')].filter(Boolean);
@@ -1028,7 +1005,6 @@ const IntermediateGame = (() => {
   };
 })();
 
-// Build Teens when Teens panel exists
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('teens')) IntermediateGame.init();
 });
