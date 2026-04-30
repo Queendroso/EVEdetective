@@ -515,11 +515,15 @@ const KidsGame = (() => {
 })();
 document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('kids-game')) KidsGame.init(); });
 
-/* ==================== TEENS GAME — Drag species onto a pre‑drawn tree ====================
-   Drop this block into script.js, replacing your entire "IntermediateGame" section
+/* ==================== TEENS GAME — Drag species onto a pre‑drawn tree (card-sized sockets) ====================
+   Paste this block into script.js, replacing ONLY your current "IntermediateGame" block
    (from: const IntermediateGame = (() => { ... })(); and its DOMContentLoaded hook).
-   It renders a fixed tree with 5 sockets and species cards (image + chromosome EVEs).
-   Correct answer (as requested): Pair A = (melanogaster, simulans), Pair B = (yakuba, virilis), Outgroup = pseudoananassae.
+
+   Changes:
+   - Sockets on the tree are now rounded-rectangle "slots" sized to fit a species card (not circles),
+     so drops land neatly inside the tree.
+   - The drag ghost (preview) is small, not huge.
+   - Correct answer (as requested): Pair A = (melanogaster, simulans), Pair B = (yakuba, virilis), Outgroup = pseudoananassae.
 */
 const IntermediateGame = (() => {
   // Species set and labels
@@ -537,13 +541,8 @@ const IntermediateGame = (() => {
   };
   let useShort = true;
 
-  // EVE catalogue for "chromosome-like" bars on cards (per species)
-  // colour mapping (kept consistent with site-wide CSS vars):
-  // intact=green, useful=red, broken=grey/black, unique=golden
+  // EVE bands shown on the "chromosome-like" row in each card
   const PALETTE = { intact:'#16a34a', useful:'#ef4444', broken:'#111827', unique:'#f59e0b' };
-
-  // Define which EVEs (bands) each species shows (order gives band positions)
-  // You can tune this to match your printed cards exactly
   const EVE_BANDS = {
     melanogaster: ['intact','useful','broken','unique','intact'],
     simulans:     ['intact','intact','broken','unique'],
@@ -552,10 +551,7 @@ const IntermediateGame = (() => {
     pseudoananassae:['broken','useful','unique']
   };
 
-  // Correct tree mapping requested:
-  // Pair A (closest): melanogaster + simulans
-  // Pair B (next closest): yakuba + virilis
-  // Outgroup (oldest): pseudoananassae
+  // Correct mapping (as requested)
   const GOLD = {
     pairA: new Set(['melanogaster','simulans']),
     pairB: new Set(['yakuba','virilis']),
@@ -563,7 +559,7 @@ const IntermediateGame = (() => {
   };
 
   // Runtime state
-  const assign = new Map();        // socketId -> species
+  const assign = new Map();          // socketId -> species
   const placedBySpecies = new Map(); // species -> socketId
   let deckBuilt = false;
   let cssInjected = false;
@@ -572,64 +568,58 @@ const IntermediateGame = (() => {
     if (cssInjected) return; cssInjected = true;
     const css = `
       /* Teens tree sockets and cards */
-      #teens .tree-svg { position: relative; min-height: 300px; }
-      #teens .tree-svg svg { display:block; width:100%; height:auto; max-height:420px; }
-      #teens .socket-label { font-size: 12px; fill: #0a1a2f; opacity:.85; }
-      #teens .socket { cursor: copy; }
-      #teens .socket circle { fill:#ffffff; stroke:#2563eb; stroke-width:2; }
-      #teens .socket.occupied circle { fill:#e0f2fe; }
-      #teens .socket.hover circle { stroke:#0ea5e9; stroke-width:3; }
+      #teens .tree-svg { position: relative; min-height: 320px; }
+      #teens .tree-svg svg { display:block; width:100%; height:auto; max-height:460px; }
+      #teens .socket-label { font-size: 12px; fill: #0a1a2f; opacity:.9; }
+      #teens .socket-tag { font-size: 11px; fill: #475569; }
+      #teens .socket-slot {
+        fill:#f8fafc; stroke:#2563eb; stroke-width:2;
+      }
+      #teens .socket.hover .socket-slot { stroke:#0ea5e9; stroke-width:3; }
+      #teens .socket.occupied .socket-slot { fill:#e0f2fe; }
 
       #teens .deck { display:flex; flex-wrap:wrap; gap:.5rem; background:#fff; border:1px solid var(--ash-200); border-radius:.5rem; padding:.5rem; }
       #teens .species-card {
         display:flex; align-items:center; gap:.5rem; background:#fff; border:1px solid var(--ash-200);
-        border-radius:.75rem; padding:.4rem .55rem; cursor:grab; user-select:none;
+        border-radius:.75rem; padding:.45rem .6rem; cursor:grab; user-select:none; min-width: 200px;
       }
       #teens .species-card:active { cursor:grabbing; }
       #teens .species-card img {
         width:42px; height:42px; border-radius:10px; object-fit:cover; background:#f1f5f9; border:1px solid #e5e9ef;
       }
-      #teens .card-col { display:flex; flex-direction:column; gap:2px; }
-      #teens .card-title { font-size:.85rem; font-weight:700; color:#0a1a2f; line-height:1.1; }
-      #teens .chrom { display:flex; gap:3px; margin-top:2px; }
-      #teens .band { width:8px; height:16px; border-radius:2px; border:1px solid rgba(0,0,0,.12); }
+      #teens .card-col { display:flex; flex-direction:column; gap:3px; }
+      #teens .card-title { font-size:.9rem; font-weight:700; color:#0a1a2f; line-height:1.1; }
+      #teens .chrom { display:flex; gap:3px; margin-top:1px; }
+      #teens .band { width:10px; height:18px; border-radius:3px; border:1px solid rgba(0,0,0,.12); }
 
-      /* Hints/matrix toggle stays; drag-builder not used now */
+      /* We no longer use the old "drag-builder" grid */
       #teens .drag-builder { display:none !important; }
-
-      /* Socket badges */
-      #teens .socket-tag {
-        font-size:11px; fill:#475569;
-      }
     `;
     const el = document.createElement('style');
-    el.id = 'teens-tree-css';
+    el.id = 'teens-tree-css2';
     el.textContent = css;
     document.head.appendChild(el);
   }
 
   function init() {
-    // Respect "Short labels" toggle if present
+    // Short labels toggle, if present
     const sl = document.getElementById('short-labels');
     if (sl) { useShort = sl.checked; sl.onchange = (e)=>setShort(e.target.checked); }
 
     injectCSS();
     renderDeck();
     renderTree();
-    // Optional: (re)build the comparison matrix
-    renderMatrix();
+    renderMatrix(); // optional helper
   }
 
   function setShort(on) {
     useShort = !!on;
-    // Rebuild deck labels; tree labels are fixed "Pair A/B/Out"
     renderDeck(true);
     renderMatrix();
   }
 
   /* ---------- Deck: species cards with picture + chromosome-like EVE bands ---------- */
   function imgPathFor(sp) {
-    // Try commonly used paths; falls back to badge/logo if missing
     const candidates = [
       `assets/species/${sp}.jpg`,
       `assets/species/${sp}.png`,
@@ -637,7 +627,7 @@ const IntermediateGame = (() => {
       `assets/${sp}.png`,
       'assets/eve_logo.webp'
     ];
-    return candidates[0]; // we set src to first; onerror will switch
+    return candidates[0];
   }
 
   function bandRowFor(sp) {
@@ -665,140 +655,158 @@ const IntermediateGame = (() => {
     const deck = document.getElementById('species-deck');
     if (!deck) return;
     if (!deckBuilt || rebuild) {
-      // Clear and repopulate deck with all species not currently placed
       const placedSet = new Set(placedBySpecies.keys());
       deck.innerHTML = S.map(sp => placedSet.has(sp) ? '' : speciesCardHTML(sp)).join('');
-      // Wire drag starts
       deck.querySelectorAll('.species-card[draggable="true"]').forEach(card => {
         card.addEventListener('dragstart', onDragStart);
       });
+      // Allow dropping back to deck to "return" a card
+      deck.addEventListener('dragover', e => e.preventDefault());
+      deck.addEventListener('drop', e => {
+        e.preventDefault();
+        const sp = e.dataTransfer.getData('text/sp');
+        if (!sp) return;
+        returnToDeck(sp);
+      });
+
       deckBuilt = true;
     }
+  }
+
+  // Small drag ghost (prevents giant preview while dragging)
+  function smallGhost(sp) {
+    const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
+    const g = document.createElement('div');
+    g.style.cssText = 'position:absolute;top:-1000px;left:-1000px;pointer-events:none;background:#fff;border:1px solid #e5e9ef;border-radius:10px;padding:4px 6px;display:flex;gap:6px;align-items:center;font:600 12px Inter,system-ui';
+    const img = document.createElement('img');
+    img.src = imgPathFor(sp);
+    img.width = 24; img.height = 24;
+    img.style.cssText = 'border-radius:6px;object-fit:cover;border:1px solid #e5e9ef';
+    img.onerror = () => { img.src='assets/eve_logo.webp'; };
+    const t = document.createElement('span'); t.textContent = label; t.style.color = '#0a1a2f';
+    g.appendChild(img); g.appendChild(t);
+    document.body.appendChild(g);
+    return g;
   }
 
   function onDragStart(e) {
     const sp = e.currentTarget.getAttribute('data-sp');
     e.dataTransfer.setData('text/sp', sp);
-    // Set drag image offset
-    const crt = e.currentTarget.cloneNode(true);
-    crt.style.position = 'absolute'; crt.style.top = '-1000px'; crt.style.left = '-1000px';
-    document.body.appendChild(crt);
-    e.dataTransfer.setDragImage(crt, 20, 20);
-    setTimeout(() => document.body.removeChild(crt), 0);
+    // Use a small custom preview
+    const ghost = smallGhost(sp);
+    e.dataTransfer.setDragImage(ghost, 16, 16);
+    // Clean up ghost after drag begins
+    setTimeout(() => { try { document.body.removeChild(ghost); } catch(_){} }, 0);
   }
 
-  /* ---------- Tree: fixed SVG with sockets ---------- */
+  /* ---------- Tree: fixed SVG with card-sized slots ---------- */
   function renderTree() {
     const box = document.getElementById('tree-svg');
     if (!box) return;
 
-    // Reset assignments (visual only; keep state so re-render doesn't lose)
-    // We'll rebuild SVG and reapply placed tokens.
-    const w = Math.max(680, Math.min(900, box.clientWidth || 680));
-    const h = 320;
+    const w = Math.max(720, Math.min(940, box.clientWidth || 800));
+    const h = 380;
     const svgNS = 'http://www.w3.org/2000/svg';
     const svg = document.createElementNS(svgNS,'svg');
     svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
     svg.setAttribute('width', w);
     svg.setAttribute('height', h);
 
-    // Layout for the requested topology:
-    // Root splits into: left = Outgroup (pseudo), right = Clade (Pair A and Pair B)
-    // Right clade splits into Pair A (mel+sim) and Pair B (yak+vir)
-    // Coordinates
-    const X = { root: 80, out: 200, clade: 200, a: 360, b: 360, leaf: 560 };
-    const Y = { root: h/2, out: h/2, aTop: h*0.28, aBot: h*0.44, bTop: h*0.62, bBot: h*0.78 };
+    // Coordinates for topology:
+    const X = { root: 80, out: 220, clade: 220, a: 380, b: 380, leaf: 620 };
+    const Y = { root: h/2, out: h/2, aTop: h*0.26, aBot: h*0.42, bTop: h*0.58, bBot: h*0.74 };
 
     // Draw edges
-    function line(x1,y1,x2,y2,cls) {
+    function line(x1,y1,x2,y2) {
       const el = document.createElementNS(svgNS,'line');
       el.setAttribute('x1',x1); el.setAttribute('y1',y1);
       el.setAttribute('x2',x2); el.setAttribute('y2',y2);
-      el.setAttribute('class',cls||'edge');
       el.setAttribute('stroke', '#60a5fa'); el.setAttribute('stroke-width', '3');
+      el.setAttribute('stroke-linecap', 'round');
       return el;
     }
-    // Root to out + clade
-    svg.appendChild(line(X.root, Y.root, X.out, Y.out));
-    svg.appendChild(line(X.root, Y.root, X.clade, (Y.aTop+Y.bBot)/2));
-    // Clade splits to A and B
-    svg.appendChild(line(X.clade, (Y.aTop+Y.bBot)/2, X.a, (Y.aTop+Y.aBot)/2));
-    svg.appendChild(line(X.clade, (Y.aTop+Y.bBot)/2, X.b, (Y.bTop+Y.bBot)/2));
-    // Pair A to leaves
-    svg.appendChild(line(X.a, (Y.aTop+Y.aBot)/2, X.leaf, Y.aTop));
-    svg.appendChild(line(X.a, (Y.aTop+Y.aBot)/2, X.leaf, Y.aBot));
-    // Pair B to leaves
-    svg.appendChild(line(X.b, (Y.bTop+Y.bBot)/2, X.leaf, Y.bTop));
-    svg.appendChild(line(X.b, (Y.bTop+Y.bBot)/2, X.leaf, Y.bBot));
-    // Out leaf
-    svg.appendChild(line(X.out, Y.out, X.leaf, Y.out));
+    svg.appendChild(line(X.root, Y.root, X.out, Y.out));                                 // root->out
+    svg.appendChild(line(X.root, Y.root, X.clade, (Y.aTop+Y.bBot)/2));                    // root->clade
+    svg.appendChild(line(X.clade, (Y.aTop+Y.bBot)/2, X.a, (Y.aTop+Y.aBot)/2));            // clade->A
+    svg.appendChild(line(X.clade, (Y.aTop+Y.bBot)/2, X.b, (Y.bTop+Y.bBot)/2));            // clade->B
+    svg.appendChild(line(X.a, (Y.aTop+Y.aBot)/2, X.leaf, Y.aTop));                         // A->leaf
+    svg.appendChild(line(X.a, (Y.aTop+Y.aBot)/2, X.leaf, Y.aBot));                         // A->leaf
+    svg.appendChild(line(X.b, (Y.bTop+Y.bBot)/2, X.leaf, Y.bTop));                         // B->leaf
+    svg.appendChild(line(X.b, (Y.bTop+Y.bBot)/2, X.leaf, Y.bBot));                         // B->leaf
+    svg.appendChild(line(X.out, Y.out, X.leaf, Y.out));                                    // out->leaf
 
-    // Socket builders
-    function socket(id, x, y, tag) {
+    // Slot builder (rounded rect target areas sized for the card)
+    const SLOT_W = 230, SLOT_H = 70, R = 12;
+
+    function slot(socketId, cx, cy, tagPrimary='', tagSecondary='') {
       const g = document.createElementNS(svgNS,'g');
-      g.setAttribute('data-socket', id);
+      g.setAttribute('data-socket', socketId);
       g.setAttribute('class','socket');
-      const c = document.createElementNS(svgNS,'circle');
-      c.setAttribute('cx', x); c.setAttribute('cy', y); c.setAttribute('r', 14);
-      c.setAttribute('fill', '#fff'); c.setAttribute('stroke','#2563eb'); c.setAttribute('stroke-width','2');
-      const t = document.createElementNS(svgNS,'text');
-      t.setAttribute('x', x+18); t.setAttribute('y', y+4);
-      t.setAttribute('class','socket-label');
-      t.textContent = tag;
-      g.appendChild(c); g.appendChild(t);
-      // DnD
+
+      const x = cx - SLOT_W/2, y = cy - SLOT_H/2;
+
+      const rect = document.createElementNS(svgNS,'rect');
+      rect.setAttribute('x', x); rect.setAttribute('y', y);
+      rect.setAttribute('rx', R); rect.setAttribute('ry', R);
+      rect.setAttribute('width', SLOT_W); rect.setAttribute('height', SLOT_H);
+      rect.setAttribute('class','socket-slot');
+
+      const label = document.createElementNS(svgNS,'text');
+      label.setAttribute('x', x + 8);
+      label.setAttribute('y', y - 8);
+      label.setAttribute('class','socket-label');
+      label.textContent = tagPrimary;
+
+      const tag2 = document.createElementNS(svgNS,'text');
+      tag2.setAttribute('x', x + 8);
+      tag2.setAttribute('y', y + SLOT_H + 16);
+      tag2.setAttribute('class','socket-tag');
+      tag2.textContent = tagSecondary;
+
+      g.appendChild(rect);
+      if (tagPrimary) g.appendChild(label);
+      if (tagSecondary) g.appendChild(tag2);
+
+      // Make this a drop target
       g.addEventListener('dragover', e => { e.preventDefault(); g.classList.add('hover'); });
       g.addEventListener('dragleave', () => g.classList.remove('hover'));
-      g.addEventListener('drop', e => { e.preventDefault(); g.classList.remove('hover'); const sp = e.dataTransfer.getData('text/sp'); if (sp) placeOnSocket(id, sp); });
+      g.addEventListener('drop', e => {
+        e.preventDefault(); g.classList.remove('hover');
+        const sp = e.dataTransfer.getData('text/sp');
+        if (sp) placeOnSocket(socketId, sp);
+      });
+
       return g;
     }
 
-    // Create 5 sockets: A1/A2, B1/B2, O
-    const sA1 = socket('A1', X.leaf, Y.aTop, 'Pair A');
-    const sA2 = socket('A2', X.leaf, Y.aBot, '');
-    const sB1 = socket('B1', X.leaf, Y.bTop, 'Pair B');
-    const sB2 = socket('B2', X.leaf, Y.bBot, '');
-    const sO  = socket('O',  X.leaf, Y.out,  'Outgroup');
+    // Build slots
+    const sA1 = slot('A1', X.leaf, Y.aTop, 'Pair A (closest)');
+    const sA2 = slot('A2', X.leaf, Y.aBot);
+    const sB1 = slot('B1', X.leaf, Y.bTop, 'Pair B (next closest)');
+    const sB2 = slot('B2', X.leaf, Y.bBot);
+    const sO  = slot('O',  X.leaf, Y.out, 'Outgroup (oldest)');
 
     svg.appendChild(sA1); svg.appendChild(sA2);
     svg.appendChild(sB1); svg.appendChild(sB2);
     svg.appendChild(sO);
 
+    // Mount svg
     box.innerHTML = '';
     box.appendChild(svg);
 
-    // Re-apply any prior placements (if user re-opened Teens tab)
+    // Reapply any placements
     for (const [sock, sp] of assign.entries()) {
-      if (sp) mountTokenOnSocket(sock, sp);
-    }
-
-    // Make deck a drop target to "return" card
-    const deck = document.getElementById('species-deck');
-    if (deck) {
-      deck.addEventListener('dragover', e => e.preventDefault());
-      deck.addEventListener('drop', e => {
-        e.preventDefault();
-        const sp = e.dataTransfer.getData('text/sp');
-        if (!sp) return;
-        removeSpecies(sp); // unassign from any socket
-        // Put back to deck visually
-        if (!deck.querySelector(`.species-card[data-sp="${sp}"]`)) {
-          deck.insertAdjacentHTML('beforeend', speciesCardHTML(sp));
-          deck.querySelector(`.species-card[data-sp="${sp}"]`).addEventListener('dragstart', onDragStart);
-        }
-      });
+      if (sp) mountTokenOnSocket(sock, sp, SLOT_W, SLOT_H);
     }
   }
 
-  // Place a species onto a socket (handles swapping/removal)
+  // Place a species onto a socket (handles swapping/return)
   function placeOnSocket(socketId, sp) {
-    // If this species is already on a socket, clear it
     const existingSock = placedBySpecies.get(sp);
     if (existingSock && existingSock !== socketId) {
       clearSocket(existingSock);
     }
 
-    // If socket already has someone, return that card to deck
     const current = assign.get(socketId);
     if (current && current !== sp) {
       returnToDeck(current);
@@ -808,63 +816,64 @@ const IntermediateGame = (() => {
     placedBySpecies.set(sp, socketId);
     mountTokenOnSocket(socketId, sp);
 
-    // Remove card from deck (if still there)
-    const card = document.querySelector(`#species-deck .species-card[data-sp="${sp}"]`);
-    card?.remove();
+    // Remove card from deck (if still present)
+    document.querySelector(`#species-deck .species-card[data-sp="${sp}"]`)?.remove();
   }
 
-  function mountTokenOnSocket(socketId, sp) {
+  function mountTokenOnSocket(socketId, sp, SLOT_W=230, SLOT_H=70) {
     const svg = document.querySelector('#teens .tree-svg svg');
     if (!svg) return;
     const g = svg.querySelector(`[data-socket="${socketId}"]`);
     if (!g) return;
     g.classList.add('occupied');
 
-    // Remove prior badge for this socket
-    const old = g.querySelector('foreignObject');
-    old?.remove();
+    // Remove prior token
+    g.querySelector('foreignObject')?.remove();
 
-    // Label to show on the socket
-    const label = (useShort ? LABEL_SHORT : LABEL_FULL)[sp];
-
-    // Create a small token next to the circle using foreignObject for HTML
-    const cx = Number(g.querySelector('circle')?.getAttribute('cx')||0);
-    const cy = Number(g.querySelector('circle')?.getAttribute('cy')||0);
-
+    // Build compact token that fits inside slot
     const fo = document.createElementNS('http://www.w3.org/2000/svg','foreignObject');
-    fo.setAttribute('x', cx - 80);
-    fo.setAttribute('y', cy - 34);
-    fo.setAttribute('width', 180);
-    fo.setAttribute('height', 68);
+    const rect = g.querySelector('.socket-slot');
+    const x = Number(rect.getAttribute('x')), y = Number(rect.getAttribute('y'));
+
+    fo.setAttribute('x', x + 4);
+    fo.setAttribute('y', y + 4);
+    fo.setAttribute('width', SLOT_W - 8);
+    fo.setAttribute('height', SLOT_H - 8);
+
+    const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
 
     const div = document.createElement('div');
     div.setAttribute('xmlns','http://www.w3.org/1999/xhtml');
-    div.style.display = 'inline-flex';
-    div.style.alignItems = 'center';
-    div.style.gap = '6px';
-    div.style.background = '#ffffff';
-    div.style.border = '1px solid #e2e8f0';
-    div.style.borderRadius = '999px';
-    div.style.padding = '2px 8px';
-    div.style.fontSize = '12px';
-    div.style.boxShadow = '0 1px 3px rgba(2,6,23,0.06)';
-
+    div.style.cssText = `
+      display:flex; align-items:center; gap:8px; width:100%; height:100%;
+      background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:6px 8px;
+      box-sizing:border-box; box-shadow:0 1px 3px rgba(2,6,23,0.06);
+    `;
     const img = document.createElement('img');
-    img.src = imgPathFor(sp);
-    img.alt = label;
-    img.width = 24; img.height = 24;
-    img.style.borderRadius = '50%';
-    img.style.objectFit = 'cover';
-    img.style.border = '1px solid #e5e9ef';
+    img.src = imgPathFor(sp); img.alt = label;
+    img.width = 32; img.height = 32;
+    img.style.cssText = 'border-radius:8px; object-fit:cover; border:1px solid #e5e9ef;';
     img.onerror = () => { img.src='assets/eve_logo.webp'; };
 
-    const txt = document.createElement('span');
-    txt.textContent = label;
-    txt.style.fontWeight = '700';
-    txt.style.color = '#0a1a2f';
+    const col = document.createElement('div');
+    col.style.cssText = 'display:flex; flex-direction:column; gap:2px;';
 
-    div.appendChild(img);
-    div.appendChild(txt);
+    const t = document.createElement('div');
+    t.textContent = label;
+    t.style.cssText = 'font:700 12px/1.1 Inter, system-ui; color:#0a1a2f;';
+
+    // Tiny band row inside slot (matches deck look)
+    const chrom = document.createElement('div');
+    chrom.style.cssText = 'display:flex; gap:3px;';
+    (EVE_BANDS[sp]||[]).forEach(state => {
+      const b = document.createElement('span');
+      b.title = state;
+      b.style.cssText = `width:8px;height:14px;border-radius:2px;border:1px solid rgba(0,0,0,.12);background:${PALETTE[state]||'#cbd5e1'};`;
+      chrom.appendChild(b);
+    });
+
+    col.appendChild(t); col.appendChild(chrom);
+    div.appendChild(img); div.appendChild(col);
     fo.appendChild(div);
     g.appendChild(fo);
   }
@@ -881,13 +890,11 @@ const IntermediateGame = (() => {
     }
   }
 
-  function removeSpecies(sp) {
+  function returnToDeck(sp) {
+    // Unassign from any socket
     const sock = placedBySpecies.get(sp);
     if (sock) clearSocket(sock);
-  }
-
-  function returnToDeck(sp) {
-    removeSpecies(sp);
+    // Put back to deck if not already there
     const deck = document.getElementById('species-deck');
     if (!deck) return;
     if (!deck.querySelector(`.species-card[data-sp="${sp}"]`)) {
@@ -896,20 +903,9 @@ const IntermediateGame = (() => {
     }
   }
 
-  function onDragOverPrevent(e) {
-    e.preventDefault();
-  }
-
-  function onDropToDeck(e) {
-    e.preventDefault();
-    const sp = e.dataTransfer.getData('text/sp');
-    if (sp) returnToDeck(sp);
-  }
-
-  /* ---------- Matrix (optional helper) ---------- */
+  /* ---------- Matrix helper (optional) ---------- */
   function renderMatrix() {
     const el = document.getElementById('matrix'); if (!el) return;
-    // Reuse bands as a crude "shared EVEs" count: count of same state occurrences at same indices
     const shared = pairwiseSharedCounts();
     const keys = Object.keys(shared);
     const maxShared = Math.max(1, ...keys.map(k=>shared[k]||0));
@@ -933,7 +929,6 @@ const IntermediateGame = (() => {
       for (let j=i+1;j<S.length;j++){
         const a=S[i], b=S[j];
         const A=EVE_BANDS[a]||[], B=EVE_BANDS[b]||[];
-        // Count same-state bands at same positions (toy metric)
         const n=Math.min(A.length,B.length);
         let c=0; for (let k=0;k<n;k++){ if (A[k]===B[k]) c++; }
         out[keyPair(a,b)] = c;
@@ -944,13 +939,12 @@ const IntermediateGame = (() => {
   function heatClass(val, diag, max){ if (diag) return 'med'; const r = val/max; return r>=0.95?'max': r>=0.65?'high': r>=0.35?'med':'low'; }
   function keyPair(a,b){ return [a,b].sort().join('|'); }
 
-  /* ---------- Public actions (wired to your existing buttons) ---------- */
+  /* ---------- Public actions (wire to your buttons) ---------- */
   function checkTree() {
     const A = [assign.get('A1'), assign.get('A2')].filter(Boolean);
     const B = [assign.get('B1'), assign.get('B2')].filter(Boolean);
     const O = assign.get('O');
 
-    // Require all sockets filled
     if (A.length!==2 || B.length!==2 || !O) {
       toast('Place all five species onto the tree: Pair A (2), Pair B (2), Outgroup (1).', document.getElementById('teens'));
       return;
@@ -962,7 +956,6 @@ const IntermediateGame = (() => {
 
     const txt = document.getElementById('your-tree');
     if (txt) {
-      // Show a simple Newick-like string for feedback
       const newick = `((${A.join(',')}),(${B.join(',')}),${O});`;
       txt.textContent = newick;
     }
@@ -972,7 +965,6 @@ const IntermediateGame = (() => {
       if (!IntermediateGame._won){
         IntermediateGame._won = true;
         window.Achievements?.markComplete('teens');
-        // Celebrate
         if (typeof confettiBurst === 'function') confettiBurst();
         if (typeof claps === 'function') claps();
         if (typeof playChime === 'function') playChime();
@@ -985,9 +977,7 @@ const IntermediateGame = (() => {
   }
 
   function clearDrops() {
-    // Clear sockets visually and state
     for (const sock of ['A1','A2','B1','B2','O']) clearSocket(sock);
-    // Return all species to deck
     const deck = document.getElementById('species-deck');
     if (!deck) return;
     deck.innerHTML = '';
@@ -1017,10 +1007,11 @@ const IntermediateGame = (() => {
   };
 })();
 
-// Ensure Teens game builds when the Teens panel is present
+// Build Teens when Teens panel exists
 document.addEventListener('DOMContentLoaded', () => {
   if (document.getElementById('teens')) IntermediateGame.init();
 });
+
 
 // ==================== ADULTS GAME ====================
 const AdvancedGame = (() => {
