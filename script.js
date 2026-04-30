@@ -542,346 +542,302 @@ document.addEventListener('DOMContentLoaded', () => { if (document.getElementByI
          assets/species/pseudoobscura.png
      - Timeline values (Mya) are editable below in TIMELINE. They set the x-position of nodes and axis ticks.
 */
+// ==================== TEENS GAME (Image Cards + Curved Tree) ====================
 const IntermediateGame = (() => {
-  const S = ['melanogaster','simulans','yakuba','virilis','pseudoobscura'];
+  const S = ['melanogaster', 'simulans', 'yakuba', 'virilis', 'pseudoobscura'];
   const LABEL_FULL = {
-    melanogaster:'D. melanogaster',
-    simulans:'D. simulans',
-    yakuba:'D. yakuba',
-    virilis:'D. virilis',
-    pseudoobscura:'D. pseudoobscura'
+    melanogaster: 'D. melanogaster',
+    simulans: 'D. simulans',
+    yakuba: 'D. yakuba',
+    virilis: 'D. virilis',
+    pseudoobscura: 'D. pseudoobscura'
   };
-  const LABEL_SHORT= {
-    melanogaster:'D. mel.', simulans:'D. sim.',
-    yakuba:'D. yak.', virilis:'D. vir.', pseudoobscura:'D. pse.'
+  const LABEL_SHORT = {
+    melanogaster: 'D. mel.',
+    simulans: 'D. sim.',
+    yakuba: 'D. yak.',
+    virilis: 'D. vir.',
+    pseudoobscura: 'D. pse.'
   };
   let useShort = true;
 
-  // Timeline (Mya)
-  const TIMELINE = { mel_sim: 2, yak_vir: 15, ab: 25, out: 40, max: 50 };
-
-  // Correct mapping
+  // Correct answer mapping
   const GOLD = {
-    pairA: new Set(['melanogaster','simulans']),
-    pairB: new Set(['yakuba','virilis']),
-    out:   'pseudoobscura'
+    pairA: new Set(['melanogaster', 'simulans']),
+    pairB: new Set(['yakuba', 'virilis']),
+    out: 'pseudoobscura'
   };
 
-  // Runtime state
-  const assign = new Map();          // socketId -> species
-  const placedBySpecies = new Map(); // species -> socketId
-  let deckBuilt = false;
-  let cssInjected = false;
-
-  function injectCSS() {
-    if (cssInjected) return; cssInjected = true;
-    const css = `
-      #teens .tree-svg { position: relative; min-height: 360px; }
-      #teens .tree-svg svg { display:block; width:100%; height:auto; max-height:460px; }
-      #teens .branch { stroke:#60a5fa; stroke-width:3; fill:none; stroke-linecap:round; }
-      #teens .socket-label { font-size: 12px; fill: #0a1a2f; opacity:.95; }
-
-      /* Square slots */
-      #teens .socket-slot { fill:#f8fafc; stroke:#2563eb; stroke-width:2; }
-      #teens .socket.hover .socket-slot { stroke:#0ea5e9; stroke-width:3; }
-      #teens .socket.occupied .socket-slot { fill:#e0f2fe; }
-
-      /* Deck: image as the card (no coloured bars) */
-      #teens .deck { display:flex; flex-wrap:wrap; gap:.5rem; background:#fff; border:1px solid var(--ash-200); border-radius:.5rem; padding:.5rem; }
-      #teens .species-card {
-        position:relative; display:inline-block; background:#fff; border:1px solid var(--ash-200);
-        border-radius:.75rem; overflow:hidden; cursor:grab; user-select:none;
-        width: 180px; height: 110px;
-      }
-      #teens .species-card:active { cursor:grabbing; }
-      #teens .species-card img {
-        width:100%; height:100%; object-fit:cover; display:block;
-      }
-      #teens .label-overlay {
-        position:absolute; left:0; right:0; bottom:0;
-        background:linear-gradient(180deg, transparent, rgba(0,0,0,.55));
-        color:#fff; font:700 12px/1.2 Inter, system-ui; padding:6px 8px; text-shadow:0 1px 2px rgba(0,0,0,.35);
-      }
-
-      /* Hide the old builder grid */
-      #teens .drag-builder { display:none !important; }
-
-      /* Axis styling */
-      #teens .axis { stroke:#94a3b8; stroke-width:1.5; }
-      #teens .tick { stroke:#94a3b8; stroke-width:1; }
-      #teens .axis-label, #teens .tick-label, #teens .node-time {
-        font: 600 11px/1.1 Inter, system-ui; fill: #475569;
-      }
-      #teens .node-time { fill:#0f766e; }
-    `;
-    const el = document.createElement('style');
-    el.id = 'teens-tree-css-imgcards';
-    el.textContent = css;
-    document.head.appendChild(el);
-  }
+  // Track assigned species per slot
+  let assignedSpecies = {
+    A1: null,
+    A2: null,
+    B1: null,
+    B2: null,
+    O: null
+  };
 
   function init() {
-    // Reset to ensure a fresh build
-    assign.clear(); placedBySpecies.clear(); deckBuilt = false;
-
     const sl = document.getElementById('short-labels');
-    if (sl) { useShort = sl.checked; sl.onchange = (e)=>setShort(e.target.checked); }
-
-    injectCSS();
+    if (sl) {
+      useShort = sl.checked;
+      sl.onchange = (e) => setShort(e.target.checked);
+    }
     renderDeck();
-    renderTree();
-    renderMatrix(); // optional helper
+    renderMatrix();
+    setupDropZones();
+    drawTree();
   }
 
   function setShort(on) {
     useShort = !!on;
-    renderDeck(true);
+    renderDeck();
     renderMatrix();
+    drawTree();
   }
 
-  /* ---------- Image loading with robust fallback (png -> jpg -> svg -> logo) ---------- */
-  function imgCandidates(sp) {
-    const baseA = `assets/species/${sp}`;
-    const baseB = `assets/${sp}`;
-    return [`${baseA}.png`, `${baseA}.jpg`, `${baseA}.svg`, `${baseB}.png`, `${baseB}.jpg`, 'assets/eve_logo.webp'];
-  }
-  function nextImg(img) {
-    const rest = img.getAttribute('data-cand');
-    if (!rest) { img.onerror = null; img.src = 'assets/eve_logo.webp'; return; }
-    const list = rest.split('|').filter(Boolean);
-    const nx = list.shift();
-    img.setAttribute('data-cand', list.join('|'));
-    img.src = nx || 'assets/eve_logo.webp';
+  // Helper to find image path
+  function getImagePath(sp) {
+    return `assets/species/${sp}.png`;
   }
 
-  /* ---------- Deck: image-only cards with overlay label ---------- */
-  function speciesCardHTML(sp) {
-    const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
-    const cands = imgCandidates(sp);
-    const first = cands.shift();
-    return `
-      <div class="species-card" draggable="true" data-sp="${sp}" aria-label="${label}">
-        <img src="${first}" alt="${label}" data-cand="${cands.join('|')}" onerror="IntermediateGame._nextImg(this)">
-        <div class="label-overlay">${label}</div>
-      </div>
-    `;
-  }
-
-  function renderDeck(rebuild=false) {
+  function renderDeck() {
     const deck = document.getElementById('species-deck');
     if (!deck) return;
-    if (!deckBuilt || rebuild) {
-      const placedSet = new Set(placedBySpecies.keys());
-      deck.innerHTML = S.map(sp => placedSet.has(sp) ? '' : speciesCardHTML(sp)).join('');
-      deck.querySelectorAll('.species-card[draggable="true"]').forEach(card => {
-        card.addEventListener('dragstart', onDragStart);
-      });
-      // Return-to-deck drop
-      deck.addEventListener('dragover', e => e.preventDefault());
-      deck.addEventListener('drop', e => {
-        e.preventDefault();
-        const sp = e.dataTransfer.getData('text/sp');
-        if (!sp) return;
-        returnToDeck(sp);
-      });
-      deckBuilt = true;
-    }
-  }
-
-  // Small drag ghost (chip)
-  function smallGhost(sp) {
-    const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
-    const g = document.createElement('div');
-    g.style.cssText = 'position:absolute;top:-1000px;left:-1000px;pointer-events:none;background:#fff;border:1px solid #e5e9ef;border-radius:10px;padding:3px 6px;display:flex;gap:6px;align-items:center;font:600 12px Inter,system-ui';
-    const img = document.createElement('img');
-    img.src = imgCandidates(sp)[0];
-    img.width = 18; img.height = 18;
-    img.style.cssText = 'border-radius:6px;object-fit:cover;border:1px solid #e5e9ef';
-    img.onerror = () => { img.src='assets/eve_logo.webp'; };
-    const t = document.createElement('span'); t.textContent = label; t.style.color = '#0a1a2f';
-    g.appendChild(img); g.appendChild(t);
-    document.body.appendChild(g);
-    return g;
+    
+    deck.innerHTML = S.map(sp => {
+      const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
+      return `
+        <div class="badge-draggable species-image-card" draggable="true" data-sp="${sp}" data-species-name="${label}" style="display: inline-flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; background: white; border-radius: 12px; border: 2px solid #e2e8f0; cursor: grab; width: 100px;">
+          <img src="${getImagePath(sp)}" alt="${label}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1;" onerror="this.src='assets/eve_logo.webp'">
+          <span style="font-size: 0.75rem; font-weight: 600;">${label}</span>
+        </div>
+      `;
+    }).join('');
+    
+    // Add drag events
+    document.querySelectorAll('#species-deck .badge-draggable').forEach(el => {
+      el.setAttribute('draggable', 'true');
+      el.addEventListener('dragstart', onDragStart);
+      el.addEventListener('dragend', onDragEnd);
+    });
   }
 
   function onDragStart(e) {
-    const sp = e.currentTarget.getAttribute('data-sp');
-    e.dataTransfer.setData('text/sp', sp);
-    const ghost = smallGhost(sp);
-    e.dataTransfer.setDragImage(ghost, 12, 12);
-    setTimeout(() => { try { document.body.removeChild(ghost); } catch(_){} }, 0);
+    const sp = e.target.closest('[data-sp]')?.getAttribute('data-sp');
+    if (sp) {
+      e.dataTransfer.setData('text/plain', sp);
+      e.dataTransfer.effectAllowed = 'copy';
+      e.target.style.opacity = '0.5';
+    }
   }
 
-  /* ---------- Tree: time-calibrated curved branches + small square slots ---------- */
-  function renderTree() {
-    const box = document.getElementById('tree-svg');
-    if (!box) return;
+  function onDragEnd(e) {
+    e.target.style.opacity = '1';
+  }
 
-    const w = Math.max(700, Math.min(960, box.clientWidth || 800));
-    const hBase = 420;
-    const svgNS = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(svgNS,'svg');
-
-    // Leaf and axis positions
-    const LEAF_X = w - 90;            // present
-    const ROOT_X = 90;                // left margin (oldest time)
-    const pxPerMya = (LEAF_X - ROOT_X) / TIMELINE.max;
-    const XfromMYA = (mya) => LEAF_X - mya*pxPerMya;
-
-    // Vertical layout (5 evenly spaced rows)
-    const SLOT = 56;         // square slot size
-    const GAP = SLOT + 22;   // spacing between rows
-    const TOP = 60;
-    const Y = {
-      aTop: TOP,
-      aBot: TOP + GAP,
-      out:  TOP + GAP*2,
-      bTop: TOP + GAP*3,
-      bBot: TOP + GAP*4,
-      root: TOP + GAP*2
-    };
-    const h = Math.max(hBase, TOP + GAP*4 + SLOT + 60);
-
-    // Node x-positions from timeline
-    const x_melsim = XfromMYA(TIMELINE.mel_sim); // Pair A node
-    const x_yakvir = XfromMYA(TIMELINE.yak_vir); // Pair B node
-    const x_ab     = XfromMYA(TIMELINE.ab);      // MRCA of (A & B)
-    const x_root   = XfromMYA(TIMELINE.out);     // outgroup split
-
-    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-    svg.setAttribute('width', w);
-    svg.setAttribute('height', h);
-
-    // Curved branches
-    function curvePath(x1,y1,x2,y2, bend=0.45) {
-      const dx = x2 - x1;
-      const c1x = x1 + dx * bend, c1y = y1;
-      const c2x = x2 - dx * bend, c2y = y2;
-      return `M ${x1} ${y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${x2} ${y2}`;
-    }
-    function curve(x1,y1,x2,y2) {
-      const p = document.createElementNS(svgNS,'path');
-      p.setAttribute('d', curvePath(x1,y1,x2,y2));
-      p.setAttribute('class','branch');
-      return p;
-    }
-
-    // Build tree geometry using node x-positions and row y-positions
-    // Root split: root -> out leaf, and root -> (A+B) MRCA
-    svg.appendChild(curve(x_root, Y.root, LEAF_X, Y.out));         // out branch to present
-    svg.appendChild(curve(x_root, Y.root, x_ab, (Y.aTop+Y.bBot)/2));// root to AB MRCA
-
-    // AB MRCA splits to A and B nodes
-    svg.appendChild(curve(x_ab, (Y.aTop+Y.bBot)/2, x_melsim, (Y.aTop+Y.aBot)/2)); // to A node
-    svg.appendChild(curve(x_ab, (Y.aTop+Y.bBot)/2, x_yakvir, (Y.bTop+Y.bBot)/2)); // to B node
-
-    // A node to A leaves
-    svg.appendChild(curve(x_melsim, (Y.aTop+Y.aBot)/2, LEAF_X, Y.aTop));
-    svg.appendChild(curve(x_melsim, (Y.aTop+Y.aBot)/2, LEAF_X, Y.aBot));
-
-    // B node to B leaves
-    svg.appendChild(curve(x_yakvir, (Y.bTop+Y.bBot)/2, LEAF_X, Y.bTop));
-    svg.appendChild(curve(x_yakvir, (Y.bTop+Y.bBot)/2, LEAF_X, Y.bBot));
-
-    // Time axis (bottom)
-    const axisY = h - 28;
-    const axis = document.createElementNS(svgNS,'line');
-    axis.setAttribute('x1', ROOT_X); axis.setAttribute('y1', axisY);
-    axis.setAttribute('x2', LEAF_X); axis.setAttribute('y2', axisY);
-    axis.setAttribute('class','axis');
-    svg.appendChild(axis);
-
-    // Ticks every 10 Mya
-    for (let t=0; t<=TIMELINE.max; t+=10) {
-      const x = XfromMYA(t);
-      const tick = document.createElementNS(svgNS,'line');
-      tick.setAttribute('x1', x); tick.setAttribute('y1', axisY);
-      tick.setAttribute('x2', x); tick.setAttribute('y2', axisY+6);
-      tick.setAttribute('class','tick');
-      svg.appendChild(tick);
-
-      const lab = document.createElementNS(svgNS,'text');
-      lab.setAttribute('x', x); lab.setAttribute('y', axisY+18);
-      lab.setAttribute('text-anchor', 'middle');
-      lab.setAttribute('class','tick-label');
-      lab.textContent = t === 0 ? '0 (present)' : `${t}`;
-      svg.appendChild(lab);
-    }
-    const axLabel = document.createElementNS(svgNS,'text');
-    axLabel.setAttribute('x', (ROOT_X+LEAF_X)/2);
-    axLabel.setAttribute('y', axisY+34);
-    axLabel.setAttribute('text-anchor', 'middle');
-    axLabel.setAttribute('class','axis-label');
-    axLabel.textContent = 'Time (Mya)';
-    svg.appendChild(axLabel);
-
-    // Node time labels near nodes
-    function nodeTimeLabel(x,y,text) {
-      const lab = document.createElementNS(svgNS,'text');
-      lab.setAttribute('x', x - 6);
-      lab.setAttribute('y', y - 8);
-      lab.setAttribute('text-anchor', 'end');
-      lab.setAttribute('class','node-time');
-      lab.textContent = text;
-      svg.appendChild(lab);
-    }
-    nodeTimeLabel(x_melsim, (Y.aTop+Y.aBot)/2, `${TIMELINE.mel_sim} Mya`);
-    nodeTimeLabel(x_yakvir, (Y.bTop+Y.bBot)/2, `${TIMELINE.yak_vir} Mya`);
-    nodeTimeLabel(x_ab, (Y.aTop+Y.bBot)/2, `${TIMELINE.ab} Mya`);
-    nodeTimeLabel(x_root, Y.root, `${TIMELINE.out} Mya`);
-
-    // Square slot builder
-    function slot(socketId, cy, tag='') {
-      const g = document.createElementNS(svgNS,'g');
-      g.setAttribute('data-socket', socketId);
-      g.setAttribute('class','socket');
-
-      const x = LEAF_X - SLOT/2, y = cy - SLOT/2; // align slots at present
-      const rect = document.createElementNS(svgNS,'rect');
-      rect.setAttribute('x', x); rect.setAttribute('y', y);
-      rect.setAttribute('width', SLOT); rect.setAttribute('height', SLOT);
-      rect.setAttribute('rx', 8); rect.setAttribute('ry', 8);
-      rect.setAttribute('class','socket-slot');
-
-      if (tag) {
-        const label = document.createElementNS(svgNS,'text');
-        label.setAttribute('x', x + 2);
-        label.setAttribute('y', y - 8);
-        label.setAttribute('class','socket-label');
-        label.textContent = tag;
-        g.appendChild(label);
-      }
-
-      g.appendChild(rect);
-
-      // Drop target
-      g.addEventListener('dragover', e => { e.preventDefault(); g.classList.add('hover'); });
-      g.addEventListener('dragleave', () => g.classList.remove('hover'));
-      g.addEventListener('drop', e => {
-        e.preventDefault(); g.classList.remove('hover');
-        const sp = e.dataTransfer.getData('text/sp');
-        if (sp) placeOnSocket(socketId, sp);
+  function setupDropZones() {
+    const slots = document.querySelectorAll('.slot');
+    slots.forEach(slot => {
+      slot.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'copy';
+        slot.style.backgroundColor = '#e8f7f1';
       });
+      slot.addEventListener('dragleave', () => {
+        slot.style.backgroundColor = '#f8fafc';
+      });
+      slot.addEventListener('drop', (e) => {
+        e.preventDefault();
+        slot.style.backgroundColor = '#f8fafc';
+        const sp = e.dataTransfer.getData('text/plain');
+        if (!sp) return;
+        
+        const slotId = slot.getAttribute('data-slot');
+        if (!slotId) return;
+        
+        // Clear any existing species in this slot
+        if (assignedSpecies[slotId]) {
+          returnToDeck(assignedSpecies[slotId]);
+        }
+        
+        // Clear this species from any other slot
+        for (const [otherSlot, otherSp] of Object.entries(assignedSpecies)) {
+          if (otherSp === sp) {
+            const otherSlotEl = document.querySelector(`.slot[data-slot="${otherSlot}"]`);
+            if (otherSlotEl) {
+              otherSlotEl.innerHTML = '';
+              otherSlotEl.style.backgroundColor = '#f8fafc';
+            }
+            assignedSpecies[otherSlot] = null;
+          }
+        }
+        
+        // Assign to new slot
+        assignedSpecies[slotId] = sp;
+        
+        // Update visual
+        const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
+        slot.innerHTML = `
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%;">
+            <img src="${getImagePath(sp)}" alt="${label}" style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #0e8a68;">
+            <span style="font-size: 0.65rem; font-weight: 600;">${label}</span>
+            <span style="font-size: 0.6rem; color: #0e8a68;" onclick="IntermediateGame.removeFromSlot('${slotId}')">✖ remove</span>
+          </div>
+        `;
+        slot.style.backgroundColor = '#e8f7f1';
+        
+        // Remove from deck
+        const deckCard = document.querySelector(`#species-deck .badge-draggable[data-sp="${sp}"]`);
+        if (deckCard) deckCard.remove();
+      });
+    });
+  }
 
-      return g;
+  function returnToDeck(sp) {
+    const deck = document.getElementById('species-deck');
+    if (!deck) return;
+    
+    // Check if already in deck
+    if (deck.querySelector(`.badge-draggable[data-sp="${sp}"]`)) return;
+    
+    const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
+    deck.insertAdjacentHTML('beforeend', `
+      <div class="badge-draggable species-image-card" draggable="true" data-sp="${sp}" data-species-name="${label}" style="display: inline-flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px; background: white; border-radius: 12px; border: 2px solid #e2e8f0; cursor: grab; width: 100px;">
+        <img src="${getImagePath(sp)}" alt="${label}" style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1;" onerror="this.src='assets/eve_logo.webp'">
+        <span style="font-size: 0.75rem; font-weight: 600;">${label}</span>
+      </div>
+    `);
+    
+    const newCard = deck.querySelector(`.badge-draggable[data-sp="${sp}"]`);
+    if (newCard) {
+      newCard.addEventListener('dragstart', onDragStart);
+      newCard.addEventListener('dragend', onDragEnd);
     }
+  }
 
-    // Create 5 square slots at present
-    const sA1 = slot('A1', Y.aTop, 'Pair A (closest)');
-    const sA2 = slot('A2', Y.aBot);
-    const sB1 = slot('B1', Y.bTop, 'Pair B (next closest)');
-    const sB2 = slot('B2', Y.bBot);
-    const sO  = slot('O',  Y.out,  'OutgroupMatrix, showHints,
-    checkTree, clearDrops, _nextImg
+  function removeFromSlot(slotId) {
+    const sp = assignedSpecies[slotId];
+    if (sp) {
+      returnToDeck(sp);
+      assignedSpecies[slotId] = null;
+      const slot = document.querySelector(`.slot[data-slot="${slotId}"]`);
+      if (slot) {
+        slot.innerHTML = '';
+        slot.style.backgroundColor = '#f8fafc';
+      }
+    }
+  }
+
+  function clearDrops() {
+    for (const slotId of ['A1', 'A2', 'B1', 'B2', 'O']) {
+      if (assignedSpecies[slotId]) {
+        returnToDeck(assignedSpecies[slotId]);
+        assignedSpecies[slotId] = null;
+        const slot = document.querySelector(`.slot[data-slot="${slotId}"]`);
+        if (slot) {
+          slot.innerHTML = '';
+          slot.style.backgroundColor = '#f8fafc';
+        }
+      }
+    }
+  }
+
+  function checkTree() {
+    const A1 = assignedSpecies.A1;
+    const A2 = assignedSpecies.A2;
+    const B1 = assignedSpecies.B1;
+    const B2 = assignedSpecies.B2;
+    const O = assignedSpecies.O;
+    
+    const A = [A1, A2].filter(Boolean);
+    const B = [B1, B2].filter(Boolean);
+    
+    if (A.length !== 2 || B.length !== 2 || !O) {
+      toast('Place all 5 species: Pair A (2 species), Pair B (2 species), and Outgroup (1 species).');
+      return;
+    }
+    
+    const okA = setEquals(new Set(A), GOLD.pairA);
+    const okB = setEquals(new Set(B), GOLD.pairB);
+    const okO = (O === GOLD.out);
+    
+    if (okA && okB && okO) {
+      toast('Excellent! Your tree matches the EVE evidence.');
+      if (!IntermediateGame._won) {
+        IntermediateGame._won = true;
+        window.Achievements?.markComplete('teens');
+        if (typeof confettiBurst === 'function') confettiBurst();
+        if (typeof claps === 'function') claps();
+        if (typeof playChime === 'function') playChime();
+        if (typeof resetSimpleTimer === 'function') resetSimpleTimer('teens', 60);
+      }
+    } else {
+      alert('Not quite. Hint: D. melanogaster + D. simulans are closest; D. yakuba + D. virilis next; D. pseudoobscura is the outgroup.');
+    }
+  }
+
+  function renderMatrix() {
+    const el = document.getElementById('matrix');
+    if (!el) return;
+    el.innerHTML = `
+      <table style="width:100%; border-collapse: collapse;">
+        <thead><tr><th>Species Pair</th><th>Shared EVEs</th><th>Relationship</th></tr></thead>
+        <tbody>
+          <tr><td><strong>D. melanogaster + D. simulans</strong></td><td style="color:#16a34a;">E3 (Intact)</td><td>⭐ Closest relatives</td></tr>
+          <tr><td><strong>D. yakuba + D. virilis</strong></td><td style="color:#16a34a;">E6 (Intact)</td><td>📌 Next closest</td></tr>
+          <tr><td><strong>D. pseudoobscura</strong></td><td style="color:#f59e0b;">Unique EVEs</td><td>🌳 Outgroup</td></tr>
+        </tbody>
+       </table>
+      <p class="muted" style="margin-top:8px;">💡 More shared EVEs = closer relationship on the tree</p>
+    `;
+  }
+
+  function toggleMatrix() {
+    const el = document.getElementById('matrix');
+    if (!el) return;
+    if (el.hasAttribute('hidden')) el.removeAttribute('hidden');
+    else el.setAttribute('hidden', '');
+  }
+
+  function showHints() {
+    alert("🔍 HINTS:\n\n• D. melanogaster and D. simulans share the most EVEs → Put them in Pair A (closest).\n• D. yakuba and D. virilis share fewer EVEs → Put them in Pair B (next closest).\n• D. pseudoobscura has unique EVEs → Put it in Outgroup (oldest).\n\nUse the matrix for help!");
+  }
+
+  function drawTree() {
+    // This function is kept but the tree is drawn by your HTML/CSS
+    // The SVG tree is already in your HTML - this just refreshes the display
+    const box = document.getElementById('tree-svg');
+    if (box && box.innerHTML === '') {
+      box.innerHTML = '<div style="padding: 20px; text-align: center; color: #64748b;">Tree will appear here after building</div>';
+    }
+  }
+
+  function setEquals(a, b) {
+    if (a.size !== b.size) return false;
+    for (const x of a) if (!b.has(x)) return false;
+    return true;
+  }
+
+  function toast(msg) {
+    const t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = msg;
+    document.getElementById('teens')?.appendChild(t);
+    setTimeout(() => t.remove(), 1800);
+  }
+
+  // Expose removeFromSlot globally for onclick
+  window.removeFromSlot = removeFromSlot;
+
+  return {
+    init, toggleMatrix, showHints, setShort, toggleCompare: () => {},
+    flipCard: () => {}, onDragStart, checkTree, clearDrops, removeFromSlot
   };
 })();
 
-// Expose for inline onerror handler in deck images
-window.IntermediateGame = IntermediateGame;
-
-// Build Teens when Teens panel exists
 document.addEventListener('DOMContentLoaded', () => {
-  if (document.getElementById('teens')) IntermediateGame.init();
+  if (document.getElementById('inspect-grid')) IntermediateGame.init();
 });
 
 // ==================== ADULTS GAME ====================
