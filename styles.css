@@ -772,3 +772,73 @@ html{scroll-behavior:smooth}
 .eve-band:hover {
   transform: scale(1.15);
 }
+
+
+/* Teens Tree Game - Working Drag and Drop */
+.drop-zone {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.drop-zone.drag-over {
+  fill: #e8f7f1 !important;
+  stroke: #0e8a68 !important;
+  stroke-width: 3 !important;
+}
+
+.drop-zone.filled {
+  fill: #e8f7f1 !important;
+  stroke: #0e8a68 !important;
+  stroke-dasharray: none !important;
+}
+
+.species-card {
+  width: 160px;
+  background: white;
+  border: 2px solid #cbd5e1;
+  border-radius: 16px;
+  padding: 12px;
+  cursor: grab;
+  text-align: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.species-card:active {
+  cursor: grabbing;
+}
+
+.species-card:hover {
+  transform: translateY(-4px);
+  border-color: #0e8a68;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+.species-card.dragging {
+  opacity: 0.4;
+}
+
+.eve-bands {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.eve-band {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.eve-band.intact { background: #16a34a; }
+.eve-band.useful { background: #ef4444; }
+.eve-band.broken { background: #111827; }
+.eve-band.unique { background: #f59e0b; }
+
+.slot-label {
+  font-size: 11px;
+  font-weight: bold;
+  fill: #0e8a68;
+}
