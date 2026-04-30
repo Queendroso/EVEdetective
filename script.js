@@ -174,6 +174,18 @@ function achvToast(msg){
   document.addEventListener('DOMContentLoaded', () => { Achievements.load(); Achievements.render(); });
 })();
 
+// Safe download counter so Achievements.download() never errors
+function trackDownload(){
+  try{
+    const key = 'eve_downloads';
+    const el = document.getElementById('dl-total-count');
+    let n = parseInt(localStorage.getItem(key) || '0', 10);
+    n += 1;
+    localStorage.setItem(key, String(n));
+    if (el) el.textContent = String(n);
+  }catch(_){}
+}
+
 // ==================== SIMPLE WORKING TIMER ====================
 // Remove all other timer code and use only this
 
@@ -819,7 +831,6 @@ const IntermediateGame = (() => {
     nodeTimeLabel(x_root, Y.root, `${TIMELINE.out} Mya`);
 
     // Square slot builder
-    const SLOT = 56; // side length
     function slot(socketId, cy, tag='') {
       const g = document.createElementNS(svgNS,'g');
       g.setAttribute('data-socket', socketId);
@@ -860,185 +871,13 @@ const IntermediateGame = (() => {
     const sA2 = slot('A2', Y.aBot);
     const sB1 = slot('B1', Y.bTop, 'Pair B (next closest)');
     const sB2 = slot('B2', Y.bBot);
-    const sO  = slot('O',  Y.out,  'Outgroup (oldest)');
-
-    svg.appendChild(sA1); svg.appendChild(sA2);
-    svg.appendChild(sB1); svg.appendChild(sB2);
-    svg.appendChild(sO);
-
-    // Mount svg
-    box.innerHTML = '';
-    box.appendChild(svg);
-
-    // Reapply any placements
-    for (const [sock, sp] of assign.entries()) {
-      if (sp) mountTokenOnSocket(sock, sp, SLOT);
-    }
-  }
-
-  // Placement helpers
-  function placeOnSocket(socketId, sp) {
-    const existingSock = placedBySpecies.get(sp);
-    if (existingSock && existingSock !== socketId) clearSocket(existingSock);
-    const current = assign.get(socketId);
-    if (current && current !== sp) returnToDeck(current);
-    assign.set(socketId, sp);
-    placedBySpecies.set(sp, socketId);
-    mountTokenOnSocket(socketId, sp);
-    document.querySelector(`#species-deck .species-card[data-sp="${sp}"]`)?.remove();
-  }
-
-  function mountTokenOnSocket(socketId, sp, SLOT=56) {
-    const svg = document.querySelector('#teens .tree-svg svg');
-    if (!svg) return;
-    const g = svg.querySelector(`[data-socket="${socketId}"]`);
-    if (!g) return;
-    g.classList.add('occupied');
-
-    g.querySelector('foreignObject')?.remove();
-
-    const rect = g.querySelector('.socket-slot');
-    const x = Number(rect.getAttribute('x')), y = Number(rect.getAttribute('y'));
-
-    // Insert the image inside the square slot
-    const fo = document.createElementNS('http://www.w3.org/2000/svg','foreignObject');
-    fo.setAttribute('x', x + 2);
-    fo.setAttribute('y', y + 2);
-    fo.setAttribute('width', SLOT - 4);
-    fo.setAttribute('height', SLOT - 4);
-
-    const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
-
-    const div = document.createElement('div');
-    div.setAttribute('xmlns','http://www.w3.org/1999/xhtml');
-    div.style.cssText = `
-      width:100%; height:100%; border-radius:8px; overflow:hidden;
-      border:1px solid #e2e8f0; background:#fff; display:block;
-    `;
-
-    const img = document.createElement('img');
-    const cands = imgCandidates(sp);
-    img.src = cands[0];
-    img.setAttribute('data-cand', cands.slice(1).join('|'));
-    img.onerror = () => nextImg(img);
-    img.alt = label;
-    img.style.cssText = 'width:100%; height:100%; object-fit:cover; display:block;';
-
-    div.appendChild(img);
-    fo.appendChild(div);
-    g.appendChild(fo);
-  }
-
-  function clearSocket(socketId) {
-    const sp = assign.get(socketId);
-    if (!sp) return;
-    assign.delete(socketId);
-    placedBySpecies.delete(sp);
-    const g = document.querySelector(`#teens .tree-svg svg [data-socket="${socketId}"]`);
-    if (g) {
-      g.classList.remove('occupied');
-      g.querySelector('foreignObject')?.remove();
-    }
-  }
-
-  function returnToDeck(sp) {
-    const sock = placedBySpecies.get(sp);
-    if (sock) clearSocket(sock);
-    const deck = document.getElementById('species-deck');
-    if (!deck) return;
-    if (!deck.querySelector(`.species-card[data-sp="${sp}"]`)) {
-      deck.insertAdjacentHTML('beforeend', speciesCardHTML(sp));
-      deck.querySelector(`.species-card[data-sp="${sp}"]`).addEventListener('dragstart', onDragStart);
-    }
-  }
-
-  /* ---------- Matrix helper (optional placeholder) ---------- */
-  function renderMatrix() {
-    const el = document.getElementById('matrix'); if (!el) return;
-    let html = '<table><thead><tr><th></th>';
-    S.forEach(sp => html += `<th>${(useShort?LABEL_SHORT:LABEL_FULL)[sp]}</th>`);
-    html += '</tr></thead><tbody>';
-    S.forEach(rsp => {
-      html += `<tr><th>${(useShort?LABEL_SHORT:LABEL_FULL)[rsp]}</th>`;
-      S.forEach(csp => {
-        const val = rsp===csp ? '—' : '';
-        html += `<td>${val}</td>`;
-      });
-      html += '</tr>';
-    });
-    html += '</tbody></table>';
-    el.innerHTML = html;
-  }
-
-  // Image onerror fallback (used by inline attribute)
-  function _nextImg(img){ nextImg(img); }
-
-  /* ---------- Public actions ---------- */
-  function checkTree() {
-    const A = [assign.get('A1'), assign.get('A2')].filter(Boolean);
-    const B = [assign.get('B1'), assign.get('B2')].filter(Boolean);
-    const O = assign.get('O');
-
-    if (A.length!==2 || B.length!==2 || !O) {
-      toast('Place all five species onto the tree: Pair A (2), Pair B (2), Outgroup (1).', document.getElementById('teens'));
-      return;
-    }
-
-    const okA = setEquals(new Set(A), GOLD.pairA);
-    const okB = setEquals(new Set(B), GOLD.pairB);
-    const okO = (O === GOLD.out);
-
-    const txt = document.getElementById('your-tree');
-    if (txt) {
-      txt.textContent = `((${A.join(',')}),(${B.join(',')}),${O});`;
-    }
-
-    if (okA && okB && okO){
-      toast('Excellent! Your tree matches the EVE evidence.', document.getElementById('teens'));
-      if (!IntermediateGame._won){
-        IntermediateGame._won = true;
-        window.Achievements?.markComplete('teens');
-        if (typeof confettiBurst === 'function') confettiBurst();
-        if (typeof claps === 'function') claps();
-        if (typeof playChime === 'function') playChime();
-      }
-      const steps = document.getElementById('build-steps');
-      if (steps) steps.textContent = `Pairs: {${A.join(', ')}} and {${B.join(', ')}}, Outgroup: ${O}`;
-    } else {
-      alert('Not quite. Hint: (D. mel. + D. sim.) are closest; (D. yak. + D. vir.) next; D. pse. is the outgroup.');
-    }
-  }
-
-  function clearDrops() {
-    for (const sock of ['A1','A2','B1','B2','O']) clearSocket(sock);
-    const deck = document.getElementById('species-deck');
-    if (!deck) return;
-    deck.innerHTML = '';
-    S.forEach(sp => {
-      deck.insertAdjacentHTML('beforeend', speciesCardHTML(sp));
-    });
-    deck.querySelectorAll('.species-card').forEach(el => el.addEventListener('dragstart', onDragStart));
-  }
-
-  function toggleMatrix(){
-    const el = document.getElementById('matrix'); if (!el) return;
-    if (el.hasAttribute('hidden')) el.removeAttribute('hidden'); else el.setAttribute('hidden','');
-  }
-
-  function showHints(){
-    alert([
-      'How to play:',
-      '1) Look at each species card image.',
-      '2) Drag the two closest into Pair A; the next closest into Pair B.',
-      '3) Place the most different as Outgroup. Then click “Build & Check Tree”.'
-    ].join('\n'));
-  }
-
-  return {
-    init, setShort, toggleMatrix, showHints,
+    const sO  = slot('O',  Y.out,  'OutgroupMatrix, showHints,
     checkTree, clearDrops, _nextImg
   };
 })();
+
+// Expose for inline onerror handler in deck images
+window.IntermediateGame = IntermediateGame;
 
 // Build Teens when Teens panel exists
 document.addEventListener('DOMContentLoaded', () => {
@@ -1292,4 +1131,3 @@ if (typeof window.startSimpleTimer !== 'function') {
 if (typeof window.resetSimpleTimer !== 'function') {
   window.resetSimpleTimer = resetTimer;
 }
-
