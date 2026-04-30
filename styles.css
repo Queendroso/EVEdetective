@@ -732,3 +732,43 @@ html{scroll-behavior:smooth}
   text-align: left;
   border-bottom: 1px solid #e2e8f0;
 }
+
+
+/* Teens Tree Game - Drag and Drop Styles */
+.drop-slot {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.drop-slot:hover {
+  fill: #dcfce7 !important;
+  stroke: #0e8a68 !important;
+}
+
+.drop-slot.dropped {
+  fill: #e8f7f1 !important;
+  stroke: #0e8a68 !important;
+  stroke-dasharray: none !important;
+}
+
+.species-card-drag {
+  user-select: none;
+}
+
+.species-card-drag:active {
+  cursor: grabbing;
+}
+
+.species-card-drag:hover {
+  transform: translateY(-4px);
+  border-color: #0e8a68 !important;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+}
+
+.eve-band {
+  transition: transform 0.15s ease;
+}
+
+.eve-band:hover {
+  transform: scale(1.15);
+}
