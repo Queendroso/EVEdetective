@@ -212,19 +212,74 @@
         <div class="kids-bar"><div class="kids-status"><span id="kids-found">Found: 0</span><span id="kids-total">of 0 EVEs</span></div><div class="kids-actions"><button class="btn" onclick="KidsGame.giveHint()">Hint</button><button class="btn" onclick="KidsGame.reset()">Reset</button><label class="toggle"><input type="checkbox" id="reveal-toggle" onchange="KidsGame.toggleReveal(this.checked)" /><span>Reveal all</span></label></div></div>
       </div>
 
-      <div id="teens" role="tabpanel" class="panel">
-        <h3>Intermediate Level: Create the EVE Family Tree!</h3><p>Flip "barcode" cards, compare shared EVEs, then drag species into the tree. Shared EVEs = common ancestry.</p>
-        <div class="timer-wrap" style="justify-content: space-between;"><strong>⏱️ Time left: <span id="teens-timer" style="font-family: monospace; font-size: 1.3rem; font-weight: 700; color: #0e8a68;">60</span> seconds</strong><button class="btn small" onclick="startSimpleTimer('teens', 60)">Start 60s</button><button class="btn small" onclick="resetSimpleTimer('teens', 60)">Restart</button><button class="btn small" onclick="IntermediateGame.toggleMatrix()">Show/Hide Matrix</button><button class="btn small" onclick="IntermediateGame.showHints()">Hints</button></div>
-        <div id="matrix" class="matrix" hidden></div><p class="muted">Darker cells = more shared EVEs.</p>
-        <h4>Step A — Inspect and Compare</h4>
-        <div class="inspect-controls"><label class="toggle"><input type="checkbox" id="short-labels" checked onchange="IntermediateGame.setShort(this.checked)" /><span>Short labels</span></label><button class="btn small" onclick="IntermediateGame.toggleCompare()">Toggle Compare Mode</button></div>
-        <div id="inspect-grid" class="inspect-grid"></div><p class="muted">In Compare mode, pick two cards — shared EVEs glow on both.</p>
-        <h4>Step B — Drag into the tree</h4>
-        <div class="drag-builder"><div class="drop-zone"><h5>Pair A (closest)</h5><div class="slot" data-slot="A1"></div><div class="slot" data-slot="A2"></div></div><div class="drop-zone"><h5>Pair B (next closest)</h5><div class="slot" data-slot="B1"></div><div class="slot" data-slot="B2"></div></div><div class="drop-zone"><h5>Outgroup (oldest)</h5><div class="slot" data-slot="O"></div></div></div>
-        <h5>Species deck</h5><div id="species-deck" class="deck"></div>
-        <div class="build-actions"><button class="btn" onclick="IntermediateGame.clearDrops()">Clear slots</button><button class="btn btn-primary" onclick="IntermediateGame.checkTree()">Build & Check Tree</button></div>
-        <div class="tree-wrap"><h4>Your tree</h4><div id="your-tree" class="tree">No merges yet</div><div id="tree-svg" class="tree-svg"></div><div id="build-steps" class="muted"></div></div>
-        <div class="kids-legend"><span class="chip chip-intact">Intact</span><span class="chip chip-useful">Useful</span><span class="chip chip-broken">Broken</span><span class="chip chip-unique">Unique</span></div>
+            <div id="teens" role="tabpanel" class="panel">
+        <h3>Intermediate Level: Build the EVE Family Tree</h3>
+        <p>Each species card shows its <strong>EVE barcode</strong> (coloured bands). Drag the cards onto the tree based on <strong>shared EVEs</strong> — more shared bands = closer branches.</p>
+
+        <!-- Timer -->
+        <div class="timer-wrap" style="justify-content: space-between;">
+          <strong>⏱️ Time left: <span id="teens-timer" style="font-family: monospace; font-size: 1.3rem; font-weight: 700; color: #0e8a68;">60</span> seconds</strong>
+          <button class="btn small" onclick="startSimpleTimer('teens', 60)">Start 60s</button>
+          <button class="btn small" onclick="resetSimpleTimer('teens', 60)">Restart</button>
+          <button class="btn small" onclick="TeensTreeGame.toggleMatrix()">Show EVE Matrix</button>
+          <button class="btn small" onclick="TeensTreeGame.showHints()">Hints</button>
+        </div>
+
+        <!-- EVE Matrix (hidden by default) -->
+        <div id="teens-matrix" class="matrix" style="display:none; margin-top: 10px;"></div>
+        <p class="muted" id="matrix-hint">Click "Show EVE Matrix" to see which EVEs each species shares.</p>
+
+        <!-- Tree with Drop Zones -->
+        <div class="tree-container" style="text-align: center;">
+          <svg id="phylogenetic-tree" viewBox="0 0 750 380" style="width:100%; height:auto; background:#faf9f6; border-radius:16px; margin:16px 0;">
+            <!-- Tree branches -->
+            <line x1="100" y1="180" x2="280" y2="90" stroke="#60a5fa" stroke-width="3"/>
+            <line x1="100" y1="180" x2="280" y2="270" stroke="#60a5fa" stroke-width="3"/>
+            <line x1="100" y1="180" x2="100" y2="310" stroke="#60a5fa" stroke-width="3"/>
+            <line x1="280" y1="90" x2="460" y2="50" stroke="#60a5fa" stroke-width="3"/>
+            <line x1="280" y1="90" x2="460" y2="130" stroke="#60a5fa" stroke-width="3"/>
+            <line x1="280" y1="270" x2="460" y2="230" stroke="#60a5fa" stroke-width="3"/>
+            <line x1="280" y1="270" x2="460" y2="310" stroke="#60a5fa" stroke-width="3"/>
+            <line x1="100" y1="310" x2="230" y2="350" stroke="#60a5fa" stroke-width="3"/>
+            
+            <!-- Root -->
+            <circle cx="100" cy="180" r="5" fill="#34d399"/>
+            <text x="20" y="185" font-size="11" fill="#4a5568">Common Ancestor</text>
+            
+            <!-- Drop Zones (Empty slots on the tree) -->
+            <rect x="460" y="38" width="90" height="28" fill="transparent" stroke="#22c55e" stroke-width="2" stroke-dasharray="4" rx="8" class="drop-slot" data-slot="top1"/>
+            <rect x="460" y="118" width="90" height="28" fill="transparent" stroke="#22c55e" stroke-width="2" stroke-dasharray="4" rx="8" class="drop-slot" data-slot="top2"/>
+            <rect x="460" y="218" width="90" height="28" fill="transparent" stroke="#22c55e" stroke-width="2" stroke-dasharray="4" rx="8" class="drop-slot" data-slot="mid1"/>
+            <rect x="460" y="298" width="90" height="28" fill="transparent" stroke="#22c55e" stroke-width="2" stroke-dasharray="4" rx="8" class="drop-slot" data-slot="mid2"/>
+            <rect x="230" y="340" width="90" height="28" fill="transparent" stroke="#22c55e" stroke-width="2" stroke-dasharray="4" rx="8" class="drop-slot" data-slot="outgroup"/>
+            
+            <!-- Slot Labels -->
+            <text x="555" y="55" font-size="9" fill="#4a5568">Closest</text>
+            <text x="555" y="135" font-size="9" fill="#4a5568">Closest</text>
+            <text x="555" y="235" font-size="9" fill="#4a5568">Next</text>
+            <text x="555" y="315" font-size="9" fill="#4a5568">Next</text>
+            <text x="250" y="380" font-size="9" fill="#4a5568">Outgroup</text>
+          </svg>
+        </div>
+
+        <!-- Species Cards Deck -->
+        <h4>Species Cards (drag onto the tree)</h4>
+        <div class="species-deck" id="teens-species-deck" style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: center; margin: 20px 0;"></div>
+
+        <!-- Feedback and Check Button -->
+        <div class="build-actions" style="display: flex; gap: 12px; justify-content: center; margin: 16px 0;">
+          <button class="btn" onclick="TeensTreeGame.clearTree()">Clear Tree</button>
+          <button class="btn btn-primary" onclick="TeensTreeGame.checkTree()">Check Tree</button>
+        </div>
+        <div id="teens-feedback" class="feedback" style="text-align: center; margin-top: 12px;"></div>
+
+        <!-- Legend -->
+        <div class="kids-legend" style="margin-top: 16px;">
+          <span class="chip chip-intact">Intact (green)</span>
+          <span class="chip chip-useful">Useful (red)</span>
+          <span class="chip chip-broken">Broken (grey)</span>
+          <span class="chip chip-unique">Unique (gold)</span>
+        </div>
       </div>
 
       <div id="adults" role="tabpanel" class="panel">
