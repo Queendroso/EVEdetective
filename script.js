@@ -1283,3 +1283,13 @@ const AdvancedGame = (() => {
 document.addEventListener('DOMContentLoaded', () => { if (document.getElementById('adv-eves-mel')) AdvancedGame.init(); });
 
 function setEquals(a,b){ if (a.size!==b.size) return false; for (const x of a) if (!b.has(x)) return false; return true; }
+
+
+// Back-compat aliases so any older calls keep working
+if (typeof window.startSimpleTimer !== 'function') {
+  window.startSimpleTimer = startTimer;
+}
+if (typeof window.resetSimpleTimer !== 'function') {
+  window.resetSimpleTimer = resetTimer;
+}
+
