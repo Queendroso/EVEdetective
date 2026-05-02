@@ -631,20 +631,19 @@ const IntermediateGame = (() => {
   }
 
   function speciesCardHTML(sp) {
-    const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
-    const cands = imgCandidates(sp);
-    const first = cands.shift();
-    return `
-      <div class="species-card" draggable="true" data-sp="${sp}" aria-label="${label}">
-        <img src="${first}" alt="${label}" data-cand="${cands.join('|')}" onerror="IntermediateGame._nextImg(this)">
-        <div class="card-col">
-          <div class="card-title">${label}</div>
-          ${bandRowFor(sp)}
-        </div>
+  const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
+  const cands = imgCandidates(sp);
+  const first = cands.shift();
+  return `
+    <div class="species-card" draggable="true" data-sp="${sp}" aria-label="${label}">
+      <img src="${first}" alt="${label}" data-cand="${cands.join('|')}" onerror="IntermediateGame._nextImg(this)">
+      <div class="card-title">${label}</div>
+      <div class="chrom">
+        ${(EVE_BANDS[sp] || []).map(state => `<span class="band" title="${state}" style="background:${PALETTE[state] || '#cbd5e1'}"></span>`).join('')}
       </div>
-    `;
-  }
-
+    </div>
+  `;
+}
   function renderDeck(rebuild = false) {
     const deck = document.getElementById('species-deck');
     if (!deck) return;
@@ -700,9 +699,9 @@ const IntermediateGame = (() => {
     if (!box) return;
 
     const w = Math.max(680, Math.min(920, box.clientWidth || 780));
-    const SLOT_W = Math.round(Math.min(180, w * 0.24));
-    const SLOT_H = 50;
-    const GAP = SLOT_H + 18;
+    const SLOT_W = Math.round(Math.min(150, w * 0.22));
+    const SLOT_H = 70;  // Increased from 50 to 70
+    const GAP = SLOT_H + 22;  // Increased spacing
     const TOP = 60;
     const totalHeight = TOP + GAP * 4 + SLOT_H + 60;
     const h = Math.max(340, totalHeight);
@@ -823,68 +822,61 @@ const IntermediateGame = (() => {
     document.querySelector(`#species-deck .species-card[data-sp="${sp}"]`)?.remove();
   }
 
-  function mountTokenOnSocket(socketId, sp, SLOT_W = 170, SLOT_H = 50) {
-    const svg = document.querySelector('#teens .tree-svg svg');
-    if (!svg) return;
-    const g = svg.querySelector(`[data-socket="${socketId}"]`);
-    if (!g) return;
-    g.classList.add('occupied');
-    g.querySelector('foreignObject')?.remove();
+  function mountTokenOnSocket(socketId, sp, SLOT_W = 170, SLOT_H = 70) {
+  const svg = document.querySelector('#teens .tree-svg svg');
+  if (!svg) return;
+  const g = svg.querySelector(`[data-socket="${socketId}"]`);
+  if (!g) return;
+  g.classList.add('occupied');
+  g.querySelector('foreignObject')?.remove();
 
-    const rect = g.querySelector('.socket-slot');
-    const x = Number(rect.getAttribute('x'));
-    const y = Number(rect.getAttribute('y'));
+  const rect = g.querySelector('.socket-slot');
+  const x = Number(rect.getAttribute('x'));
+  const y = Number(rect.getAttribute('y'));
 
-    const fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
-    fo.setAttribute('x', x + 4);
-    fo.setAttribute('y', y + 4);
-    fo.setAttribute('width', SLOT_W - 8);
-    fo.setAttribute('height', SLOT_H - 8);
+  const fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+  fo.setAttribute('x', x + 4);
+  fo.setAttribute('y', y + 4);
+  fo.setAttribute('width', SLOT_W - 8);
+  fo.setAttribute('height', SLOT_H - 8);
 
-    const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
+  const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
 
-    const div = document.createElement('div');
-    div.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
-    div.style.cssText = `
-      display: flex; align-items: center; gap: 6px; width: 100%; height: 100%;
-      background: #ffffff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 4px 6px;
-      box-sizing: border-box; box-shadow: 0 1px 2px rgba(2,6,23,0.05);
-    `;
+  const div = document.createElement('div');
+  div.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+  div.style.cssText = `
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    width: 100%;
+    height: 100%;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 6px;
+    box-sizing: border-box;
+  `;
 
-    const img = document.createElement('img');
-    const cands = imgCandidates(sp);
-    img.src = cands[0];
-    img.setAttribute('data-cand', cands.slice(1).join('|'));
-    img.onerror = () => nextImg(img);
-    img.alt = label;
-    img.width = 24;
-    img.height = 24;
-    img.style.cssText = 'border-radius:6px; object-fit:cover; border:1px solid #e5e9ef;';
+  const img = document.createElement('img');
+  const cands = imgCandidates(sp);
+  img.src = cands[0];
+  img.setAttribute('data-cand', cands.slice(1).join('|'));
+  img.onerror = () => nextImg(img);
+  img.alt = label;
+  img.style.cssText = 'width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1;';
 
-    const col = document.createElement('div');
-    col.style.cssText = 'display:flex; flex-direction:column; gap:1px;';
+  const t = document.createElement('div');
+  t.textContent = label;
+  t.style.cssText = 'font: 600 10px/1.1 Inter, system-ui; color: #0a1a2f; text-align: center;';
 
-    const t = document.createElement('div');
-    t.textContent = label;
-    t.style.cssText = 'font:700 12px/1.1 Inter, system-ui; color:#0a1a2f;';
-
-    const chrom = document.createElement('div');
-    chrom.style.cssText = 'display:flex; gap:2px;';
-    (EVE_BANDS[sp] || []).forEach(state => {
-      const b = document.createElement('span');
-      b.title = state;
-      b.style.cssText = `width:6px;height:10px;border-radius:2px;border:1px solid rgba(0,0,0,.12);background:${PALETTE[state] || '#cbd5e1'};`;
-      chrom.appendChild(b);
-    });
-
-    col.appendChild(t);
-    col.appendChild(chrom);
-    div.appendChild(img);
-    div.appendChild(col);
-    fo.appendChild(div);
-    g.appendChild(fo);
-  }
-
+  div.appendChild(img);
+  div.appendChild(t);
+  fo.appendChild(div);
+  g.appendChild(fo);
+}
+  
   function clearSocket(socketId) {
     const sp = assign.get(socketId);
     if (!sp) return;
