@@ -644,6 +644,7 @@ const IntermediateGame = (() => {
     </div>
   `;
 }
+  
   function renderDeck(rebuild = false) {
     const deck = document.getElementById('species-deck');
     if (!deck) return;
@@ -822,7 +823,7 @@ const IntermediateGame = (() => {
     document.querySelector(`#species-deck .species-card[data-sp="${sp}"]`)?.remove();
   }
 
-  function mountTokenOnSocket(socketId, sp, SLOT_W = 170, SLOT_H = 70) {
+  function mountTokenOnSocket(socketId, sp, SLOT_W = 170, SLOT_H = 85) {
   const svg = document.querySelector('#teens .tree-svg svg');
   if (!svg) return;
   const g = svg.querySelector(`[data-socket="${socketId}"]`);
@@ -865,11 +866,11 @@ const IntermediateGame = (() => {
   img.setAttribute('data-cand', cands.slice(1).join('|'));
   img.onerror = () => nextImg(img);
   img.alt = label;
-  img.style.cssText = 'width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1;';
+  img.style.cssText = 'width: 55px; height: 55px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1;';
 
   const t = document.createElement('div');
   t.textContent = label;
-  t.style.cssText = 'font: 600 10px/1.1 Inter, system-ui; color: #0a1a2f; text-align: center;';
+  t.style.cssText = 'font: 600 9px/1.1 Inter, system-ui; color: #0a1a2f; text-align: center;';
 
   div.appendChild(img);
   div.appendChild(t);
