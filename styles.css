@@ -702,55 +702,56 @@ html{scroll-behavior:smooth}
 #teens .socket.occupied .socket-slot { fill: #e0f2fe; }
 #teens .branch { stroke: #60a5fa; stroke-width: 3; fill: none; stroke-linecap: round; }
 
-/* LARGE IMAGE CARDS - image is the main focus */
+/* SMALLER IMAGE CARDS - fits boxes better */
 #teens .species-card {
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   background: white !important;
   border: 2px solid #e2e8f0 !important;
-  border-radius: 16px !important;
-  padding: 12px !important;
+  border-radius: 12px !important;
+  padding: 8px !important;
   cursor: grab !important;
   user-select: none !important;
-  width: 140px !important;
+  width: 100px !important;
   transition: all 0.2s ease !important;
 }
 #teens .species-card:active { cursor: grabbing !important; }
 #teens .species-card:hover {
-  transform: translateY(-4px) !important;
+  transform: translateY(-3px) !important;
   border-color: #0e8a68 !important;
-  box-shadow: 0 8px 20px rgba(0,0,0,0.12) !important;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.1) !important;
 }
 #teens .species-card img {
-  width: 100px !important;
-  height: 100px !important;
-  border-radius: 12px !important;
+  width: 70px !important;
+  height: 70px !important;
+  border-radius: 8px !important;
   object-fit: cover !important;
-  background: #f1f5f9 !important;
-  border: 1px solid #cbd5e1 !important;
-  margin-bottom: 8px !important;
+  background: white !important;  /* Changed from #f1f5f9 to white */
+  border: 1px solid #e2e8f0 !important;
+  margin-bottom: 6px !important;
 }
 #teens .card-title {
-  font-size: 0.85rem !important;
+  font-size: 0.7rem !important;
   font-weight: 700 !important;
   color: #0a1a2f !important;
   text-align: center !important;
-  margin-top: 4px !important;
+  margin-top: 2px !important;
 }
 
 /* Small EVE bands below image */
 #teens .chrom {
   display: flex !important;
-  gap: 4px !important;
+  gap: 3px !important;
   justify-content: center !important;
-  margin-top: 6px !important;
+  margin-top: 4px !important;
+  flex-wrap: wrap !important;
 }
 #teens .band {
-  width: 12px !important;
-  height: 12px !important;
-  border-radius: 3px !important;
-  border: 1px solid rgba(0, 0, 0, 0.12) !important;
+  width: 8px !important;
+  height: 8px !important;
+  border-radius: 2px !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Hide old drag builder */
@@ -760,22 +761,10 @@ html{scroll-behavior:smooth}
 #teens .deck {
   display: flex !important;
   flex-wrap: wrap !important;
-  gap: 16px !important;
+  gap: 12px !important;
   justify-content: center !important;
-  padding: 20px !important;
+  padding: 16px !important;
   background: #fff !important;
   border: 1px solid var(--ash-200) !important;
   border-radius: 16px !important;
-}
-
-/* Style for the tree slots - make them bigger */
-#teens .socket-slot {
-  rx: 12 !important;
-  ry: 12 !important;
-}
-
-/* Remove any inline styles that might override */
-#teens .species-card div,
-#teens .species-card span {
-  max-width: none !important;
 }
