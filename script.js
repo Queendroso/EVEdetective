@@ -662,24 +662,34 @@ const IntermediateGame = (() => {
   `;
 }
   
-  function renderDeck(rebuild = false) {
-    const deck = document.getElementById('species-deck');
-    if (!deck) return;
-    if (!deckBuilt || rebuild) {
-      const placedSet = new Set(placedBySpecies.keys());
-      deck.innerHTML = S.map(sp => (placedSet.has(sp) ? '' : speciesCardHTML(sp))).join('');
-      deck.querySelectorAll('.species-card[draggable="true"]').forEach(card => {
-        card.addEventListener('dragstart', onDragStart);
-      });
-      deck.addEventListener('dragover', e => e.preventDefault());
-      deck.addEventListener('drop', e => {
-        e.preventDefault();
-        const sp = e.dataTransfer.getData('text/sp');
-        if (sp) returnToDeck(sp);
-      });
-      deckBuilt = true;
-    }
+  function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
+  return arr;
+}
+
+function renderDeck(rebuild = false) {
+  const deck = document.getElementById('species-deck');
+  if (!deck) return;
+  if (!deckBuilt || rebuild) {
+    const placedSet = new Set(placedBySpecies.keys());
+    // Shuffle the species order for display
+    const shuffledSpecies = shuffleArray([...S]);
+    deck.innerHTML = shuffledSpecies.map(sp => (placedSet.has(sp) ? '' : speciesCardHTML(sp))).join('');
+    deck.querySelectorAll('.species-card[draggable="true"]').forEach(card => {
+      card.addEventListener('dragstart', onDragStart);
+    });
+    deck.addEventListener('dragover', e => e.preventDefault());
+    deck.addEventListener('drop', e => {
+      e.preventDefault();
+      const sp = e.dataTransfer.getData('text/sp');
+      if (sp) returnToDeck(sp);
+    });
+    deckBuilt = true;
+  }
+}
 
   function smallGhost(sp) {
     const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
