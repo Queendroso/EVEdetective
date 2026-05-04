@@ -893,8 +893,7 @@ function renderDeck(rebuild = false) {
   img.setAttribute('data-cand', cands.slice(1).join('|'));
   img.onerror = () => nextImg(img);
   img.alt = label;
-  img.style.cssText = 'width: 55px; height: 55px; object-fit: cover; border-radius: 8px; border: 1px solid #cbd5e1;';
-
+  img.style.cssText = 'width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0; background: white;';
   const t = document.createElement('div');
   t.textContent = label;
   t.style.cssText = 'font: 600 9px/1.1 Inter, system-ui; color: #0a1a2f; text-align: center;';
