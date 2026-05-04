@@ -542,22 +542,24 @@ const IntermediateGame = (() => {
   unique: '#f59e0b',   // gold
   empty:  '#e2e8f0'    // very light grey (no EVE)
 };
+  
   const EVE_BANDS = {
   // D. melanogaster: pos1=intact, pos2=useful, pos3=broken, pos4=useful, pos5=useful, pos6=broken, pos7=intact, pos8=empty
   melanogaster:   ['intact', 'useful', 'broken', 'useful', 'useful', 'broken', 'intact', 'empty'],
   
-  // D. simulans: pos1=intact, pos2=intact, pos3=broken, pos4=useful, pos5=unique, pos6=broken, pos7=intact, pos8=empty
-  simulans:       ['intact', 'intact', 'broken', 'useful', 'unique', 'broken', 'intact', 'empty'],
-  
   // D. yakuba: pos1=broken, pos2=useful, pos3=intact, pos4=broken, pos5=useful, pos6=broken, pos7=intact, pos8=empty
   yakuba:         ['broken', 'useful', 'intact', 'broken', 'useful', 'broken', 'intact', 'empty'],
   
-  // D. virilis: pos1=useful, pos2=intact, pos3=intact, pos4=intact, pos5=useful, pos6=intact, pos7=intact, pos8=empty
-  virilis:        ['useful', 'intact', 'intact', 'intact', 'useful', 'intact', 'intact', 'empty'],
-  
+  // D. simulans: pos1=intact, pos2=intact, pos3=broken, pos4=useful, pos5=unique, pos6=broken, pos7=intact, pos8=empty
+  simulans:       ['intact', 'intact', 'broken', 'useful', 'unique', 'broken', 'intact', 'empty'],
+
   // D. pseudoobscura: pos1=intact, pos2=broken, pos3=broken, pos4=broken, pos5=useful, pos6=broken, pos7=empty, pos8=empty
-  pseudoobscura:  ['intact', 'broken', 'broken', 'broken', 'useful', 'broken', 'empty', 'empty']
-};
+  pseudoobscura:  ['intact', 'broken', 'broken', 'broken', 'useful', 'broken', 'empty', 'empty'],
+
+    // D. virilis: pos1=useful, pos2=intact, pos3=intact, pos4=intact, pos5=useful, pos6=intact, pos7=intact, pos8=empty
+  virilis:        ['useful', 'intact', 'intact', 'intact', 'useful', 'intact', 'intact', 'empty'],
+  };
+  
   
   // Correct mapping
   const GOLD = {
