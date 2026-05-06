@@ -731,16 +731,11 @@ function renderDeck(rebuild = false) {
   svg.style.borderRadius = '16px';
   svg.style.padding = '5px';
   
-  // UPDATED TREE COORDINATES - Correct relationships
-  // virilis is the outgroup (oldest), yakuba + pseudoobscura are closer
+  // Tree coordinates
   const root = { x: 40, y: 160 };
   const branchPoint = { x: 130, y: 160 };
-  
-  // Left branch goes to mel + sim (closest pair)
   const leftNode = { x: 230, y: 90 };
-  // Middle branch goes to yakuba + pseudoobscura (next closest)
   const midNode = { x: 230, y: 210 };
-  // Right branch goes to virilis (outgroup, oldest)
   const virilisNode = { x: 230, y: 280 };
   
   const melPos = { x: 430, y: 40 };
@@ -763,26 +758,18 @@ function renderDeck(rebuild = false) {
     svg.appendChild(path);
   }
   
-  // Draw main trunk
+  // Draw branches
   addCurve(root.x, root.y, branchPoint.x, branchPoint.y, '#60a5fa', 3);
-  
-  // Draw three main branches from branch point
   addCurve(branchPoint.x, branchPoint.y, leftNode.x, leftNode.y, '#60a5fa', 2.5);
   addCurve(branchPoint.x, branchPoint.y, midNode.x, midNode.y, '#60a5fa', 2.5);
-  addCurve(branchPoint.x, branchPoint.y, virilisNode.x, virilisNode.y, '#94a3b8', 2);  // virilis is outgroup (grey)
-  
-  // Draw sub-branches for left pair (mel + sim) - closest pair
+  addCurve(branchPoint.x, branchPoint.y, virilisNode.x, virilisNode.y, '#94a3b8', 2);
   addCurve(leftNode.x, leftNode.y, melPos.x, melPos.y, '#60a5fa', 2);
   addCurve(leftNode.x, leftNode.y, simPos.x, simPos.y, '#60a5fa', 2);
-  
-  // Draw sub-branches for middle pair (yakuba + pseudoobscura) - next closest
   addCurve(midNode.x, midNode.y, yakPos.x, yakPos.y, '#60a5fa', 2);
   addCurve(midNode.x, midNode.y, pseudoPos.x, pseudoPos.y, '#60a5fa', 2);
-  
-  // Draw branch for virilis (outgroup)
   addCurve(virilisNode.x, virilisNode.y, virilisPos.x, virilisPos.y, '#94a3b8', 2);
   
-  // Add root circle
+  // Add root circle (Common Ancestor)
   const rootCircle = document.createElementNS(svgNS, 'circle');
   rootCircle.setAttribute('cx', root.x);
   rootCircle.setAttribute('cy', root.y);
@@ -790,7 +777,7 @@ function renderDeck(rebuild = false) {
   rootCircle.setAttribute('fill', '#34d399');
   svg.appendChild(rootCircle);
   
-  // Add root label
+  // Add root label with timescale
   const rootLabel = document.createElementNS(svgNS, 'text');
   rootLabel.setAttribute('x', root.x - 45);
   rootLabel.setAttribute('y', root.y + 3);
@@ -799,7 +786,15 @@ function renderDeck(rebuild = false) {
   rootLabel.textContent = 'Common Ancestor';
   svg.appendChild(rootLabel);
   
-  // Add node circles
+  const rootTime = document.createElementNS(svgNS, 'text');
+  rootTime.setAttribute('x', root.x - 45);
+  rootTime.setAttribute('y', root.y + 14);
+  rootTime.setAttribute('font-size', '8');
+  rootTime.setAttribute('fill', '#f59e0b');
+  rootTime.textContent = '40-60 MYA';
+  svg.appendChild(rootTime);
+  
+  // Add node circles with timescale
   function addNode(x, y) {
     const circle = document.createElementNS(svgNS, 'circle');
     circle.setAttribute('cx', x);
@@ -807,11 +802,33 @@ function renderDeck(rebuild = false) {
     circle.setAttribute('r', '3.5');
     circle.setAttribute('fill', '#60a5fa');
     svg.appendChild(circle);
+    return circle;
   }
+  
   addNode(branchPoint.x, branchPoint.y);
-  addNode(leftNode.x, leftNode.y);
-  addNode(midNode.x, midNode.y);
-  addNode(virilisNode.x, virilisNode.y);
+  
+  // Left node (mel + sim split) with timescale
+  const leftCircle = addNode(leftNode.x, leftNode.y);
+  const leftTime = document.createElementNS(svgNS, 'text');
+  leftTime.setAttribute('x', leftNode.x - 30);
+  leftTime.setAttribute('y', leftNode.y - 5);
+  leftTime.setAttribute('font-size', '8');
+  leftTime.setAttribute('fill', '#f59e0b');
+  leftTime.textContent = '2-3 MYA';
+  svg.appendChild(leftTime);
+  
+  // Mid node (yakuba + pseudoobscura split) with timescale
+  const midCircle = addNode(midNode.x, midNode.y);
+  const midTime = document.createElementNS(svgNS, 'text');
+  midTime.setAttribute('x', midNode.x - 35);
+  midTime.setAttribute('y', midNode.y - 5);
+  midTime.setAttribute('font-size', '8');
+  midTime.setAttribute('fill', '#f59e0b');
+  midTime.textContent = '25 MYA';
+  svg.appendChild(midTime);
+  
+  // Virilis node (no circle - it's the outgroup, alone, not branched)
+  // No circle added here per your request
   
   // Create slots
   function createSlot(x, y, slotId, labelText) {
@@ -869,7 +886,6 @@ function renderDeck(rebuild = false) {
     return g;
   }
   
-  // Create 5 slots with correct pair labels
   createSlot(melPos.x + 10, melPos.y - 12, 'A1', 'Pair A (closest)');
   createSlot(simPos.x + 10, simPos.y - 12, 'A2', '');
   createSlot(yakPos.x + 10, yakPos.y - 12, 'B1', 'Pair B (next closest)');
