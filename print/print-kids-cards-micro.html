@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>EVE Detective — Kids Cards (Micro EVEs, Print)</title>
+<title>EVE Detective — Kids Detective Cards (Print)</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
   @page { size: A4; margin: 10mm; }
@@ -11,273 +11,268 @@
     .screen-note, .toolbar { display:none !important }
   }
 
-  body{font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#0a1a2f;margin:0;padding:10mm;background:#f6f7fb}
-  .screen-note{background:#fff7ed;border:1px solid #fed7aa;padding:.6rem;border-radius:.5rem;margin:0 0 8px}
-  .toolbar{display:flex;gap:.75rem;align-items:center;margin:0 0 8px;flex-wrap:wrap}
-  .toolbar label{font-size:.95rem}
-  .toolbar input[type="range"]{vertical-align:middle}
-
-  .sheet{display:grid;grid-template-columns:repeat(3,1fr);gap:8mm;page-break-after:always}
-  .sheet:last-of-type{page-break-after:auto}
-
-  .card{width:63mm;height:88mm;border-radius:4mm;background:#fff;box-shadow:0 0 0 0.5pt #e5e7eb inset;position:relative;overflow:hidden;break-inside:avoid}
-  .pad{position:absolute;inset:6mm}
-  .hdr{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:3mm}
-  .title{font-size:12pt;font-weight:700}
-  .species{font-size:10pt;color:#334155}
-  .sub{font-size:9pt;color:#64748b}
-
-  /* EVE colours - consistent across all games */
-  :root{
-    --eve-intact:#16a34a;
-    --eve-broken:#111827;
-    --eve-useful:#ef4444;
-    --eve-unique:#f59e0b;
-    --eve-size-mm: 0.25;
-    --eve-back-mm: 1.6;
+  body{
+    font-family: Inter, system-ui, sans-serif;
+    background: #f0f4f8;
+    padding: 10mm;
   }
 
-  /* FRONT CARDS: Extremely tiny dots - need hand lens to see colours! */
-  .front-eve {
-    vector-effect: non-scaling-stroke;
-    shape-rendering: crispEdges;
+  .sheet {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8mm;
+    page-break-after: always;
+  }
+
+  .card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 0 0 2px #e2e8f0 inset;
+    position: relative;
+    break-inside: avoid;
+    overflow: hidden;
+  }
+
+  .card-inner {
+    padding: 12px;
+    text-align: center;
+  }
+
+  /* DNA strand background */
+  .dna-strand {
+    background: repeating-linear-gradient(
+      90deg,
+      #f1f5f9 0px,
+      #f1f5f9 2px,
+      #ffffff 2px,
+      #ffffff 8px
+    );
+    border-radius: 12px;
+    padding: 20px 10px;
+    margin: 10px 0;
+    position: relative;
+    min-height: 120px;
+  }
+
+  /* EVE dots - colourful but tiny (need lens) */
+  .eve-spot {
+    display: inline-block;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    margin: 0 2px;
   }
   
-  .front-eve.real {
-    opacity: 0.9 !important;
-  }
-  
-  /* DUMMY EVEs: Light grey - camouflage with the grid */
-  .front-eve.dummy {
-    opacity: 0.5 !important;
-    fill: #cbd5e1 !important;
+  .eve-intact { background: #16a34a; }
+  .eve-useful { background: #ef4444; }
+  .eve-broken { background: #111827; }
+  .eve-unique { background: #f59e0b; }
+
+  /* I-Spy checklist */
+  .checklist {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 8px;
+    margin-top: 10px;
+    font-size: 10px;
+    text-align: left;
   }
 
-  /* BACK CARDS: EVEs are large and fully visible for answer key */
-  .back-eve {
-    opacity: 1 !important;
+  .checklist-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 4px 0;
   }
 
-  .legend{display:flex;gap:6px;flex-wrap:wrap;margin-top:3mm}
-  .chip{display:inline-flex;gap:4px;align-items:center;border:1px solid #e5e7eb;border-radius:999px;padding:2px 6px;font-size:8.5pt;background:#fff;color:#0f172a}
-  .dot{width:9px;height:9px;border-radius:50%}
+  .checklist-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
 
-  .cutmarks{position:absolute;inset:0;pointer-events:none}
-  .cutmarks svg{position:absolute;inset:-6mm;width:calc(100% + 12mm);height:calc(100% + 12mm)}
-  .cutmarks line{stroke:#94a3b8;stroke-width:.2pt;opacity:.7}
+  /* Answer key on back */
+  .answer-key {
+    background: #f0fdf4;
+    border-radius: 12px;
+    padding: 12px;
+    margin-top: 10px;
+  }
+
+  .badge {
+    display: inline-block;
+    background: #0e8a68;
+    color: white;
+    font-size: 10px;
+    border-radius: 20px;
+    padding: 4px 8px;
+    margin-top: 8px;
+  }
+
+  .title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #0a1a2f;
+  }
+
+  .species {
+    font-size: 12px;
+    color: #334155;
+    font-style: italic;
+  }
 </style>
 </head>
 <body>
 
 <div class="screen-note">
-  🔬 <strong>MICRO EVEs - Physical Card Game:</strong><br>
-  • <strong>FRONT (Hunt):</strong> Hundreds of tiny grey dots. Real EVEs are hidden among them - requires 5-10× hand lens to see colours!<br>
-  • <strong>BACK (Answer Key):</strong> Large, colourful dots show exactly where the EVEs are.<br>
-  • Adjust the "Front size" slider to match your hand lens magnification (smaller = harder).
-</div>
-<div class="toolbar">
-  <label>🔬 Front dot size (mm) - make TINY for hand lens:
-    <input id="frontSize" type="range" min="0.15" max="0.8" step="0.05" value="0.25"
-           oninput="updateEveSize('front', this.value)">
-    <span id="frontSizeVal">0.25</span> mm
-  </label>
-  <label>📖 Back dot size (mm):
-    <input id="backSize" type="range" min="1.0" max="2.5" step="0.05" value="1.6"
-           oninput="updateEveSize('back', this.value)">
-    <span id="backSizeVal">1.6</span> mm
-  </label>
-  <button onclick="window.print()">🖨️ Print Cards</button>
+  🔬 DETECTIVE CARDS: Use a 5-10× hand lens to find the tiny coloured dots hidden in the DNA strand!<br>
+  📝 Count how many of each colour you find, then flip to check your answers.
 </div>
 
-<section class="sheet" id="fronts"></section>
-<section class="sheet" id="backs"></section>
+<section class="sheet" id="cards"></section>
 
 <script>
-// EVE colours matching online game - ALL USE CIRCLES
-const EVE_COLOURS = {
-  intact: '#16a34a',   // green circle ●
-  useful: '#ef4444',   // red circle ●
-  broken: '#111827',   // grey/black circle ●
-  unique: '#f59e0b'    // golden circle ●
-};
-
-// EVE positions for each species
-const speciesData = [
-  { key:'melanogaster', short:'D. mel.', full:'Drosophila melanogaster',
-    region:'piRNA cluster 3R‑TAS',
-    intact:[[0.15,0.25],[0.55,0.18]], useful:[[0.38,0.48]], broken:[[0.20,0.62]], unique:[[0.75,0.45],[0.88,0.32]]
+const speciesCards = [
+  { 
+    name: 'D. melanogaster', 
+    full: 'Drosophila melanogaster',
+    region: 'piRNA cluster 3R‑TAS',
+    eves: [
+      { type: 'intact', x: 10, y: 20 }, { type: 'useful', x: 35, y: 45 },
+      { type: 'broken', x: 60, y: 30 }, { type: 'unique', x: 85, y: 55 },
+      { type: 'intact', x: 20, y: 70 }, { type: 'useful', x: 50, y: 80 },
+      { type: 'broken', x: 75, y: 15 }, { type: 'unique', x: 45, y: 25 }
+    ]
   },
-  { key:'simulans', short:'D. sim.', full:'Drosophila simulans',
-    region:'piRNA cluster 2L‑TAS',
-    intact:[[0.25,0.22],[0.62,0.25]], useful:[[0.40,0.58]], broken:[[0.20,0.64]], unique:[[0.80,0.40]]
+  {
+    name: 'D. simulans',
+    full: 'Drosophila simulans', 
+    region: 'piRNA cluster 2L‑TAS',
+    eves: [
+      { type: 'broken', x: 15, y: 35 }, { type: 'useful', x: 40, y: 20 },
+      { type: 'intact', x: 65, y: 50 }, { type: 'intact', x: 30, y: 75 },
+      { type: 'unique', x: 80, y: 40 }, { type: 'broken', x: 55, y: 65 },
+      { type: 'useful', x: 25, y: 15 }, { type: 'intact', x: 70, y: 80 }
+    ]
   },
-  { key:'yakuba', short:'D. yak.', full:'Drosophila yakuba',
-    region:'Heterochromatin island H3',
-    intact:[[0.25,0.20]], useful:[[0.55,0.58]], broken:[[0.30,0.64]], unique:[[0.75,0.25]]
+  {
+    name: 'D. yakuba',
+    full: 'Drosophila yakuba',
+    region: 'Heterochromatin island H3',
+    eves: [
+      { type: 'useful', x: 20, y: 30 }, { type: 'intact', x: 45, y: 60 },
+      { type: 'broken', x: 70, y: 25 }, { type: 'intact', x: 35, y: 85 },
+      { type: 'unique', x: 85, y: 65 }, { type: 'useful', x: 15, y: 55 },
+      { type: 'broken', x: 60, y: 45 }, { type: 'intact', x: 50, y: 15 }
+    ]
   },
-  { key:'virilis', short:'D. vir.', full:'Drosophila virilis',
-    region:'piRNA cluster 3L‑TAS',
-    intact:[[0.22,0.30],[0.65,0.20]], useful:[[0.50,0.52]], broken:[[0.28,0.66]], unique:[[0.80,0.28]]
+  {
+    name: 'D. virilis',
+    full: 'Drosophila virilis',
+    region: 'Subtelomeric 2R',
+    eves: [
+      { type: 'broken', x: 25, y: 40 }, { type: 'intact', x: 55, y: 25 },
+      { type: 'useful', x: 80, y: 60 }, { type: 'unique', x: 40, y: 70 },
+      { type: 'broken', x: 65, y: 35 }, { type: 'intact', x: 20, y: 80 },
+      { type: 'useful', x: 75, y: 20 }, { type: 'unique', x: 45, y: 50 }
+    ]
   },
-  { key:'pseudoananassae', short:'D. pse.', full:'Drosophila pseudoananassae',
-    region:'Subtelomeric repeat S1',
-    intact:[[0.20,0.22],[0.48,0.20]], useful:[[0.68,0.58]], broken:[[0.30,0.64]], unique:[[0.72,0.22]]
+  {
+    name: 'D. pseudoobscura',
+    full: 'Drosophila pseudoobscura',
+    region: 'Subtelomeric repeat S1',
+    eves: [
+      { type: 'intact', x: 30, y: 25 }, { type: 'intact', x: 55, y: 55 },
+      { type: 'useful', x: 80, y: 35 }, { type: 'broken', x: 25, y: 70 },
+      { type: 'unique', x: 70, y: 75 }, { type: 'intact', x: 45, y: 40 },
+      { type: 'useful', x: 15, y: 45 }, { type: 'broken', x: 60, y: 15 }
+    ]
   }
 ];
 
-// Generate MANY dummy EVEs to camouflage the real ones
-function generateDummyEVEs(realPositions, count = 45) {
-  const dummies = [];
-  const taken = new Set(realPositions.map(p => `${p[0]},${p[1]}`));
-  
-  for (let i = 0; i < count; i++) {
-    let x, y, attempts = 0;
-    do {
-      x = 0.08 + Math.random() * 0.84;
-      y = 0.12 + Math.random() * 0.76;
-      attempts++;
-      if (attempts > 150) break;
-    } while (taken.has(`${x},${y}`));
-    dummies.push([x, y]);
-    taken.add(`${x},${y}`);
-  }
-  return dummies;
-}
-
-function gridLines(W,H,step,stroke){
-  const g=[]; 
-  for(let x=0;x<=W;x+=step){ g.push(`<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="${stroke}" stroke-width="0.15"/>`); }
-  for(let y=0;y<=H;y+=step){ g.push(`<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="${stroke}" stroke-width="0.15"/>`); }
-  return g.join('');
-}
-
-function updateEveSize(type, value) {
-  if (type === 'front') {
-    document.documentElement.style.setProperty('--eve-size-mm', value);
-    document.getElementById('frontSizeVal').textContent = value;
-  } else {
-    document.documentElement.style.setProperty('--eve-back-mm', value);
-    document.getElementById('backSizeVal').textContent = value;
-  }
-  renderSheets();
-}
-
-function renderSheets() {
-  document.getElementById('fronts').innerHTML = speciesData.map(svgFront).join('');
-  document.getElementById('backs').innerHTML = speciesData.map(svgBack).join('');
-}
-
-function svgFront(data){
-  const W=63, H=88, PAD=6;
-  // FRONT: Extremely tiny dots (0.15mm to 0.8mm)
-  const dmm = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--eve-size-mm')) || 0.25;
-  const r = dmm/2; 
-  const dots = [];
-  
-  const realPositions = [];
-  
-  // Place Real EVEs (Coloured, but extremely tiny)
-  function placeReal(list, colour){
-    (list||[]).forEach(([nx,ny])=>{
-      const x = PAD + nx*(W-2*PAD);
-      const y = PAD + ny*(H-2*PAD);
-      realPositions.push([nx, ny]);
-      dots.push(`<circle class="front-eve real" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r}" fill="${colour}" stroke="none"/>`);
-    });
-  }
-  
-  placeReal(data.intact, EVE_COLOURS.intact);
-  placeReal(data.useful, EVE_COLOURS.useful);
-  placeReal(data.broken, EVE_COLOURS.broken);
-  placeReal(data.unique, EVE_COLOURS.unique);
-  
-  // Generate MANY Dummy EVEs (light grey - camouflage)
-  const dummies = generateDummyEVEs(realPositions, 50);
-  dummies.forEach(([nx, ny]) => {
-    const x = PAD + nx*(W-2*PAD);
-    const y = PAD + ny*(H-2*PAD);
-    dots.push(`<circle class="front-eve dummy" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r}" fill="#cbd5e1" stroke="none"/>`);
+function generateEveDots(eves) {
+  let dots = '';
+  eves.forEach(eve => {
+    let colorClass = '';
+    if (eve.type === 'intact') colorClass = 'eve-intact';
+    else if (eve.type === 'useful') colorClass = 'eve-useful';
+    else if (eve.type === 'broken') colorClass = 'eve-broken';
+    else if (eve.type === 'unique') colorClass = 'eve-unique';
+    
+    dots += `<span class="eve-spot ${colorClass}" style="position: absolute; left: ${eve.x}%; top: ${eve.y}%;"></span>`;
   });
-  
-  return `
-  <div class="card"><div class="pad">
-    <div class="hdr"><div class="title">🔍 HUNT</div><div class="species">${data.short}</div></div>
-    <div class="sub">${data.full} — ${data.region}</div>
-    <div class="sub" style="color:#d4a017; margin-bottom:2mm">🔬 USE HAND LENS (5-10×) | 👁️ Find the coloured dots</div>
-    <svg width="63mm" height="88mm" viewBox="0 0 ${W} ${H}">
-      ${gridLines(W,H,3,'#eef2f7')}
-      ${dots.join('')}
-    </svg>
-    <div class="sub" style="color:#94a3b8; font-size:7pt; margin-top:2mm; text-align:center">⚪ Grey dots = NOT real EVEs (distractors)</div>
-  </div>
-  <div class="cutmarks" aria-hidden="true"><svg>
-    <line x1="6mm" y1="0" x2="6mm" y2="4mm" />
-    <line x1="0" y1="6mm" x2="4mm" y2="6mm" />
-    <line x1="calc(100% - 6mm)" y1="0" x2="calc(100% - 6mm)" y2="4mm" />
-    <line x1="calc(100% - 0)" y1="6mm" x2="calc(100% - 4mm)" y2="6mm" />
-    <line x1="6mm" y1="calc(100% - 0)" x2="6mm" y2="calc(100% - 4mm)" />
-    <line x1="0" y1="calc(100% - 6mm)" x2="4mm" y2="calc(100% - 6mm)" />
-    <line x1="calc(100% - 6mm)" y1="calc(100% - 0)" x2="calc(100% - 6mm)" y2="calc(100% - 4mm)" />
-    <line x1="calc(100% - 0)" y1="calc(100% - 6mm)" x2="calc(100% - 4mm)" y2="calc(100% - 6mm)" />
-  </svg></div></div>`;
+  return dots;
 }
 
-function svgBack(data){
-  const W=63, H=88, PAD=6;
-  // BACK: Large, fully visible dots
-  const dmm = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--eve-back-mm')) || 1.6;
-  const r = dmm/2; 
-  const dots = [];
-  
-  // BACK: All REAL EVEs are large and fully visible
-  function place(list, colour){
-    (list||[]).forEach(([nx,ny])=>{
-      const x = PAD + nx*(W-2*PAD);
-      const y = PAD + ny*(H-2*PAD);
-      dots.push(`<circle class="back-eve" cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="${r}" fill="${colour}" stroke="rgba(0,0,0,0.15)" stroke-width="0.2"/>`);
-    });
-  }
-  
-  place(data.intact, EVE_COLOURS.intact);
-  place(data.useful, EVE_COLOURS.useful);
-  place(data.broken, EVE_COLOURS.broken);
-  place(data.unique, EVE_COLOURS.unique);
-  
+function countByType(eves) {
+  const counts = { intact: 0, useful: 0, broken: 0, unique: 0 };
+  eves.forEach(eve => counts[eve.type]++);
+  return counts;
+}
+
+function frontCard(card, idx) {
+  const counts = countByType(card.eves);
   return `
-  <div class="card"><div class="pad">
-    <div class="hdr"><div class="title">📖 ANSWER KEY</div><div class="species">${data.short}</div></div>
-    <div class="sub">${data.full} — ${data.region}</div>
-    <svg width="63mm" height="88mm" viewBox="0 0 ${W} ${H}">
-      ${gridLines(W,H,3,'#e8edf3')}
-      ${dots.join('')}
-    </svg>
-    <div class="legend">
-      <span class="chip"><span class="dot" style="background:${EVE_COLOURS.intact}"></span> Intact (green)</span>
-      <span class="chip"><span class="dot" style="background:${EVE_COLOURS.useful}"></span> Useful (red)</span>
-      <span class="chip"><span class="dot" style="background:${EVE_COLOURS.broken}"></span> Broken (grey)</span>
-      <span class="chip"><span class="dot" style="background:${EVE_COLOURS.unique}"></span> Unique (gold)</span>
+    <div class="card">
+      <div class="card-inner">
+        <div class="title">🔍 FIND THE EVEs</div>
+        <div class="species">${card.name}</div>
+        <div class="species" style="font-size: 8px;">${card.full}</div>
+        
+        <div class="dna-strand" style="position: relative;">
+          ${generateEveDots(card.eves)}
+        </div>
+        
+        <div class="checklist">
+          <div class="checklist-item"><span class="checklist-dot" style="background: #16a34a;"></span> Intact (green): ___ found</div>
+          <div class="checklist-item"><span class="checklist-dot" style="background: #ef4444;"></span> Useful (red): ___ found</div>
+          <div class="checklist-item"><span class="checklist-dot" style="background: #111827;"></span> Broken (grey): ___ found</div>
+          <div class="checklist-item"><span class="checklist-dot" style="background: #f59e0b;"></span> Unique (gold): ___ found</div>
+        </div>
+        
+        <div class="badge">🔬 Use hand lens (5-10×)</div>
+      </div>
     </div>
-  </div>
-  <div class="cutmarks" aria-hidden="true"><svg>
-    <line x1="6mm" y1="0" x2="6mm" y2="4mm" />
-    <line x1="0" y1="6mm" x2="4mm" y2="6mm" />
-    <line x1="calc(100% - 6mm)" y1="0" x2="calc(100% - 6mm)" y2="4mm" />
-    <line x1="calc(100% - 0)" y1="6mm" x2="calc(100% - 4mm)" y2="6mm" />
-    <line x1="6mm" y1="calc(100% - 0)" x2="6mm" y2="calc(100% - 4mm)" />
-    <line x1="0" y1="calc(100% - 6mm)" x2="4mm" y2="calc(100% - 6mm)" />
-    <line x1="calc(100% - 6mm)" y1="calc(100% - 0)" x2="calc(100% - 6mm)" y2="calc(100% - 4mm)" />
-    <line x1="calc(100% - 0)" y1="calc(100% - 6mm)" x2="calc(100% - 4mm)" y2="calc(100% - 6mm)" />
-  </svg></div></div>`;
+  `;
 }
 
-// Initial render
-renderSheets();
+function backCard(card, idx) {
+  const counts = countByType(card.eves);
+  return `
+    <div class="card">
+      <div class="card-inner">
+        <div class="title">📖 ANSWER KEY</div>
+        <div class="species">${card.name}</div>
+        
+        <div class="answer-key">
+          <strong>Found in this species:</strong><br>
+          🟢 ${counts.intact} × Intact EVEs<br>
+          🔴 ${counts.useful} × Useful EVEs<br>
+          ⚫ ${counts.broken} × Broken EVEs<br>
+          🟡 ${counts.unique} × Unique EVEs<br>
+          <div style="margin-top: 8px; font-size: 9px;">Region: ${card.region}</div>
+        </div>
+        
+        <div class="legend" style="margin-top: 8px; font-size: 8px;">
+          <span class="chip"><span class="dot" style="background:#16a34a;"></span> Intact</span>
+          <span class="chip"><span class="dot" style="background:#ef4444;"></span> Useful</span>
+          <span class="chip"><span class="dot" style="background:#111827;"></span> Broken</span>
+          <span class="chip"><span class="dot" style="background:#f59e0b;"></span> Unique</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
 
-// Slider value labels
-const fs = document.getElementById('frontSize');
-const bs = document.getElementById('backSize');
-if(fs) fs.addEventListener('input', ()=> document.getElementById('frontSizeVal').textContent = fs.value);
-if(bs) bs.addEventListener('input', ()=> document.getElementById('backSizeVal').textContent = bs.value);
+let frontsHtml = '';
+let backsHtml = '';
+speciesCards.forEach((card, idx) => {
+  frontsHtml += frontCard(card, idx);
+  backsHtml += backCard(card, idx);
+});
+
+document.getElementById('cards').innerHTML = frontsHtml + backsHtml;
 </script>
+
 </body>
 </html>
