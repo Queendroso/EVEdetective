@@ -885,6 +885,7 @@ function renderDeck(rebuild = false) {
     }
   }
 }
+  
   function placeOnSocket(socketId, sp) {
     const existingSock = placedBySpecies.get(sp);
     if (existingSock && existingSock !== socketId) clearSocket(existingSock);
@@ -896,56 +897,57 @@ function renderDeck(rebuild = false) {
     document.querySelector(`#species-deck .species-card[data-sp="${sp}"]`)?.remove();
   }
 
-  function mountTokenOnSocket(socketId, sp, SLOT_W = 170, SLOT_H = 85) {
+  function mountTokenOnSocket(socketId, sp, SLOT_W = 110, SLOT_H = 45) {
   const svg = document.querySelector('#teens .tree-svg svg');
   if (!svg) return;
   const g = svg.querySelector(`[data-socket="${socketId}"]`);
   if (!g) return;
   g.classList.add('occupied');
-  g.querySelector('foreignObject')?.remove();
-
+  
+  // Remove existing content
+  const existingFo = g.querySelector('foreignObject');
+  if (existingFo) existingFo.remove();
+  
   const rect = g.querySelector('.socket-slot');
   const x = Number(rect.getAttribute('x'));
   const y = Number(rect.getAttribute('y'));
-
+  
   const fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
-  fo.setAttribute('x', x + 4);
-  fo.setAttribute('y', y + 4);
-  fo.setAttribute('width', SLOT_W - 8);
-  fo.setAttribute('height', SLOT_H - 8);
-
+  fo.setAttribute('x', x + 5);
+  fo.setAttribute('y', y + 5);
+  fo.setAttribute('width', SLOT_W - 10);
+  fo.setAttribute('height', SLOT_H - 10);
+  
   const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
-
+  
   const div = document.createElement('div');
   div.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
   div.style.cssText = `
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 8px;
     width: 100%;
     height: 100%;
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 6px;
-    box-sizing: border-box;
+    background: #e8f7f1;
+    border-radius: 8px;
+    font: 600 11px Inter, system-ui;
+    color: #0e8a68;
   `;
-
+  
   const img = document.createElement('img');
   const cands = imgCandidates(sp);
   img.src = cands[0];
   img.setAttribute('data-cand', cands.slice(1).join('|'));
   img.onerror = () => nextImg(img);
   img.alt = label;
-  img.style.cssText = 'width: 40px; height: 40px; object-fit: cover; border-radius: 6px; border: 1px solid #e2e8f0; background: white;';
-  const t = document.createElement('div');
-  t.textContent = label;
-  t.style.cssText = 'font: 600 9px/1.1 Inter, system-ui; color: #0a1a2f; text-align: center;';
-
+  img.style.cssText = 'width: 30px; height: 30px; object-fit: cover; border-radius: 6px;';
+  
+  const textSpan = document.createElement('span');
+  textSpan.textContent = label;
+  
   div.appendChild(img);
-  div.appendChild(t);
+  div.appendChild(textSpan);
   fo.appendChild(div);
   g.appendChild(fo);
 }
