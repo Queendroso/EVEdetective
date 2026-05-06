@@ -738,24 +738,27 @@ function renderDeck(rebuild = false) {
   svg.style.borderRadius = '16px';
   svg.style.padding = '10px';
   
-  // Tree coordinates - proper phylogenetic tree shape
+  // Tree coordinates
   const root = { x: 50, y: 200 };
   const branchPoint = { x: 180, y: 200 };
   const leftNode = { x: 320, y: 110 };
   const rightNode = { x: 320, y: 270 };
   const outNode = { x: 320, y: 360 };
   
-  const melPos = { x: 580, y: 45 };
-  const simPos = { x: 580, y: 120 };
-  const yakPos = { x: 580, y: 215 };
-  const virPos = { x: 580, y: 290 };
-  const outPos = { x: 580, y: 375 };
+  const melPos = { x: 580, y: 40 };
+  const simPos = { x: 580, y: 115 };
+  const yakPos = { x: 580, y: 210 };
+  const virPos = { x: 580, y: 285 };
+  const outPos = { x: 580, y: 370 };
   
-  // Function to draw curved branch using cubic Bezier
+  // Slot dimensions
+  const slotW = 110;
+  const slotH = 45;
+  
+  // Function to draw curved branch
   function addCurve(x1, y1, x2, y2, color = '#60a5fa', width = 2.5) {
     const midX = (x1 + x2) / 2;
     const path = document.createElementNS(svgNS, 'path');
-    // Using bezier curve for natural tree-like branching
     path.setAttribute('d', `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`);
     path.setAttribute('stroke', color);
     path.setAttribute('stroke-width', width);
@@ -764,23 +767,15 @@ function renderDeck(rebuild = false) {
     svg.appendChild(path);
   }
   
-  // Draw main trunk
+  // Draw branches
   addCurve(root.x, root.y, branchPoint.x, branchPoint.y, '#60a5fa', 3);
-  
-  // Draw three main branches from branch point
   addCurve(branchPoint.x, branchPoint.y, leftNode.x, leftNode.y, '#60a5fa', 2.5);
   addCurve(branchPoint.x, branchPoint.y, rightNode.x, rightNode.y, '#60a5fa', 2.5);
   addCurve(branchPoint.x, branchPoint.y, outNode.x, outNode.y, '#94a3b8', 2);
-  
-  // Draw sub-branches for left pair (mel + sim)
   addCurve(leftNode.x, leftNode.y, melPos.x, melPos.y, '#60a5fa', 2);
   addCurve(leftNode.x, leftNode.y, simPos.x, simPos.y, '#60a5fa', 2);
-  
-  // Draw sub-branches for right pair (yak + vir)
   addCurve(rightNode.x, rightNode.y, yakPos.x, yakPos.y, '#60a5fa', 2);
   addCurve(rightNode.x, rightNode.y, virPos.x, virPos.y, '#60a5fa', 2);
-  
-  // Draw outgroup branch
   addCurve(outNode.x, outNode.y, outPos.x, outPos.y, '#94a3b8', 2);
   
   // Add root circle
@@ -800,7 +795,7 @@ function renderDeck(rebuild = false) {
   rootLabel.textContent = 'Common Ancestor';
   svg.appendChild(rootLabel);
   
-  // Add node circles at branch points
+  // Add node circles
   function addNode(x, y) {
     const circle = document.createElementNS(svgNS, 'circle');
     circle.setAttribute('cx', x);
@@ -813,13 +808,12 @@ function renderDeck(rebuild = false) {
   addNode(leftNode.x, leftNode.y);
   addNode(rightNode.x, rightNode.y);
   
-  // Get slot dimensions from existing slots or use defaults
-  const slotRect = document.querySelector('#teens .socket-slot');
-  const slotW = slotRect ? 110 : 100;
-  const slotH = slotRect ? 42 : 40;
-  
-  // Add slot boxes at leaf positions
-  function addSlot(x, y, slotId, labelText) {
+  // Create a group for each slot and make it droppable
+  function createSlot(x, y, slotId, labelText) {
+    const g = document.createElementNS(svgNS, 'g');
+    g.setAttribute('data-socket', slotId);
+    g.setAttribute('class', 'socket');
+    
     const rect = document.createElementNS(svgNS, 'rect');
     rect.setAttribute('x', x);
     rect.setAttribute('y', y);
@@ -830,50 +824,67 @@ function renderDeck(rebuild = false) {
     rect.setAttribute('stroke', '#2563eb');
     rect.setAttribute('stroke-width', '2');
     rect.setAttribute('stroke-dasharray', '6,4');
-    rect.setAttribute('data-slot', slotId);
     rect.setAttribute('class', 'socket-slot');
     
-    const text = document.createElementNS(svgNS, 'text');
-    text.setAttribute('x', x + slotW/2);
-    text.setAttribute('y', y - 8);
-    text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('font-size', '9');
-    text.setAttribute('fill', '#4a5568');
-    text.textContent = labelText;
+    g.appendChild(rect);
     
-    svg.appendChild(rect);
-    if (labelText) svg.appendChild(text);
+    if (labelText) {
+      const text = document.createElementNS(svgNS, 'text');
+      text.setAttribute('x', x + slotW/2);
+      text.setAttribute('y', y - 8);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-size', '9');
+      text.setAttribute('fill', '#4a5568');
+      text.textContent = labelText;
+      svg.appendChild(text);
+    }
     
-    // Make it droppable
-    rect.addEventListener('dragover', (e) => e.preventDefault());
+    // Drag and drop events
+    rect.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      rect.setAttribute('stroke', '#0ea5e9');
+      rect.setAttribute('stroke-width', '3');
+    });
+    
+    rect.addEventListener('dragleave', () => {
+      rect.setAttribute('stroke', '#2563eb');
+      rect.setAttribute('stroke-width', '2');
+    });
+    
     rect.addEventListener('drop', (e) => {
       e.preventDefault();
+      rect.setAttribute('stroke', '#2563eb');
+      rect.setAttribute('stroke-width', '2');
       const sp = e.dataTransfer.getData('text/sp');
       if (sp) {
-        // Find which socket this rect belongs to
-        const slotId = rect.getAttribute('data-slot');
+        // Call the existing placeOnSocket function
         if (typeof placeOnSocket === 'function') {
           placeOnSocket(slotId, sp);
         }
       }
     });
+    
+    svg.appendChild(g);
+    return g;
   }
   
-  addSlot(melPos.x + 10, melPos.y - 15, 'A1', 'Pair A (closest)');
-  addSlot(simPos.x + 10, simPos.y - 15, 'A2', '');
-  addSlot(yakPos.x + 10, yakPos.y - 15, 'B1', 'Pair B (next closest)');
-  addSlot(virPos.x + 10, virPos.y - 15, 'B2', '');
-  addSlot(outPos.x + 10, outPos.y - 15, 'O', 'Outgroup (oldest)');
+  // Create the 5 slots
+  createSlot(melPos.x + 15, melPos.y - 15, 'A1', 'Pair A (closest)');
+  createSlot(simPos.x + 15, simPos.y - 15, 'A2', '');
+  createSlot(yakPos.x + 15, yakPos.y - 15, 'B1', 'Pair B (next closest)');
+  createSlot(virPos.x + 15, virPos.y - 15, 'B2', '');
+  createSlot(outPos.x + 15, outPos.y - 15, 'O', 'Outgroup (oldest)');
   
   box.innerHTML = '';
   box.appendChild(svg);
   
-  // Re-mount any already placed species
+  // Re-mount any already placed species (preserve state after tree redraw)
   for (const [socketId, species] of assign.entries()) {
-    if (species) mountTokenOnSocket(socketId, species, slotW, slotH);
+    if (species && typeof mountTokenOnSocket === 'function') {
+      mountTokenOnSocket(socketId, species, slotW, slotH);
+    }
   }
 }
-
   function placeOnSocket(socketId, sp) {
     const existingSock = placedBySpecies.get(sp);
     if (existingSock && existingSock !== socketId) clearSocket(existingSock);
