@@ -723,121 +723,167 @@ function renderDeck(rebuild = false) {
   }
 
   function renderTree() {
-    const box = document.getElementById('tree-svg');
-    if (!box) return;
+  const box = document.getElementById('tree-svg');
+  if (!box) return;
 
-    const w = Math.max(680, Math.min(920, box.clientWidth || 780));
-    const SLOT_W = Math.round(Math.min(150, w * 0.22));
-    const SLOT_H = 70;  // Increased from 50 to 70
-    const GAP = SLOT_H + 22;  // Increased spacing
-    const TOP = 60;
-    const totalHeight = TOP + GAP * 4 + SLOT_H + 60;
-    const h = Math.max(340, totalHeight);
+  const w = Math.max(720, Math.min(960, box.clientWidth || 800));
+  const SLOT_W = Math.round(Math.min(150, w * 0.2));
+  const SLOT_H = 70;
+  const GAP = SLOT_H + 28;
+  const TOP = 50;
+  const totalHeight = TOP + GAP * 4 + SLOT_H + 80;
+  const h = Math.max(380, totalHeight);
 
-    const svgNS = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(svgNS, 'svg');
-    svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-    svg.setAttribute('width', w);
-    svg.setAttribute('height', h);
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+  svg.setAttribute('width', w);
+  svg.setAttribute('height', h);
+  svg.style.overflow = 'visible';
 
-    const X = { root: 80, out: 200, clade: 200, a: 310, b: 310, leaf: w - 90 };
-    const Y = {
-      aTop: TOP,
-      aBot: TOP + GAP,
-      out: TOP + GAP * 2,
-      bTop: TOP + GAP * 3,
-      bBot: TOP + GAP * 4,
-      root: TOP + GAP * 2
-    };
+  // Adjust X positions for better proportion
+  const X = { 
+    root: 70, 
+    out: 160, 
+    clade: 180, 
+    a: 320, 
+    b: 320, 
+    leaf: w - 100 
+  };
+  
+  const Y = {
+    aTop: TOP,
+    aBot: TOP + GAP,
+    out: TOP + GAP * 2,
+    bTop: TOP + GAP * 3,
+    bBot: TOP + GAP * 4,
+    root: TOP + GAP * 2
+  };
 
-    function curvePath(x1, y1, x2, y2, bend = 0.4) {
-      const dx = x2 - x1;
-      const c1x = x1 + dx * bend;
-      const c1y = y1;
-      const c2x = x2 - dx * bend;
-      const c2y = y2;
-      return `M ${x1} ${y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${x2} ${y2}`;
-    }
-
-    function curve(x1, y1, x2, y2) {
-      const p = document.createElementNS(svgNS, 'path');
-      p.setAttribute('d', curvePath(x1, y1, x2, y2));
-      p.setAttribute('class', 'branch');
-      return p;
-    }
-
-    // Branches
-    svg.appendChild(curve(X.root, Y.root, X.out, Y.out));
-    const cladeY = (Y.aTop + Y.bBot) / 2;
-    svg.appendChild(curve(X.root, Y.root, X.clade, cladeY));
-    svg.appendChild(curve(X.clade, cladeY, X.a, (Y.aTop + Y.aBot) / 2));
-    svg.appendChild(curve(X.clade, cladeY, X.b, (Y.bTop + Y.bBot) / 2));
-    svg.appendChild(curve(X.a, (Y.aTop + Y.aBot) / 2, X.leaf, Y.aTop));
-    svg.appendChild(curve(X.a, (Y.aTop + Y.aBot) / 2, X.leaf, Y.aBot));
-    svg.appendChild(curve(X.b, (Y.bTop + Y.bBot) / 2, X.leaf, Y.bTop));
-    svg.appendChild(curve(X.b, (Y.bTop + Y.bBot) / 2, X.leaf, Y.bBot));
-    svg.appendChild(curve(X.out, Y.out, X.leaf, Y.out));
-
-    function slot(socketId, cx, cy, tagPrimary = '') {
-      const g = document.createElementNS(svgNS, 'g');
-      g.setAttribute('data-socket', socketId);
-      g.setAttribute('class', 'socket');
-
-      const x = cx - SLOT_W / 2;
-      const y = cy - SLOT_H / 2;
-      const rect = document.createElementNS(svgNS, 'rect');
-      rect.setAttribute('x', x);
-      rect.setAttribute('y', y);
-      rect.setAttribute('rx', 10);
-      rect.setAttribute('ry', 10);
-      rect.setAttribute('width', SLOT_W);
-      rect.setAttribute('height', SLOT_H);
-      rect.setAttribute('class', 'socket-slot');
-
-      if (tagPrimary) {
-        const label = document.createElementNS(svgNS, 'text');
-        label.setAttribute('x', x + 6);
-        label.setAttribute('y', y - 8);
-        label.setAttribute('class', 'socket-label');
-        label.textContent = tagPrimary;
-        g.appendChild(label);
-      }
-      g.appendChild(rect);
-
-      g.addEventListener('dragover', e => {
-        e.preventDefault();
-        g.classList.add('hover');
-      });
-      g.addEventListener('dragleave', () => g.classList.remove('hover'));
-      g.addEventListener('drop', e => {
-        e.preventDefault();
-        g.classList.remove('hover');
-        const sp = e.dataTransfer.getData('text/sp');
-        if (sp) placeOnSocket(socketId, sp);
-      });
-
-      return g;
-    }
-
-    const sA1 = slot('A1', X.leaf, Y.aTop, 'Pair A (closest)');
-    const sA2 = slot('A2', X.leaf, Y.aBot);
-    const sB1 = slot('B1', X.leaf, Y.bTop, 'Pair B (next closest)');
-    const sB2 = slot('B2', X.leaf, Y.bBot);
-    const sO = slot('O', X.leaf, Y.out, 'Outgroup (oldest)');
-
-    svg.appendChild(sA1);
-    svg.appendChild(sA2);
-    svg.appendChild(sB1);
-    svg.appendChild(sB2);
-    svg.appendChild(sO);
-
-    box.innerHTML = '';
-    box.appendChild(svg);
-
-    for (const [sock, sp] of assign.entries()) {
-      if (sp) mountTokenOnSocket(sock, sp, SLOT_W, SLOT_H);
-    }
+  // Improved curved path function - creates natural tree-like curves
+  function curvedBranch(x1, y1, x2, y2, curvature = 0.35) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    // Calculate control points for a smooth S-curve
+    const c1x = x1 + dx * curvature;
+    const c1y = y1;
+    const c2x = x2 - dx * curvature;
+    const c2y = y2;
+    return `M ${x1} ${y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${x2} ${y2}`;
   }
+
+  function addBranch(x1, y1, x2, y2, curvature = 0.35) {
+    const path = document.createElementNS(svgNS, 'path');
+    path.setAttribute('d', curvedBranch(x1, y1, x2, y2, curvature));
+    path.setAttribute('class', 'branch');
+    path.setAttribute('stroke', '#60a5fa');
+    path.setAttribute('stroke-width', '2.5');
+    path.setAttribute('fill', 'none');
+    path.setAttribute('stroke-linecap', 'round');
+    return path;
+  }
+
+  // Root to outgroup branch
+  svg.appendChild(addBranch(X.root, Y.root, X.out, Y.out, 0.4));
+  
+  // Root to main clade (the common ancestor split)
+  const cladeMidY = (Y.aTop + Y.bBot) / 2;
+  svg.appendChild(addBranch(X.root, Y.root, X.clade, cladeMidY, 0.3));
+  
+  // Clade to A pair node
+  const aNodeY = (Y.aTop + Y.aBot) / 2;
+  svg.appendChild(addBranch(X.clade, cladeMidY, X.a, aNodeY, 0.25));
+  
+  // Clade to B pair node
+  const bNodeY = (Y.bTop + Y.bBot) / 2;
+  svg.appendChild(addBranch(X.clade, cladeMidY, X.b, bNodeY, 0.25));
+  
+  // A node to leaves
+  svg.appendChild(addBranch(X.a, aNodeY, X.leaf, Y.aTop, 0.3));
+  svg.appendChild(addBranch(X.a, aNodeY, X.leaf, Y.aBot, 0.3));
+  
+  // B node to leaves
+  svg.appendChild(addBranch(X.b, bNodeY, X.leaf, Y.bTop, 0.3));
+  svg.appendChild(addBranch(X.b, bNodeY, X.leaf, Y.bBot, 0.3));
+  
+  // Outgroup to leaf
+  svg.appendChild(addBranch(X.out, Y.out, X.leaf, Y.out, 0.35));
+
+  // Function to create slots
+  function createSlot(socketId, cx, cy, tagText = '') {
+    const group = document.createElementNS(svgNS, 'g');
+    group.setAttribute('data-socket', socketId);
+    group.setAttribute('class', 'socket');
+
+    const x = cx - SLOT_W / 2;
+    const y = cy - SLOT_H / 2;
+    const rect = document.createElementNS(svgNS, 'rect');
+    rect.setAttribute('x', x);
+    rect.setAttribute('y', y);
+    rect.setAttribute('rx', 12);
+    rect.setAttribute('ry', 12);
+    rect.setAttribute('width', SLOT_W);
+    rect.setAttribute('height', SLOT_H);
+    rect.setAttribute('class', 'socket-slot');
+    rect.setAttribute('fill', '#f8fafc');
+    rect.setAttribute('stroke', '#2563eb');
+    rect.setAttribute('stroke-width', '2');
+
+    if (tagText) {
+      const label = document.createElementNS(svgNS, 'text');
+      label.setAttribute('x', x + 6);
+      label.setAttribute('y', y - 8);
+      label.setAttribute('class', 'socket-label');
+      label.setAttribute('font-size', '10');
+      label.setAttribute('fill', '#4a5568');
+      label.textContent = tagText;
+      group.appendChild(label);
+    }
+
+    group.appendChild(rect);
+
+    // Drag and drop events
+    group.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      group.classList.add('hover');
+      rect.setAttribute('stroke', '#0ea5e9');
+      rect.setAttribute('stroke-width', '3');
+    });
+    
+    group.addEventListener('dragleave', () => {
+      group.classList.remove('hover');
+      rect.setAttribute('stroke', '#2563eb');
+      rect.setAttribute('stroke-width', '2');
+    });
+    
+    group.addEventListener('drop', (e) => {
+      e.preventDefault();
+      group.classList.remove('hover');
+      rect.setAttribute('stroke', '#2563eb');
+      rect.setAttribute('stroke-width', '2');
+      const species = e.dataTransfer.getData('text/sp');
+      if (species) placeOnSocket(socketId, species);
+    });
+
+    return group;
+  }
+
+  // Create the 5 slots
+  svg.appendChild(createSlot('A1', X.leaf, Y.aTop, 'Pair A (closest)'));
+  svg.appendChild(createSlot('A2', X.leaf, Y.aBot));
+  svg.appendChild(createSlot('B1', X.leaf, Y.bTop, 'Pair B (next closest)'));
+  svg.appendChild(createSlot('B2', X.leaf, Y.bBot));
+  svg.appendChild(createSlot('O', X.leaf, Y.out, 'Outgroup (oldest)'));
+
+  // Clear and add the SVG
+  box.innerHTML = '';
+  box.appendChild(svg);
+
+  // Re-mount any already placed species
+  for (const [socketId, species] of assign.entries()) {
+    if (species) mountTokenOnSocket(socketId, species, SLOT_W, SLOT_H);
+  }
+}
 
   function placeOnSocket(socketId, sp) {
     const existingSock = placedBySpecies.get(sp);
