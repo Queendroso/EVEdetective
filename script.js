@@ -726,8 +726,9 @@ function renderDeck(rebuild = false) {
   const box = document.getElementById('tree-svg');
   if (!box) return;
 
-  const w = 750;
-  const h = 400;
+  // SMALLER TREE - fits without scrolling
+  const w = 700;
+  const h = 320;
   
   const svgNS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(svgNS, 'svg');
@@ -736,26 +737,25 @@ function renderDeck(rebuild = false) {
   svg.setAttribute('height', '100%');
   svg.style.backgroundColor = '#faf9f6';
   svg.style.borderRadius = '16px';
-  svg.style.padding = '10px';
+  svg.style.padding = '5px';
   
-  // Tree coordinates
-  const root = { x: 50, y: 200 };
-  const branchPoint = { x: 180, y: 200 };
-  const leftNode = { x: 320, y: 110 };
-  const rightNode = { x: 320, y: 270 };
-  const outNode = { x: 320, y: 360 };
+  // COMPACT TREE COORDINATES - moved everything closer together
+  const root = { x: 40, y: 160 };
+  const branchPoint = { x: 130, y: 160 };
+  const leftNode = { x: 230, y: 90 };
+  const rightNode = { x: 230, y: 210 };
+  const outNode = { x: 230, y: 280 };
   
-  const melPos = { x: 580, y: 40 };
-  const simPos = { x: 580, y: 115 };
-  const yakPos = { x: 580, y: 210 };
-  const virPos = { x: 580, y: 285 };
-  const outPos = { x: 580, y: 370 };
+  const melPos = { x: 430, y: 35 };
+  const simPos = { x: 430, y: 95 };
+  const yakPos = { x: 430, y: 165 };
+  const virPos = { x: 430, y: 225 };
+  const outPos = { x: 430, y: 290 };
   
-  // Slot dimensions
-  const slotW = 110;
-  const slotH = 45;
+  // Smaller slot dimensions
+  const slotW = 100;
+  const slotH = 38;
   
-  // Function to draw curved branch
   function addCurve(x1, y1, x2, y2, color = '#60a5fa', width = 2.5) {
     const midX = (x1 + x2) / 2;
     const path = document.createElementNS(svgNS, 'path');
@@ -782,15 +782,15 @@ function renderDeck(rebuild = false) {
   const rootCircle = document.createElementNS(svgNS, 'circle');
   rootCircle.setAttribute('cx', root.x);
   rootCircle.setAttribute('cy', root.y);
-  rootCircle.setAttribute('r', '6');
+  rootCircle.setAttribute('r', '5');
   rootCircle.setAttribute('fill', '#34d399');
   svg.appendChild(rootCircle);
   
   // Add root label
   const rootLabel = document.createElementNS(svgNS, 'text');
-  rootLabel.setAttribute('x', root.x - 50);
-  rootLabel.setAttribute('y', root.y + 4);
-  rootLabel.setAttribute('font-size', '10');
+  rootLabel.setAttribute('x', root.x - 45);
+  rootLabel.setAttribute('y', root.y + 3);
+  rootLabel.setAttribute('font-size', '9');
   rootLabel.setAttribute('fill', '#4a5568');
   rootLabel.textContent = 'Common Ancestor';
   svg.appendChild(rootLabel);
@@ -800,7 +800,7 @@ function renderDeck(rebuild = false) {
     const circle = document.createElementNS(svgNS, 'circle');
     circle.setAttribute('cx', x);
     circle.setAttribute('cy', y);
-    circle.setAttribute('r', '4');
+    circle.setAttribute('r', '3.5');
     circle.setAttribute('fill', '#60a5fa');
     svg.appendChild(circle);
   }
@@ -808,7 +808,7 @@ function renderDeck(rebuild = false) {
   addNode(leftNode.x, leftNode.y);
   addNode(rightNode.x, rightNode.y);
   
-  // Create a group for each slot and make it droppable
+  // Create slots
   function createSlot(x, y, slotId, labelText) {
     const g = document.createElementNS(svgNS, 'g');
     g.setAttribute('data-socket', slotId);
@@ -819,7 +819,7 @@ function renderDeck(rebuild = false) {
     rect.setAttribute('y', y);
     rect.setAttribute('width', slotW);
     rect.setAttribute('height', slotH);
-    rect.setAttribute('rx', '10');
+    rect.setAttribute('rx', '8');
     rect.setAttribute('fill', '#f8fafc');
     rect.setAttribute('stroke', '#2563eb');
     rect.setAttribute('stroke-width', '2');
@@ -831,9 +831,9 @@ function renderDeck(rebuild = false) {
     if (labelText) {
       const text = document.createElementNS(svgNS, 'text');
       text.setAttribute('x', x + slotW/2);
-      text.setAttribute('y', y - 8);
+      text.setAttribute('y', y - 6);
       text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('font-size', '9');
+      text.setAttribute('font-size', '8');
       text.setAttribute('fill', '#4a5568');
       text.textContent = labelText;
       svg.appendChild(text);
@@ -856,11 +856,8 @@ function renderDeck(rebuild = false) {
       rect.setAttribute('stroke', '#2563eb');
       rect.setAttribute('stroke-width', '2');
       const sp = e.dataTransfer.getData('text/sp');
-      if (sp) {
-        // Call the existing placeOnSocket function
-        if (typeof placeOnSocket === 'function') {
-          placeOnSocket(slotId, sp);
-        }
+      if (sp && typeof placeOnSocket === 'function') {
+        placeOnSocket(slotId, sp);
       }
     });
     
@@ -868,17 +865,17 @@ function renderDeck(rebuild = false) {
     return g;
   }
   
-  // Create the 5 slots
-  createSlot(melPos.x + 15, melPos.y - 15, 'A1', 'Pair A (closest)');
-  createSlot(simPos.x + 15, simPos.y - 15, 'A2', '');
-  createSlot(yakPos.x + 15, yakPos.y - 15, 'B1', 'Pair B (next closest)');
-  createSlot(virPos.x + 15, virPos.y - 15, 'B2', '');
-  createSlot(outPos.x + 15, outPos.y - 15, 'O', 'Outgroup (oldest)');
+  // Create the 5 slots (adjusted Y positions for compact layout)
+  createSlot(melPos.x + 10, melPos.y - 12, 'A1', 'Pair A (closest)');
+  createSlot(simPos.x + 10, simPos.y - 12, 'A2', '');
+  createSlot(yakPos.x + 10, yakPos.y - 12, 'B1', 'Pair B (next closest)');
+  createSlot(virPos.x + 10, virPos.y - 12, 'B2', '');
+  createSlot(outPos.x + 10, outPos.y - 12, 'O', 'Outgroup (oldest)');
   
   box.innerHTML = '';
   box.appendChild(svg);
   
-  // Re-mount any already placed species (preserve state after tree redraw)
+  // Re-mount any already placed species
   for (const [socketId, species] of assign.entries()) {
     if (species && typeof mountTokenOnSocket === 'function') {
       mountTokenOnSocket(socketId, species, slotW, slotH);
@@ -897,14 +894,13 @@ function renderDeck(rebuild = false) {
     document.querySelector(`#species-deck .species-card[data-sp="${sp}"]`)?.remove();
   }
 
-  function mountTokenOnSocket(socketId, sp, SLOT_W = 110, SLOT_H = 45) {
+  function mountTokenOnSocket(socketId, sp, SLOT_W = 100, SLOT_H = 38) {
   const svg = document.querySelector('#teens .tree-svg svg');
   if (!svg) return;
   const g = svg.querySelector(`[data-socket="${socketId}"]`);
   if (!g) return;
   g.classList.add('occupied');
   
-  // Remove existing content
   const existingFo = g.querySelector('foreignObject');
   if (existingFo) existingFo.remove();
   
@@ -913,10 +909,10 @@ function renderDeck(rebuild = false) {
   const y = Number(rect.getAttribute('y'));
   
   const fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
-  fo.setAttribute('x', x + 5);
-  fo.setAttribute('y', y + 5);
-  fo.setAttribute('width', SLOT_W - 10);
-  fo.setAttribute('height', SLOT_H - 10);
+  fo.setAttribute('x', x + 4);
+  fo.setAttribute('y', y + 4);
+  fo.setAttribute('width', SLOT_W - 8);
+  fo.setAttribute('height', SLOT_H - 8);
   
   const label = useShort ? LABEL_SHORT[sp] : LABEL_FULL[sp];
   
@@ -926,12 +922,12 @@ function renderDeck(rebuild = false) {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
     width: 100%;
     height: 100%;
     background: #e8f7f1;
-    border-radius: 8px;
-    font: 600 11px Inter, system-ui;
+    border-radius: 6px;
+    font: 600 10px Inter, system-ui;
     color: #0e8a68;
   `;
   
@@ -941,7 +937,7 @@ function renderDeck(rebuild = false) {
   img.setAttribute('data-cand', cands.slice(1).join('|'));
   img.onerror = () => nextImg(img);
   img.alt = label;
-  img.style.cssText = 'width: 30px; height: 30px; object-fit: cover; border-radius: 6px;';
+  img.style.cssText = 'width: 24px; height: 24px; object-fit: cover; border-radius: 4px;';
   
   const textSpan = document.createElement('span');
   textSpan.textContent = label;
