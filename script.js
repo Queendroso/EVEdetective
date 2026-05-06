@@ -563,10 +563,10 @@ const IntermediateGame = (() => {
   
   // Correct mapping
   const GOLD = {
-    pairA: new Set(['melanogaster', 'simulans']),
-    pairB: new Set(['yakuba', 'virilis']),
-    out:   'pseudoobscura'
-  };
+  pairA: new Set(['melanogaster', 'simulans']),
+  pairB: new Set(['yakuba', 'pseudoobscura']),
+  out:   'virilis'
+};
 
   // Runtime state
   const assign = new Map();
@@ -726,7 +726,6 @@ function renderDeck(rebuild = false) {
   const box = document.getElementById('tree-svg');
   if (!box) return;
 
-  // SMALLER TREE - fits without scrolling
   const w = 700;
   const h = 320;
   
@@ -739,20 +738,24 @@ function renderDeck(rebuild = false) {
   svg.style.borderRadius = '16px';
   svg.style.padding = '5px';
   
-  // COMPACT TREE COORDINATES - moved everything closer together
+  // UPDATED TREE COORDINATES - Correct relationships
+  // virilis is the outgroup (oldest), yakuba + pseudoobscura are closer
   const root = { x: 40, y: 160 };
   const branchPoint = { x: 130, y: 160 };
+  
+  // Left branch goes to mel + sim (closest pair)
   const leftNode = { x: 230, y: 90 };
-  const rightNode = { x: 230, y: 210 };
-  const outNode = { x: 230, y: 280 };
+  // Middle branch goes to yakuba + pseudoobscura (next closest)
+  const midNode = { x: 230, y: 210 };
+  // Right branch goes to virilis (outgroup, oldest)
+  const virilisNode = { x: 230, y: 280 };
   
-  const melPos = { x: 430, y: 35 };
-  const simPos = { x: 430, y: 95 };
-  const yakPos = { x: 430, y: 165 };
-  const virPos = { x: 430, y: 225 };
-  const outPos = { x: 430, y: 290 };
+  const melPos = { x: 430, y: 40 };
+  const simPos = { x: 430, y: 100 };
+  const yakPos = { x: 430, y: 170 };
+  const pseudoPos = { x: 430, y: 230 };
+  const virilisPos = { x: 430, y: 290 };
   
-  // Smaller slot dimensions
   const slotW = 100;
   const slotH = 38;
   
@@ -767,16 +770,24 @@ function renderDeck(rebuild = false) {
     svg.appendChild(path);
   }
   
-  // Draw branches
+  // Draw main trunk
   addCurve(root.x, root.y, branchPoint.x, branchPoint.y, '#60a5fa', 3);
+  
+  // Draw three main branches from branch point
   addCurve(branchPoint.x, branchPoint.y, leftNode.x, leftNode.y, '#60a5fa', 2.5);
-  addCurve(branchPoint.x, branchPoint.y, rightNode.x, rightNode.y, '#60a5fa', 2.5);
-  addCurve(branchPoint.x, branchPoint.y, outNode.x, outNode.y, '#94a3b8', 2);
+  addCurve(branchPoint.x, branchPoint.y, midNode.x, midNode.y, '#60a5fa', 2.5);
+  addCurve(branchPoint.x, branchPoint.y, virilisNode.x, virilisNode.y, '#94a3b8', 2);  // virilis is outgroup (grey)
+  
+  // Draw sub-branches for left pair (mel + sim) - closest pair
   addCurve(leftNode.x, leftNode.y, melPos.x, melPos.y, '#60a5fa', 2);
   addCurve(leftNode.x, leftNode.y, simPos.x, simPos.y, '#60a5fa', 2);
-  addCurve(rightNode.x, rightNode.y, yakPos.x, yakPos.y, '#60a5fa', 2);
-  addCurve(rightNode.x, rightNode.y, virPos.x, virPos.y, '#60a5fa', 2);
-  addCurve(outNode.x, outNode.y, outPos.x, outPos.y, '#94a3b8', 2);
+  
+  // Draw sub-branches for middle pair (yakuba + pseudoobscura) - next closest
+  addCurve(midNode.x, midNode.y, yakPos.x, yakPos.y, '#60a5fa', 2);
+  addCurve(midNode.x, midNode.y, pseudoPos.x, pseudoPos.y, '#60a5fa', 2);
+  
+  // Draw branch for virilis (outgroup)
+  addCurve(virilisNode.x, virilisNode.y, virilisPos.x, virilisPos.y, '#94a3b8', 2);
   
   // Add root circle
   const rootCircle = document.createElementNS(svgNS, 'circle');
@@ -806,7 +817,8 @@ function renderDeck(rebuild = false) {
   }
   addNode(branchPoint.x, branchPoint.y);
   addNode(leftNode.x, leftNode.y);
-  addNode(rightNode.x, rightNode.y);
+  addNode(midNode.x, midNode.y);
+  addNode(virilisNode.x, virilisNode.y);
   
   // Create slots
   function createSlot(x, y, slotId, labelText) {
@@ -839,7 +851,6 @@ function renderDeck(rebuild = false) {
       svg.appendChild(text);
     }
     
-    // Drag and drop events
     rect.addEventListener('dragover', (e) => {
       e.preventDefault();
       rect.setAttribute('stroke', '#0ea5e9');
@@ -865,17 +876,16 @@ function renderDeck(rebuild = false) {
     return g;
   }
   
-  // Create the 5 slots (adjusted Y positions for compact layout)
+  // Create 5 slots with correct pair labels
   createSlot(melPos.x + 10, melPos.y - 12, 'A1', 'Pair A (closest)');
   createSlot(simPos.x + 10, simPos.y - 12, 'A2', '');
   createSlot(yakPos.x + 10, yakPos.y - 12, 'B1', 'Pair B (next closest)');
-  createSlot(virPos.x + 10, virPos.y - 12, 'B2', '');
-  createSlot(outPos.x + 10, outPos.y - 12, 'O', 'Outgroup (oldest)');
+  createSlot(pseudoPos.x + 10, pseudoPos.y - 12, 'B2', '');
+  createSlot(virilisPos.x + 10, virilisPos.y - 12, 'O', 'Outgroup (oldest)');
   
   box.innerHTML = '';
   box.appendChild(svg);
   
-  // Re-mount any already placed species
   for (const [socketId, species] of assign.entries()) {
     if (species && typeof mountTokenOnSocket === 'function') {
       mountTokenOnSocket(socketId, species, slotW, slotH);
