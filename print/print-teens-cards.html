@@ -5,7 +5,6 @@
 <title>EVE Detective — Teens Cards (Print)</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
-  /* A4 portrait; mat is split across 2 pages to avoid overflow */
   @page { size: A4; margin: 10mm; }
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -23,16 +22,13 @@
   .toolbar{ display:flex; gap:.5rem; align-items:center; margin:0 0 8px }
   .toolbar button{ padding:.4rem .7rem }
 
-  /* 3×3 card grid pages (fronts and backs) */
   .sheet{
     display:grid; grid-template-columns:repeat(3,1fr);
     gap:8mm; page-break-after:always;
   }
-  /* Full-width single item (mat / how-to) */
   .sheet.full{ grid-template-columns:1fr }
   .sheet:last-of-type{ page-break-after:auto }
 
-  /* Poker-size card: 63×88 mm */
   .card{
     width:63mm; height:88mm; border-radius:4mm; background:#fff;
     box-shadow:0 0 0 0.5pt #e5e7eb inset; position:relative; overflow:hidden;
@@ -45,7 +41,8 @@
   .sub{ font-size:9pt; color:#64748b }
 
   :root{
-    --intact:#16a34a; --useful:#ef4444; --broken:#6b7280; --unique:#d4a017;
+    --intact:#16a34a; --useful:#ef4444; --broken:#111827; --unique:#f59e0b;
+    --empty:#e2e8f0;
     --ink:#0a1a2f;
   }
   .chip{
@@ -54,22 +51,32 @@
   }
   .dot{ width:9px; height:9px; border-radius:50% }
 
-  /* Barcode visuals */
-  .barcode .bg rect{ fill:#eef2f7 }
-  .barcode .bar{ rx:2 }
-  .front .barcode .bar.missing{ fill:#dbe4ee; opacity:.55 }
-  .front .barcode .bar.has.intact{ fill:var(--intact) }
-  .front .barcode .bar.has.useful{ fill:var(--useful) }
-  .front .barcode .bar.has.broken{ fill:var(--broken) }
-  .front .barcode .bar.has.unique{ fill:var(--unique) }
+  /* Barcode with 8 positions */
+  .barcode-wrapper {
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 8px;
+    margin: 8px 0;
+  }
+  .barcode {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .barcode .band {
+    width: 12px;
+    height: 40px;
+    border-radius: 3px;
+    border: 1px solid rgba(0,0,0,0.08);
+  }
+  .band.intact { background: #16a34a; }
+  .band.useful { background: #ef4444; }
+  .band.broken { background: #111827; }
+  .band.unique { background: #f59e0b; }
+  .band.empty { background: #e2e8f0; }
 
-  .back .barcode .bar.missing{ fill:#e5e7eb; opacity:.45 }
-  .back .barcode .bar.has.intact{ fill:var(--intact) }
-  .back .barcode .bar.has.useful{ fill:var(--useful) }
-  .back .barcode .bar.has.broken{ fill:var(--broken) }
-  .back .barcode .bar.has.unique{ fill:var(--unique) }
-
-  /* Mat pages (portrait, full-width) */
+  /* Mat pages */
   .mat{
     width:100%; min-height:240mm; border-radius:6mm; background:#fff;
     box-shadow:0 0 0 0.8pt #e5e7eb inset; position:relative; break-inside:avoid; padding:10mm;
@@ -83,9 +90,7 @@
     background:repeating-linear-gradient(45deg,#f8fafc,#f8fafc 6mm,#f1f5f9 6mm,#f1f5f9 12mm);
     padding:4mm;
   }
-  /* Fits two 63×88 mm cards side-by-side */
   .slot.two{ width:140mm }
-  /* Fits one card */
   .slot.one{ width:70mm }
   .slot small{ display:block; color:#64748b; margin-top:2mm }
 </style>
@@ -93,7 +98,8 @@
 <body>
 
 <div class="screen-note">
-  Teens pack: Page 1 = Fronts, Page 2 = Backs. Page 3 = Tree Mat — Left (Pair A + Outgroup). Page 4 = Tree Mat — Right (Pair B). Page 5 = How to Play & Answers.
+  Teens pack: Page 1 = Fronts, Page 2 = Backs. Page 3 = Tree Mat — Left (Pair A + Outgroup). Page 4 = Tree Mat — Right (Pair B). Page 5 = How to Play & Answers.<br>
+  <strong>Correct tree:</strong> Pair A = D. melanogaster + D. simulans (closest), Pair B = D. yakuba + D. pseudoobscura (next closest), Outgroup = D. virilis (oldest).
 </div>
 <div class="toolbar">
   <button onclick="window.print()">Print</button>
@@ -137,57 +143,53 @@
 <script>
 /*
   EVE Detective — Teens (Family Tree) cards
-  - Front: species + barcode (colored bars)
-  - Back: species + barcode + legend
-  - Split Mat across 2 portrait pages to avoid overflow
-  Correct solution: {melanogaster, simulans} & {pseudoananassae, virilis}; Outgroup: yakuba.
+  UPDATED: Pair A = melanogaster + simulans (closest)
+  Pair B = yakuba + pseudoobscura (next closest)
+  Outgroup = virilis (oldest)
 */
-const BAR_COUNT = 12;
+const BAR_COUNT = 8;
+const BAR_POSITIONS = [1,2,3,4,5,6,7,8];
 
+// EVE bands for each species - 8 positions
 const speciesData = [
   { key:'melanogaster', short:'D. mel.', full:'Drosophila melanogaster',
-    intact:[1,5,9], useful:[3,7], broken:[10,11], unique:[2] },
+    bands: ['intact', 'useful', 'broken', 'useful', 'useful', 'broken', 'intact', 'empty'] },
   { key:'simulans', short:'D. sim.', full:'Drosophila simulans',
-    intact:[1,6,9], useful:[3], broken:[8,10], unique:[4] },
+    bands: ['intact', 'intact', 'broken', 'useful', 'unique', 'broken', 'intact', 'empty'] },
   { key:'yakuba', short:'D. yak.', full:'Drosophila yakuba',
-    intact:[0], useful:[], broken:[2,3,5,9,11], unique:[7] },
+    bands: ['broken', 'useful', 'intact', 'broken', 'useful', 'broken', 'intact', 'empty'] },
+  { key:'pseudoobscura', short:'D. pse.', full:'Drosophila pseudoobscura',
+    bands: ['useful', 'intact', 'intact', 'intact', 'useful', 'intact', 'intact', 'empty'] },
   { key:'virilis', short:'D. vir.', full:'Drosophila virilis',
-    intact:[6], useful:[8], broken:[1,3,9,10], unique:[4] },
-  { key:'pseudoananassae', short:'D. pse.', full:'Drosophila pseudoananassae',
-    intact:[5], useful:[7,8], broken:[1,2,10], unique:[0] }
+    bands: ['intact', 'broken', 'broken', 'broken', 'useful', 'broken', 'empty', 'empty'] }
 ];
 
-function buildBarClasses(sp){
-  const cls = Array(BAR_COUNT).fill('missing');
-  const order = ['unique','broken','intact','useful']; // override order if overlaps
-  for (const t of order){
-    (sp[t] || []).forEach(i => { if (i>=0 && i<BAR_COUNT) cls[i] = 'has ' + t; });
-  }
-  return cls;
+function bandClass(bandType) {
+  if (bandType === 'intact') return 'intact';
+  if (bandType === 'useful') return 'useful';
+  if (bandType === 'broken') return 'broken';
+  if (bandType === 'unique') return 'unique';
+  return 'empty';
 }
 
-function barcodeSVG(classes){
-  const W=260, H=100, pad=6, gap=4;
-  const bw = (W - pad*2 - gap*(BAR_COUNT-1)) / BAR_COUNT;
-  const rects=[];
-  for (let i=0;i<BAR_COUNT;i++){
-    const x = pad + i*(bw+gap);
-    rects.push(`<rect class="bar ${classes[i]}" x="${x.toFixed(2)}" y="${pad}" width="${bw.toFixed(2)}" height="${H-pad*2}" />`);
-  }
-  return `<svg class="barcode" viewBox="0 0 ${W} ${H}" width="100%" height="auto">
-    <g class="bg"><rect x="0" y="0" width="${W}" height="${H}" rx="8"/></g>
-    ${rects.join('')}
-  </svg>`;
+function barcodeHTML(bands) {
+  return `
+    <div class="barcode-wrapper">
+      <div class="barcode">
+        ${bands.map(band => `<div class="band ${bandClass(band)}" title="${band}"></div>`).join('')}
+      </div>
+    </div>
+  `;
 }
 
 function card(sp, mode){
-  const cls = buildBarClasses(sp);
+  const bands = sp.bands;
   const legend = mode==='back' ? `
     <div class="legend" style="margin-top:3mm">
-      <span class="chip"><span class="dot" style="background:var(--intact)"></span> Intact</span>
-      <span class="chip"><span class="dot" style="background:var(--useful)"></span> Useful</span>
-      <span class="chip"><span class="dot" style="background:var(--broken)"></span> Broken</span>
-      <span class="chip"><span class="dot" style="background:var(--unique)"></span> Unique</span>
+      <span class="chip"><span class="dot" style="background:var(--intact)"></span> Intact (green)</span>
+      <span class="chip"><span class="dot" style="background:var(--useful)"></span> Useful (red)</span>
+      <span class="chip"><span class="dot" style="background:var(--broken)"></span> Broken (grey)</span>
+      <span class="chip"><span class="dot" style="background:var(--unique)"></span> Unique (gold)</span>
     </div>` : '';
   return `
     <div class="card ${mode}">
@@ -197,7 +199,7 @@ function card(sp, mode){
           <div class="species">${sp.short}</div>
         </div>
         <div class="sub">${sp.full}</div>
-        ${barcodeSVG(cls)}
+        ${barcodeHTML(bands)}
         ${mode==='front' ? `<div class="sub" style="margin-top:3mm">Match colors at the same positions</div>` : ''}
         ${legend}
       </div>
@@ -217,27 +219,57 @@ document.getElementById('answers').innerHTML = `
       <li>Place the two most similar cards in Pair A, the next two in Pair B, and the odd one (least matches) in Outgroup.</li>
       <li>Flip the backs (Answer Hints) or check below to confirm.</li>
     </ol>
-    <div class="sub"><strong>Correct solution:</strong> Pairs {melanogaster, simulans} and {pseudoananassae, virilis}; Outgroup: yakuba.</div>
-    <div class="sub" style="margin-top:4mm"><strong>Comparison tips:</strong> Matching bars at the same positions = shared EVEs (closer relatives). Gold “unique” marks changes after a split. Grey “broken” marks older events.</div>
-    <svg viewBox="0 0 520 200" width="100%" height="auto" style="margin-top:6mm">
-      <g stroke="#334155" stroke-width="3" fill="none">
-        <!-- Tree scaffold -->
-        <line x1="80" y1="40" x2="80" y2="160" />
-        <line x1="80" y1="60" x2="240" y2="60" />
-        <line x1="80" y1="140" x2="240" y2="140" />
-        <!-- Pair A split -->
-        <line x1="240" y1="60" x2="300" y2="40" />
-        <line x1="240" y1="60" x2="300" y2="80" />
-        <!-- Pair B split -->
-        <line x1="240" y1="140" x2="300" y2="120" />
-        <line x1="240" y1="140" x2="300" y2="160" />
+    <div class="sub"><strong>Correct solution:</strong> Pair A = D. melanogaster + D. simulans (closest, share EVEs at positions 1,4,7). Pair B = D. yakuba + D. pseudoobscura (next closest). Outgroup = D. virilis (oldest).</div>
+    <div class="sub" style="margin-top:4mm"><strong>Comparison tips:</strong> Matching colored bars at the same positions = shared EVEs → closer relatives. Gold “unique” marks changes after a split. Grey “broken” marks older events.</div>
+    
+    <!-- Phylogenetic tree with timescale -->
+    <svg viewBox="0 0 650 380" width="100%" height="auto" style="margin-top:6mm; background:#faf9f6; border-radius:12px; padding:10px;">
+      <g stroke="#60a5fa" stroke-width="2.5" fill="none" stroke-linecap="round">
+        <!-- Main trunk -->
+        <path d="M 60 180 C 110 180, 110 180, 160 180" />
+        <!-- Branch to Pair A -->
+        <path d="M 160 180 C 210 180, 210 100, 260 90" />
+        <!-- Branch to Pair B -->
+        <path d="M 160 180 C 210 180, 210 250, 260 230" />
+        <!-- Branch to Outgroup -->
+        <path d="M 160 180 C 210 180, 210 320, 260 330" />
+        <!-- Sub-branches Pair A -->
+        <path d="M 260 90 C 310 90, 310 45, 360 45" />
+        <path d="M 260 90 C 310 90, 310 135, 360 135" />
+        <!-- Sub-branches Pair B -->
+        <path d="M 260 230 C 310 230, 310 195, 360 195" />
+        <path d="M 260 230 C 310 230, 310 275, 360 275" />
+        <!-- Outgroup branch -->
+        <path d="M 260 330 C 310 330, 310 375, 360 375" />
       </g>
-      <g font-family="Inter,Arial,sans-serif" font-size="13" fill="#0a1a2f" stroke="#fff" stroke-width="3" paint-order="stroke">
-        <text x="315" y="45">D. mel.</text>
-        <text x="315" y="85">D. sim.</text>
-        <text x="315" y="125">D. pse.</text>
-        <text x="315" y="165">D. vir.</text>
-        <text x="40" y="100">D. yak.</text>
+      
+      <!-- Timescale labels -->
+      <g font-family="Inter, sans-serif" font-size="9" fill="#f59e0b" font-weight="600">
+        <text x="175" y="190">40-60 MYA</text>
+        <text x="225" y="105">2-3 MYA</text>
+        <text x="225" y="245">~25 MYA</text>
+      </g>
+      
+      <!-- Species labels -->
+      <g font-family="Inter, sans-serif" font-size="11" fill="#0a1a2f" font-weight="600">
+        <text x="375" y="50">D. mel.</text>
+        <text x="375" y="140">D. sim.</text>
+        <text x="375" y="200">D. yak.</text>
+        <text x="375" y="280">D. pse.</text>
+        <text x="375" y="380">D. vir.</text>
+      </g>
+      
+      <!-- Group labels -->
+      <g font-family="Inter, sans-serif" font-size="9" fill="#4a5568">
+        <text x="300" y="25">Pair A (closest)</text>
+        <text x="300" y="175">Pair B (next closest)</text>
+        <text x="300" y="355">Outgroup (oldest)</text>
+      </g>
+      
+      <!-- Common Ancestor label -->
+      <g font-family="Inter, sans-serif" font-size="9" fill="#4a5568">
+        <text x="15" y="175">Common</text>
+        <text x="15" y="187">Ancestor</text>
       </g>
     </svg>
   </div>`;
