@@ -544,21 +544,14 @@ const IntermediateGame = (() => {
 };
   
   const EVE_BANDS = {
-  // D. melanogaster: pos1=intact, pos2=useful, pos3=broken, pos4=useful, pos5=useful, pos6=broken, pos7=intact, pos8=empty
   melanogaster:   ['intact', 'useful', 'broken', 'useful', 'useful', 'broken', 'intact', 'empty'],
-  
-  // D. yakuba: pos1=broken, pos2=useful, pos3=intact, pos4=broken, pos5=useful, pos6=broken, pos7=intact, pos8=empty
   yakuba:         ['broken', 'useful', 'intact', 'broken', 'useful', 'broken', 'intact', 'empty'],
-  
-  // D. simulans: pos1=intact, pos2=intact, pos3=broken, pos4=useful, pos5=unique, pos6=broken, pos7=intact, pos8=empty
   simulans:       ['intact', 'intact', 'broken', 'useful', 'unique', 'broken', 'intact', 'empty'],
-
-  // D. pseudoobscura: pos1=intact, pos2=broken, pos3=broken, pos4=broken, pos5=useful, pos6=broken, pos7=empty, pos8=empty
-  pseudoobscura:  ['intact', 'broken', 'broken', 'broken', 'useful', 'broken', 'empty', 'empty'],
-
-    // D. virilis: pos1=useful, pos2=intact, pos3=intact, pos4=intact, pos5=useful, pos6=intact, pos7=intact, pos8=empty
-  virilis:        ['useful', 'intact', 'intact', 'intact', 'useful', 'intact', 'intact', 'empty'],
-  };
+  // pseudoobscura now has bands that pair with yakuba (more shared EVEs)
+  pseudoobscura:  ['useful', 'intact', 'intact', 'intact', 'useful', 'intact', 'intact', 'empty'],
+  // virilis now has outgroup bands (fewer shared EVEs)
+  virilis:        ['intact', 'broken', 'broken', 'broken', 'useful', 'broken', 'empty', 'empty'],
+};
   
   
   // Correct mapping
@@ -982,20 +975,20 @@ function renderDeck(rebuild = false) {
   }
 
   function renderMatrix() {
-    const el = document.getElementById('matrix');
-    if (!el) return;
-    el.innerHTML = `
-      <table style="width:100%; border-collapse: collapse;">
-        <thead><tr><th>Species Pair</th><th>Shared EVEs</th><th>Relationship</th></tr></thead>
-        <tbody>
-          <tr style="border-bottom:1px solid #e2e8f0;"><td><strong>D. melanogaster + D. simulans</strong></td><td style="color:#16a34a;">E3, E5 (Intact)</td><td style="color:#0e8a68;">⭐ Closest relatives</td></tr>
-          <tr style="border-bottom:1px solid #e2e8f0;"><td><strong>D. yakuba + D. virilis</strong></td><td style="color:#16a34a;">E6 (Intact)</td><td style="color:#0e8a68;">📌 Next closest</td></tr>
-          <tr><td><strong>D. pseudoobscura</strong></td><td style="color:#f59e0b;">Unique EVEs</td><td style="color:#b91c1c;">🌳 Outgroup</td></tr>
-        </tbody>
-      舼able>
-      <p class="muted" style="margin-top:8px;">💡 More shared EVEs = closer relationship on the tree</p>
-    `;
-  }
+  const el = document.getElementById('matrix');
+  if (!el) return;
+  el.innerHTML = `
+    <table style="width:100%; border-collapse: collapse;">
+      <thead><tr><th>Species Pair</th><th>Shared EVEs</th><th>Relationship</th></tr></thead>
+      <tbody>
+        <tr style="border-bottom:1px solid #e2e8f0;"><td><strong>D. melanogaster + D. simulans</strong></td><td style="color:#16a34a;">E3, E5 (Intact)</td><td style="color:#0e8a68;">⭐ Closest relatives</td></tr>
+        <tr style="border-bottom:1px solid #e2e8f0;"><td><strong>D. yakuba + D. pseudoobscura</strong></td><td style="color:#16a34a;">Shared EVEs</td><td style="color:#0e8a68;">📌 Next closest</td></tr>
+        <tr style="border-bottom:1px solid #e2e8f0;"><td><strong>D. virilis</strong></td><td style="color:#f59e0b;">Unique EVEs</td><td style="color:#b91c1c;">🌳 Outgroup (oldest)</td></tr>
+      </tbody>
+    </table>
+    <p class="muted" style="margin-top:8px;">💡 More shared EVEs = closer relationship on the tree</p>
+  `;
+}
 
   function toggleMatrix() {
     const el = document.getElementById('matrix');
@@ -1005,8 +998,8 @@ function renderDeck(rebuild = false) {
   }
 
   function showHints() {
-    alert("🔍 HINTS:\n\n• D. melanogaster and D. simulans share the most EVEs → Put them in Pair A (closest).\n• D. yakuba and D. virilis share fewer EVEs → Put them in Pair B (next closest).\n• D. pseudoobscura has unique EVEs → Put it in Outgroup (oldest).\n\nUse the matrix for help!");
-  }
+  alert("🔍 HINTS:\n\n• D. melanogaster and D. simulans share the most EVEs → Put them in Pair A (closest).\n• D. yakuba and D. pseudoobscura share fewer EVEs → Put them in Pair B (next closest).\n• D. virilis has unique EVEs → Put it in Outgroup (oldest).\n\nUse the matrix for help!");
+}
 
   function checkTree() {
     const A = [assign.get('A1'), assign.get('A2')].filter(Boolean);
