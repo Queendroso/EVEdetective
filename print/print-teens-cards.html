@@ -65,7 +65,7 @@
 
   /* Single full-width page for tree mat */
   .mat-page {
-    page-break-after: always;
+    page-break-after: auto;
   }
   
   .tree-mat {
@@ -176,10 +176,13 @@
     margin-bottom: 8px;
   }
   
-  .tree-instruction {
-    font-size: 10px;
-    color: #64748b;
+  .tree-tip {
+    background: #fef3c7;
+    border-left: 4px solid #f59e0b;
+    padding: 10px 12px;
+    border-radius: 8px;
     margin-bottom: 20px;
+    font-size: 10px;
   }
   
   .tree-svg-container {
@@ -206,19 +209,6 @@
     color: #64748b;
   }
   
-  .answer-box {
-    background: #f0fdf4;
-    border-radius: 12px;
-    padding: 12px;
-    margin-top: 16px;
-  }
-  
-  .answer-title {
-    font-weight: 700;
-    font-size: 12px;
-    margin-bottom: 8px;
-  }
-  
   hr {
     margin: 16px 0;
     border: none;
@@ -229,25 +219,27 @@
 <body>
 
 <div class="screen-note">
-  🧬 TEENS PACK: Page 1 = Species Cards (Front), Page 2 = Answer Key (Back), 
-  Page 3 = Phylogenetic Tree Mat. Print at 100% scale on A4 cardstock.
+  🧬 TEENS PACK: Page 1 = Species Cards (Front), Page 2 = Answer Key (Back), Page 3 = Phylogenetic Tree Mat. Print at 100% scale on A4 cardstock.
 </div>
 
 <div class="toolbar">
   <button onclick="window.print()">🖨️ Print Cards</button>
 </div>
 
-<!-- Page 1: Fronts -->
+<!-- Page 1: Fronts (Species Cards) -->
 <section class="sheet" id="fronts"></section>
 
-<!-- Page 2: Backs -->
+<!-- Page 2: Backs (Answer Key) -->
 <section class="sheet" id="backs"></section>
 
-<!-- Page 3: Tree Mat -->
+<!-- Page 3: Tree Mat (NO ANSWER KEY HERE) -->
 <div class="mat-page">
   <div class="tree-mat">
     <div class="tree-title">🌳 Build the EVE Family Tree</div>
-    <div class="tree-instruction">Compare the barcode cards. More matching coloured bars at the same positions = more shared EVEs = closer relatives.</div>
+    
+    <div class="tree-tip">
+      💡 <strong>Tip:</strong> Compare the barcode cards. More matching coloured bars at the same positions = more shared EVEs = closer relatives.
+    </div>
     
     <div class="tree-svg-container">
       <svg viewBox="0 0 700 380" width="100%" height="auto" style="background: #faf9f6; border-radius: 20px;">
@@ -275,43 +267,43 @@
         <foreignObject x="345" y="25" width="95" height="45">
           <div xmlns="http://www.w3.org/1999/xhtml" class="tree-slot">
             <div class="slot-label">Pair A (closest)</div>
-            <div class="slot-hint">D. mel. + D. sim.</div>
+            <div class="slot-hint">(most shared EVEs)</div>
           </div>
         </foreignObject>
         
         <foreignObject x="345" y="105" width="95" height="45">
           <div xmlns="http://www.w3.org/1999/xhtml" class="tree-slot">
-            <div class="slot-hint">Place card here</div>
+            <div class="slot-hint">Place species card here</div>
           </div>
         </foreignObject>
         
         <foreignObject x="345" y="195" width="95" height="45">
           <div xmlns="http://www.w3.org/1999/xhtml" class="tree-slot">
             <div class="slot-label">Pair B (next closest)</div>
-            <div class="slot-hint">D. yak. + D. pse.</div>
+            <div class="slot-hint">(fewer shared EVEs)</div>
           </div>
         </foreignObject>
         
         <foreignObject x="345" y="275" width="95" height="45">
           <div xmlns="http://www.w3.org/1999/xhtml" class="tree-slot">
-            <div class="slot-hint">Place card here</div>
+            <div class="slot-hint">Place species card here</div>
           </div>
         </foreignObject>
         
         <foreignObject x="345" y="335" width="95" height="45">
           <div xmlns="http://www.w3.org/1999/xhtml" class="tree-slot">
             <div class="slot-label">Outgroup (oldest)</div>
-            <div class="slot-hint">D. virilis</div>
+            <div class="slot-hint">(least shared EVEs)</div>
           </div>
         </foreignObject>
         
-        <!-- Species labels -->
-        <g font-family="Inter" font-size="10" fill="#0a1a2f" font-weight="600">
-          <text x="315" y="45">D. mel.</text>
-          <text x="315" y="125">D. sim.</text>
-          <text x="315" y="215">D. yak.</text>
-          <text x="315" y="295">D. pse.</text>
-          <text x="315" y="365">D. vir.</text>
+        <!-- Species labels (empty, for kids to place cards) -->
+        <g font-family="Inter" font-size="10" fill="#cbd5e1" font-weight="600">
+          <text x="315" y="45">?</text>
+          <text x="315" y="125">?</text>
+          <text x="315" y="215">?</text>
+          <text x="315" y="295">?</text>
+          <text x="315" y="365">?</text>
         </g>
         
         <!-- Root label -->
@@ -320,15 +312,6 @@
           <text x="10" y="197">Ancestor</text>
         </g>
       </svg>
-    </div>
-    
-    <div class="answer-box">
-      <div class="answer-title">✅ Correct Answer:</div>
-      • <strong>Pair A</strong> (closest, 2‑3 MYA): D. melanogaster + D. simulans<br>
-      • <strong>Pair B</strong> (next closest, ~25 MYA): D. yakuba + D. pseudoobscura<br>
-      • <strong>Outgroup</strong> (oldest, 40‑60 MYA): D. virilis<br>
-      <br>
-      💡 <strong>Tip:</strong> Match the coloured bars at the same positions. More matches = closer relatives!
     </div>
   </div>
 </div>
