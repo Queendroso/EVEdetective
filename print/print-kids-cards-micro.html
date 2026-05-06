@@ -17,6 +17,37 @@
     padding: 10mm;
   }
 
+  .toolbar {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    margin-bottom: 16px;
+    padding: 12px;
+    background: white;
+    border-radius: 60px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  
+  .toolbar label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+  
+  .toolbar input {
+    width: 200px;
+  }
+  
+  .toolbar button {
+    background: #0e8a68;
+    color: white;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 40px;
+    cursor: pointer;
+  }
+
   .sheet {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -51,16 +82,18 @@
     padding: 20px 10px;
     margin: 10px 0;
     position: relative;
-    min-height: 120px;
+    min-height: 130px;
   }
 
-  /* EVE dots - colourful but tiny (need lens) */
+  /* EVE dots - size controlled by CSS variable */
   .eve-spot {
     display: inline-block;
-    width: 4px;
-    height: 4px;
+    width: var(--eve-dot-size, 5px);
+    height: var(--eve-dot-size, 5px);
     border-radius: 50%;
-    margin: 0 2px;
+    margin: 0;
+    position: absolute;
+    box-shadow: 0 0 0 0.5px rgba(0,0,0,0.1);
   }
   
   .eve-intact { background: #16a34a; }
@@ -97,6 +130,7 @@
     border-radius: 12px;
     padding: 12px;
     margin-top: 10px;
+    text-align: left;
   }
 
   .badge {
@@ -120,72 +154,134 @@
     color: #334155;
     font-style: italic;
   }
+  
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+    margin-top: 8px;
+  }
+  
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 8px;
+    background: white;
+    padding: 2px 6px;
+    border-radius: 20px;
+    border: 1px solid #e2e8f0;
+  }
+  
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
 </style>
 </head>
 <body>
 
-<div class="screen-note">
-  🔬 DETECTIVE CARDS: Use a 5-10× hand lens to find the tiny coloured dots hidden in the DNA strand!<br>
-  📝 Count how many of each colour you find, then flip to check your answers.
+<div class="toolbar">
+  <label>
+    🔬 EVE Dot Size:
+    <input type="range" id="dotSizeSlider" min="2" max="10" step="0.5" value="4">
+    <span id="sizeValue">4</span> mm
+  </label>
+  <button onclick="window.print()">🖨️ Print Cards</button>
 </div>
 
-<section class="sheet" id="cards"></section>
+<div class="screen-note">
+  🔬 DETECTIVE CARDS: Use a 5-10× hand lens to find the tiny coloured dots hidden in the DNA strand!<br>
+  📝 Count how many of each colour you find, then flip to check your answers.<br>
+  ⚡ Adjust the dot size above BEFORE printing - smaller dots (2-3mm) require a hand lens!
+</div>
+
+<section class="sheet" id="fronts"></section>
+<section class="sheet" id="backs"></section>
 
 <script>
+// Size slider control
+const slider = document.getElementById('dotSizeSlider');
+const sizeValue = document.getElementById('sizeValue');
+slider.addEventListener('input', function() {
+  const size = this.value;
+  sizeValue.textContent = size;
+  document.documentElement.style.setProperty('--eve-dot-size', size + 'px');
+});
+
+// UNIQUE EVE PATTERNS FOR EACH SPECIES
+// Each species has different distribution and counts
 const speciesCards = [
   { 
     name: 'D. melanogaster', 
     full: 'Drosophila melanogaster',
     region: 'piRNA cluster 3R‑TAS',
+    // 5 intact, 3 useful, 2 broken, 1 unique
     eves: [
-      { type: 'intact', x: 10, y: 20 }, { type: 'useful', x: 35, y: 45 },
-      { type: 'broken', x: 60, y: 30 }, { type: 'unique', x: 85, y: 55 },
-      { type: 'intact', x: 20, y: 70 }, { type: 'useful', x: 50, y: 80 },
-      { type: 'broken', x: 75, y: 15 }, { type: 'unique', x: 45, y: 25 }
+      { type: 'intact', x: 12, y: 22 }, { type: 'intact', x: 28, y: 45 },
+      { type: 'intact', x: 45, y: 18 }, { type: 'intact', x: 68, y: 58 },
+      { type: 'intact', x: 85, y: 32 }, { type: 'useful', x: 18, y: 65 },
+      { type: 'useful', x: 38, y: 82 }, { type: 'useful', x: 62, y: 28 },
+      { type: 'broken', x: 52, y: 72 }, { type: 'broken', x: 78, y: 45 },
+      { type: 'unique', x: 92, y: 75 }
     ]
   },
-  {
-    name: 'D. simulans',
+  { 
+    name: 'D. simulans', 
     full: 'Drosophila simulans', 
     region: 'piRNA cluster 2L‑TAS',
+    // 4 intact, 4 useful, 3 broken, 1 unique
     eves: [
-      { type: 'broken', x: 15, y: 35 }, { type: 'useful', x: 40, y: 20 },
-      { type: 'intact', x: 65, y: 50 }, { type: 'intact', x: 30, y: 75 },
-      { type: 'unique', x: 80, y: 40 }, { type: 'broken', x: 55, y: 65 },
-      { type: 'useful', x: 25, y: 15 }, { type: 'intact', x: 70, y: 80 }
+      { type: 'intact', x: 15, y: 35 }, { type: 'intact', x: 32, y: 18 },
+      { type: 'intact', x: 55, y: 42 }, { type: 'intact', x: 78, y: 25 },
+      { type: 'useful', x: 22, y: 68 }, { type: 'useful', x: 42, y: 55 },
+      { type: 'useful', x: 65, y: 78 }, { type: 'useful', x: 88, y: 48 },
+      { type: 'broken', x: 38, y: 85 }, { type: 'broken', x: 72, y: 62 },
+      { type: 'broken', x: 52, y: 15 }, { type: 'unique', x: 95, y: 88 }
     ]
   },
-  {
-    name: 'D. yakuba',
+  { 
+    name: 'D. yakuba', 
     full: 'Drosophila yakuba',
     region: 'Heterochromatin island H3',
+    // 3 intact, 2 useful, 5 broken, 2 unique
     eves: [
-      { type: 'useful', x: 20, y: 30 }, { type: 'intact', x: 45, y: 60 },
-      { type: 'broken', x: 70, y: 25 }, { type: 'intact', x: 35, y: 85 },
-      { type: 'unique', x: 85, y: 65 }, { type: 'useful', x: 15, y: 55 },
-      { type: 'broken', x: 60, y: 45 }, { type: 'intact', x: 50, y: 15 }
+      { type: 'intact', x: 20, y: 28 }, { type: 'intact', x: 48, y: 65 },
+      { type: 'intact', x: 82, y: 38 }, { type: 'useful', x: 35, y: 45 },
+      { type: 'useful', x: 62, y: 22 }, { type: 'broken', x: 15, y: 72 },
+      { type: 'broken', x: 42, y: 88 }, { type: 'broken', x: 68, y: 55 },
+      { type: 'broken', x: 88, y: 68 }, { type: 'broken', x: 55, y: 35 },
+      { type: 'unique', x: 25, y: 15 }, { type: 'unique', x: 75, y: 82 }
     ]
   },
-  {
-    name: 'D. virilis',
+  { 
+    name: 'D. virilis', 
     full: 'Drosophila virilis',
     region: 'Subtelomeric 2R',
+    // 5 intact, 1 useful, 4 broken, 2 unique
     eves: [
-      { type: 'broken', x: 25, y: 40 }, { type: 'intact', x: 55, y: 25 },
-      { type: 'useful', x: 80, y: 60 }, { type: 'unique', x: 40, y: 70 },
-      { type: 'broken', x: 65, y: 35 }, { type: 'intact', x: 20, y: 80 },
-      { type: 'useful', x: 75, y: 20 }, { type: 'unique', x: 45, y: 50 }
+      { type: 'intact', x: 18, y: 42 }, { type: 'intact', x: 35, y: 25 },
+      { type: 'intact', x: 58, y: 72 }, { type: 'intact', x: 72, y: 38 },
+      { type: 'intact', x: 88, y: 55 }, { type: 'useful', x: 45, y: 85 },
+      { type: 'broken', x: 28, y: 68 }, { type: 'broken', x: 52, y: 18 },
+      { type: 'broken', x: 68, y: 88 }, { type: 'broken', x: 82, y: 28 },
+      { type: 'unique', x: 42, y: 55 }, { type: 'unique', x: 95, y: 75 }
     ]
   },
-  {
-    name: 'D. pseudoobscura',
+  { 
+    name: 'D. pseudoobscura', 
     full: 'Drosophila pseudoobscura',
     region: 'Subtelomeric repeat S1',
+    // 4 intact, 3 useful, 3 broken, 1 unique
     eves: [
-      { type: 'intact', x: 30, y: 25 }, { type: 'intact', x: 55, y: 55 },
-      { type: 'useful', x: 80, y: 35 }, { type: 'broken', x: 25, y: 70 },
-      { type: 'unique', x: 70, y: 75 }, { type: 'intact', x: 45, y: 40 },
-      { type: 'useful', x: 15, y: 45 }, { type: 'broken', x: 60, y: 15 }
+      { type: 'intact', x: 22, y: 32 }, { type: 'intact', x: 38, y: 58 },
+      { type: 'intact', x: 62, y: 25 }, { type: 'intact', x: 85, y: 48 },
+      { type: 'useful', x: 28, y: 78 }, { type: 'useful', x: 48, y: 42 },
+      { type: 'useful', x: 75, y: 68 }, { type: 'broken', x: 15, y: 55 },
+      { type: 'broken', x: 55, y: 88 }, { type: 'broken', x: 92, y: 35 },
+      { type: 'unique', x: 68, y: 15 }
     ]
   }
 ];
@@ -199,7 +295,7 @@ function generateEveDots(eves) {
     else if (eve.type === 'broken') colorClass = 'eve-broken';
     else if (eve.type === 'unique') colorClass = 'eve-unique';
     
-    dots += `<span class="eve-spot ${colorClass}" style="position: absolute; left: ${eve.x}%; top: ${eve.y}%;"></span>`;
+    dots += `<span class="eve-spot ${colorClass}" style="left: ${eve.x}%; top: ${eve.y}%;"></span>`;
   });
   return dots;
 }
@@ -210,7 +306,7 @@ function countByType(eves) {
   return counts;
 }
 
-function frontCard(card, idx) {
+function frontCard(card) {
   const counts = countByType(card.eves);
   return `
     <div class="card">
@@ -224,10 +320,10 @@ function frontCard(card, idx) {
         </div>
         
         <div class="checklist">
-          <div class="checklist-item"><span class="checklist-dot" style="background: #16a34a;"></span> Intact (green): ___ found</div>
-          <div class="checklist-item"><span class="checklist-dot" style="background: #ef4444;"></span> Useful (red): ___ found</div>
-          <div class="checklist-item"><span class="checklist-dot" style="background: #111827;"></span> Broken (grey): ___ found</div>
-          <div class="checklist-item"><span class="checklist-dot" style="background: #f59e0b;"></span> Unique (gold): ___ found</div>
+          <div class="checklist-item"><span class="checklist-dot" style="background: #16a34a;"></span> Intact (green): ___ found (total: ${counts.intact})</div>
+          <div class="checklist-item"><span class="checklist-dot" style="background: #ef4444;"></span> Useful (red): ___ found (total: ${counts.useful})</div>
+          <div class="checklist-item"><span class="checklist-dot" style="background: #111827;"></span> Broken (grey): ___ found (total: ${counts.broken})</div>
+          <div class="checklist-item"><span class="checklist-dot" style="background: #f59e0b;"></span> Unique (gold): ___ found (total: ${counts.unique})</div>
         </div>
         
         <div class="badge">🔬 Use hand lens (5-10×)</div>
@@ -236,7 +332,7 @@ function frontCard(card, idx) {
   `;
 }
 
-function backCard(card, idx) {
+function backCard(card) {
   const counts = countByType(card.eves);
   return `
     <div class="card">
@@ -245,15 +341,15 @@ function backCard(card, idx) {
         <div class="species">${card.name}</div>
         
         <div class="answer-key">
-          <strong>Found in this species:</strong><br>
-          🟢 ${counts.intact} × Intact EVEs<br>
-          🔴 ${counts.useful} × Useful EVEs<br>
-          ⚫ ${counts.broken} × Broken EVEs<br>
-          🟡 ${counts.unique} × Unique EVEs<br>
-          <div style="margin-top: 8px; font-size: 9px;">Region: ${card.region}</div>
+          <strong>🎯 Found in this species:</strong><br>
+          🟢 <strong>${counts.intact}</strong> × Intact EVEs (green circles)<br>
+          🔴 <strong>${counts.useful}</strong> × Useful EVEs (red circles)<br>
+          ⚫ <strong>${counts.broken}</strong> × Broken EVEs (grey/black circles)<br>
+          🟡 <strong>${counts.unique}</strong> × Unique EVEs (gold circles)<br>
+          <div style="margin-top: 8px; font-size: 9px; color: #64748b;">📍 Genomic Region: ${card.region}</div>
         </div>
         
-        <div class="legend" style="margin-top: 8px; font-size: 8px;">
+        <div class="legend">
           <span class="chip"><span class="dot" style="background:#16a34a;"></span> Intact</span>
           <span class="chip"><span class="dot" style="background:#ef4444;"></span> Useful</span>
           <span class="chip"><span class="dot" style="background:#111827;"></span> Broken</span>
@@ -266,12 +362,13 @@ function backCard(card, idx) {
 
 let frontsHtml = '';
 let backsHtml = '';
-speciesCards.forEach((card, idx) => {
-  frontsHtml += frontCard(card, idx);
-  backsHtml += backCard(card, idx);
+speciesCards.forEach(card => {
+  frontsHtml += frontCard(card);
+  backsHtml += backCard(card);
 });
 
-document.getElementById('cards').innerHTML = frontsHtml + backsHtml;
+document.getElementById('fronts').innerHTML = frontsHtml;
+document.getElementById('backs').innerHTML = backsHtml;
 </script>
 
 </body>
