@@ -726,162 +726,151 @@ function renderDeck(rebuild = false) {
   const box = document.getElementById('tree-svg');
   if (!box) return;
 
-  const w = Math.max(720, Math.min(960, box.clientWidth || 800));
-  const SLOT_W = Math.round(Math.min(150, w * 0.2));
-  const SLOT_H = 70;
-  const GAP = SLOT_H + 28;
-  const TOP = 50;
-  const totalHeight = TOP + GAP * 4 + SLOT_H + 80;
-  const h = Math.max(380, totalHeight);
-
+  const w = 750;
+  const h = 400;
+  
   const svgNS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(svgNS, 'svg');
   svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
-  svg.setAttribute('width', w);
-  svg.setAttribute('height', h);
-  svg.style.overflow = 'visible';
-
-  // Adjust X positions for better proportion
-  const X = { 
-    root: 70, 
-    out: 160, 
-    clade: 180, 
-    a: 320, 
-    b: 320, 
-    leaf: w - 100 
-  };
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('height', '100%');
+  svg.style.backgroundColor = '#faf9f6';
+  svg.style.borderRadius = '16px';
+  svg.style.padding = '10px';
   
-  const Y = {
-    aTop: TOP,
-    aBot: TOP + GAP,
-    out: TOP + GAP * 2,
-    bTop: TOP + GAP * 3,
-    bBot: TOP + GAP * 4,
-    root: TOP + GAP * 2
-  };
-
-  // Improved curved path function - creates natural tree-like curves
-  function curvedBranch(x1, y1, x2, y2, curvature = 0.35) {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    // Calculate control points for a smooth S-curve
-    const c1x = x1 + dx * curvature;
-    const c1y = y1;
-    const c2x = x2 - dx * curvature;
-    const c2y = y2;
-    return `M ${x1} ${y1} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${x2} ${y2}`;
-  }
-
-  function addBranch(x1, y1, x2, y2, curvature = 0.35) {
+  // Tree coordinates - proper phylogenetic tree shape
+  const root = { x: 50, y: 200 };
+  const branchPoint = { x: 180, y: 200 };
+  const leftNode = { x: 320, y: 110 };
+  const rightNode = { x: 320, y: 270 };
+  const outNode = { x: 320, y: 360 };
+  
+  const melPos = { x: 580, y: 45 };
+  const simPos = { x: 580, y: 120 };
+  const yakPos = { x: 580, y: 215 };
+  const virPos = { x: 580, y: 290 };
+  const outPos = { x: 580, y: 375 };
+  
+  // Function to draw curved branch using cubic Bezier
+  function addCurve(x1, y1, x2, y2, color = '#60a5fa', width = 2.5) {
+    const midX = (x1 + x2) / 2;
     const path = document.createElementNS(svgNS, 'path');
-    path.setAttribute('d', curvedBranch(x1, y1, x2, y2, curvature));
-    path.setAttribute('class', 'branch');
-    path.setAttribute('stroke', '#60a5fa');
-    path.setAttribute('stroke-width', '2.5');
+    // Using bezier curve for natural tree-like branching
+    path.setAttribute('d', `M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}`);
+    path.setAttribute('stroke', color);
+    path.setAttribute('stroke-width', width);
     path.setAttribute('fill', 'none');
     path.setAttribute('stroke-linecap', 'round');
-    return path;
+    svg.appendChild(path);
   }
-
-  // Root to outgroup branch
-  svg.appendChild(addBranch(X.root, Y.root, X.out, Y.out, 0.4));
   
-  // Root to main clade (the common ancestor split)
-  const cladeMidY = (Y.aTop + Y.bBot) / 2;
-  svg.appendChild(addBranch(X.root, Y.root, X.clade, cladeMidY, 0.3));
+  // Draw main trunk
+  addCurve(root.x, root.y, branchPoint.x, branchPoint.y, '#60a5fa', 3);
   
-  // Clade to A pair node
-  const aNodeY = (Y.aTop + Y.aBot) / 2;
-  svg.appendChild(addBranch(X.clade, cladeMidY, X.a, aNodeY, 0.25));
+  // Draw three main branches from branch point
+  addCurve(branchPoint.x, branchPoint.y, leftNode.x, leftNode.y, '#60a5fa', 2.5);
+  addCurve(branchPoint.x, branchPoint.y, rightNode.x, rightNode.y, '#60a5fa', 2.5);
+  addCurve(branchPoint.x, branchPoint.y, outNode.x, outNode.y, '#94a3b8', 2);
   
-  // Clade to B pair node
-  const bNodeY = (Y.bTop + Y.bBot) / 2;
-  svg.appendChild(addBranch(X.clade, cladeMidY, X.b, bNodeY, 0.25));
+  // Draw sub-branches for left pair (mel + sim)
+  addCurve(leftNode.x, leftNode.y, melPos.x, melPos.y, '#60a5fa', 2);
+  addCurve(leftNode.x, leftNode.y, simPos.x, simPos.y, '#60a5fa', 2);
   
-  // A node to leaves
-  svg.appendChild(addBranch(X.a, aNodeY, X.leaf, Y.aTop, 0.3));
-  svg.appendChild(addBranch(X.a, aNodeY, X.leaf, Y.aBot, 0.3));
+  // Draw sub-branches for right pair (yak + vir)
+  addCurve(rightNode.x, rightNode.y, yakPos.x, yakPos.y, '#60a5fa', 2);
+  addCurve(rightNode.x, rightNode.y, virPos.x, virPos.y, '#60a5fa', 2);
   
-  // B node to leaves
-  svg.appendChild(addBranch(X.b, bNodeY, X.leaf, Y.bTop, 0.3));
-  svg.appendChild(addBranch(X.b, bNodeY, X.leaf, Y.bBot, 0.3));
+  // Draw outgroup branch
+  addCurve(outNode.x, outNode.y, outPos.x, outPos.y, '#94a3b8', 2);
   
-  // Outgroup to leaf
-  svg.appendChild(addBranch(X.out, Y.out, X.leaf, Y.out, 0.35));
-
-  // Function to create slots
-  function createSlot(socketId, cx, cy, tagText = '') {
-    const group = document.createElementNS(svgNS, 'g');
-    group.setAttribute('data-socket', socketId);
-    group.setAttribute('class', 'socket');
-
-    const x = cx - SLOT_W / 2;
-    const y = cy - SLOT_H / 2;
+  // Add root circle
+  const rootCircle = document.createElementNS(svgNS, 'circle');
+  rootCircle.setAttribute('cx', root.x);
+  rootCircle.setAttribute('cy', root.y);
+  rootCircle.setAttribute('r', '6');
+  rootCircle.setAttribute('fill', '#34d399');
+  svg.appendChild(rootCircle);
+  
+  // Add root label
+  const rootLabel = document.createElementNS(svgNS, 'text');
+  rootLabel.setAttribute('x', root.x - 50);
+  rootLabel.setAttribute('y', root.y + 4);
+  rootLabel.setAttribute('font-size', '10');
+  rootLabel.setAttribute('fill', '#4a5568');
+  rootLabel.textContent = 'Common Ancestor';
+  svg.appendChild(rootLabel);
+  
+  // Add node circles at branch points
+  function addNode(x, y) {
+    const circle = document.createElementNS(svgNS, 'circle');
+    circle.setAttribute('cx', x);
+    circle.setAttribute('cy', y);
+    circle.setAttribute('r', '4');
+    circle.setAttribute('fill', '#60a5fa');
+    svg.appendChild(circle);
+  }
+  addNode(branchPoint.x, branchPoint.y);
+  addNode(leftNode.x, leftNode.y);
+  addNode(rightNode.x, rightNode.y);
+  
+  // Get slot dimensions from existing slots or use defaults
+  const slotRect = document.querySelector('#teens .socket-slot');
+  const slotW = slotRect ? 110 : 100;
+  const slotH = slotRect ? 42 : 40;
+  
+  // Add slot boxes at leaf positions
+  function addSlot(x, y, slotId, labelText) {
     const rect = document.createElementNS(svgNS, 'rect');
     rect.setAttribute('x', x);
     rect.setAttribute('y', y);
-    rect.setAttribute('rx', 12);
-    rect.setAttribute('ry', 12);
-    rect.setAttribute('width', SLOT_W);
-    rect.setAttribute('height', SLOT_H);
-    rect.setAttribute('class', 'socket-slot');
+    rect.setAttribute('width', slotW);
+    rect.setAttribute('height', slotH);
+    rect.setAttribute('rx', '10');
     rect.setAttribute('fill', '#f8fafc');
     rect.setAttribute('stroke', '#2563eb');
     rect.setAttribute('stroke-width', '2');
-
-    if (tagText) {
-      const label = document.createElementNS(svgNS, 'text');
-      label.setAttribute('x', x + 6);
-      label.setAttribute('y', y - 8);
-      label.setAttribute('class', 'socket-label');
-      label.setAttribute('font-size', '10');
-      label.setAttribute('fill', '#4a5568');
-      label.textContent = tagText;
-      group.appendChild(label);
-    }
-
-    group.appendChild(rect);
-
-    // Drag and drop events
-    group.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      group.classList.add('hover');
-      rect.setAttribute('stroke', '#0ea5e9');
-      rect.setAttribute('stroke-width', '3');
-    });
+    rect.setAttribute('stroke-dasharray', '6,4');
+    rect.setAttribute('data-slot', slotId);
+    rect.setAttribute('class', 'socket-slot');
     
-    group.addEventListener('dragleave', () => {
-      group.classList.remove('hover');
-      rect.setAttribute('stroke', '#2563eb');
-      rect.setAttribute('stroke-width', '2');
-    });
+    const text = document.createElementNS(svgNS, 'text');
+    text.setAttribute('x', x + slotW/2);
+    text.setAttribute('y', y - 8);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', '9');
+    text.setAttribute('fill', '#4a5568');
+    text.textContent = labelText;
     
-    group.addEventListener('drop', (e) => {
+    svg.appendChild(rect);
+    if (labelText) svg.appendChild(text);
+    
+    // Make it droppable
+    rect.addEventListener('dragover', (e) => e.preventDefault());
+    rect.addEventListener('drop', (e) => {
       e.preventDefault();
-      group.classList.remove('hover');
-      rect.setAttribute('stroke', '#2563eb');
-      rect.setAttribute('stroke-width', '2');
-      const species = e.dataTransfer.getData('text/sp');
-      if (species) placeOnSocket(socketId, species);
+      const sp = e.dataTransfer.getData('text/sp');
+      if (sp) {
+        // Find which socket this rect belongs to
+        const slotId = rect.getAttribute('data-slot');
+        if (typeof placeOnSocket === 'function') {
+          placeOnSocket(slotId, sp);
+        }
+      }
     });
-
-    return group;
   }
-
-  // Create the 5 slots
-  svg.appendChild(createSlot('A1', X.leaf, Y.aTop, 'Pair A (closest)'));
-  svg.appendChild(createSlot('A2', X.leaf, Y.aBot));
-  svg.appendChild(createSlot('B1', X.leaf, Y.bTop, 'Pair B (next closest)'));
-  svg.appendChild(createSlot('B2', X.leaf, Y.bBot));
-  svg.appendChild(createSlot('O', X.leaf, Y.out, 'Outgroup (oldest)'));
-
-  // Clear and add the SVG
+  
+  addSlot(melPos.x + 10, melPos.y - 15, 'A1', 'Pair A (closest)');
+  addSlot(simPos.x + 10, simPos.y - 15, 'A2', '');
+  addSlot(yakPos.x + 10, yakPos.y - 15, 'B1', 'Pair B (next closest)');
+  addSlot(virPos.x + 10, virPos.y - 15, 'B2', '');
+  addSlot(outPos.x + 10, outPos.y - 15, 'O', 'Outgroup (oldest)');
+  
   box.innerHTML = '';
   box.appendChild(svg);
-
+  
   // Re-mount any already placed species
   for (const [socketId, species] of assign.entries()) {
-    if (species) mountTokenOnSocket(socketId, species, SLOT_W, SLOT_H);
+    if (species) mountTokenOnSocket(socketId, species, slotW, slotH);
   }
 }
 
