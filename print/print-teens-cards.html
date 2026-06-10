@@ -5,13 +5,35 @@
 <title>EVE Detective — Teens Cards (Print)</title>
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <style>
+  /* Default page is A4 for species cards */
   @page { 
     size: A4; 
     margin: 10mm;
   }
+  
+  /* Tree mat page specifically set to A3 */
+  .tree-mat-page {
+    page-break-before: always;
+  }
+  
+  .tree-mat-page .tree-mat {
+    page-break-after: auto;
+  }
+  
+  @page tree-mat-page {
+    size: A3 landscape;
+    margin: 15mm;
+  }
+  
   @media print {
     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .screen-note, .toolbar { display:none !important }
+    
+    /* Force tree mat page to A3 */
+    .tree-mat-page {
+      size: A3 landscape;
+      margin: 15mm;
+    }
   }
 
   body{
@@ -48,6 +70,28 @@
     border-radius: 40px;
     cursor: pointer;
     font-weight: 600;
+  }
+
+  /* Instructions panel - now on Page 1 */
+  .instructions-panel {
+    background: #f8fafc;
+    border: 2px solid #0e8a68;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+    color: #0a1a2f;
+    break-inside: avoid;
+  }
+  
+  .instructions-panel strong {
+    color: #0e8a68;
+    font-size: 14px;
+  }
+  
+  .instructions-panel p {
+    margin: 8px 0;
+    font-size: 11px;
+    line-height: 1.4;
   }
 
   /* 3-column card grid - ONLY FRONT CARDS, NO ANSWER KEYS */
@@ -150,158 +194,221 @@
     border-radius: 50%;
   }
 
-  /* Tree Mat styling - FIXED SLOT POSITIONS */
+  /* ========== TREE MAT - A3 LANDSCAPE STYLES ========== */
+  .tree-mat-page {
+    margin-top: 10mm;
+  }
+  
   .tree-mat {
     background: #faf9f6;
     border-radius: 20px;
-    padding: 20px;
-    border: 1px solid #e2e8f0;
+    padding: 25px;
+    border: 2px solid #e2e8f0;
     page-break-after: auto;
+    min-height: 250mm;
   }
   
   .tree-title {
-    font-size: 18px;
+    font-size: 24px;
     font-weight: 700;
-    margin-bottom: 8px;
+    margin-bottom: 12px;
+    text-align: center;
   }
   
   .tree-tip {
     background: #fef3c7;
     border-left: 4px solid #f59e0b;
-    padding: 10px 12px;
+    padding: 12px 16px;
     border-radius: 8px;
-    margin-bottom: 20px;
-    font-size: 10px;
+    margin-bottom: 25px;
+    font-size: 12px;
+    color: #1e293b;
+    font-weight: 500;
   }
   
   .tree-svg-container {
     text-align: center;
-    margin: 16px 0;
+    margin: 20px 0;
   }
   
   .tree-slot {
     background: #f8fafc;
     border: 2px dashed #94a3b8;
     border-radius: 12px;
-    padding: 8px;
+    padding: 12px 8px;
     text-align: center;
   }
   
   .slot-label {
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 700;
     color: #0e8a68;
   }
   
   .slot-hint {
-    font-size: 8px;
+    font-size: 9px;
     color: #64748b;
+  }
+
+  /* Answer key box */
+  .answer-box {
+    background: #f0fdf4;
+    border: 2px solid #16a34a;
+    border-radius: 12px;
+    padding: 15px;
+    margin-top: 25px;
+    color: #0a1a2f;
+  }
+  
+  .answer-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #16a34a;
+    margin-bottom: 10px;
+  }
+  
+  .answer-content {
+    font-size: 11px;
+    line-height: 1.5;
+  }
+  
+  .key-messages {
+    margin-top: 15px;
+    padding-top: 10px;
+    border-top: 1px solid #bbf7d0;
+    font-size: 11px;
+  }
+  
+  .key-messages strong {
+    color: #0e8a68;
   }
 </style>
 </head>
 <body>
 
 <div class="screen-note">
-  🧬 TEENS GAME: Page 1 = Species Cards, Page 2 = Phylogenetic Tree Mat. Print at 100% scale on A4 cardstock.
+  🧬 TEENS GAME: Page 1 = Instructions + Species Cards, Page 2 = Phylogenetic Tree Mat (A3 Landscape). Print at 100% scale.
 </div>
 
 <div class="toolbar">
   <button onclick="window.print()">🖨️ Print Cards + Tree Mat</button>
 </div>
 
-<!-- Page 1: Species Cards (Fronts only - NO answer keys) -->
+<!-- Page 1: Instructions + Species Cards (A4) -->
+<div class="instructions-panel">
+  <strong>🧬 How to Play</strong>
+  <p>1️⃣ Give each player or team the 5 species cards.</p>
+  <p>2️⃣ Compare the coloured barcode bands on each card. <strong>Same colour at the same position = shared EVE.</strong></p>
+  <p>3️⃣ Place the two most similar cards (most shared bands) in <strong>Pair A</strong>.</p>
+  <p>4️⃣ Place the next two most similar cards in <strong>Pair B</strong>.</p>
+  <p>5️⃣ Place the odd one out (least shared bands) in <strong>Outgroup</strong>.</p>
+  <p>6️⃣ Use the answer key on the tree mat to check your answers!</p>
+</div>
+
 <section class="sheet" id="species-cards"></section>
 
-<!-- Page 2: Tree Mat -->
-<div class="tree-mat">
-  <div class="tree-title">🌳 Build the EVE Family Tree</div>
-  
-  <div class="tree-tip">
-    💡 <strong>Tip:</strong> Compare the barcode cards. More matching coloured bars at the same positions = more shared EVEs = closer relatives.
-  </div>
-  
-  <div class="tree-svg-container">
-    <svg viewBox="0 0 750 450" width="100%" height="auto" style="background: #faf9f6; border-radius: 20px;">
-      <!-- Tree branches -->
-      <g stroke="#60a5fa" stroke-width="2.5" fill="none" stroke-linecap="round">
-        <!-- Main trunk -->
-        <path d="M 50 220 C 100 220, 100 220, 150 220" />
-        <!-- Branch to Pair A -->
-        <path d="M 150 220 C 200 220, 200 100, 260 90" />
-        <!-- Branch to Pair B -->
-        <path d="M 150 220 C 200 220, 200 290, 260 280" />
-        <!-- Branch to Outgroup -->
-        <path d="M 150 220 C 200 220, 200 390, 260 380" />
-        <!-- Sub-branches Pair A -->
-        <path d="M 260 90 C 320 90, 320 40, 380 40" />
-        <path d="M 260 90 C 320 90, 320 140, 380 140" />
-        <!-- Sub-branches Pair B -->
-        <path d="M 260 280 C 320 280, 320 230, 380 230" />
-        <path d="M 260 280 C 320 280, 320 330, 380 330" />
-        <!-- Outgroup branch -->
-        <path d="M 260 380 C 320 380, 320 420, 380 420" />
-      </g>
-      
-      <!-- Timescale labels -->
-      <g font-family="Inter" font-size="9" fill="#f59e0b" font-weight="600">
-        <text x="165" y="235">40-60 MYA</text>
-        <text x="225" y="105">2-3 MYA</text>
-        <text x="225" y="295">~25 MYA</text>
-      </g>
-      
-      <!-- Slot 1 - Pair A top -->
-      <foreignObject x="380" y="25" width="110" height="50">
-        <div xmlns="http://www.w3.org/1999/xhtml" class="tree-slot">
-          <div class="slot-label">Pair A (closest)</div>
-          <div class="slot-hint">Most shared EVEs</div>
-        </div>
-      </foreignObject>
-      
-      <!-- Slot 2 - Pair A bottom -->
-      <foreignObject x="380" y="125" width="110" height="50">
-        <div xmlns="http://www.w3.org/1999/xhtml" class="tree-slot">
-          <div class="slot-hint">Place card here</div>
-        </div>
-      </foreignObject>
-      
-      <!-- Slot 3 - Pair B top -->
-      <foreignObject x="380" y="215" width="110" height="50">
-        <div xmlns="http://www.w3.org/1999/xhtml" class="tree-slot">
-          <div class="slot-label">Pair B (next closest)</div>
-          <div class="slot-hint">Fewer shared EVEs</div>
-        </div>
-      </foreignObject>
-      
-      <!-- Slot 4 - Pair B bottom -->
-      <foreignObject x="380" y="315" width="110" height="50">
-        <div xmlns="http://www.w3.org/1999/xhtml" class="tree-slot">
-          <div class="slot-hint">Place card here</div>
-        </div>
-      </foreignObject>
-      
-      <!-- Slot 5 - Outgroup -->
-      <foreignObject x="380" y="405" width="110" height="50">
-        <div xmlns="http://www.w3.org/1999/xhtml" class="tree-slot">
-          <div class="slot-label">Outgroup (oldest)</div>
-          <div class="slot-hint">Least shared EVEs</div>
-        </div>
-      </foreignObject>
-      
-      <!-- Empty question marks where cards go -->
-      <g font-family="Inter" font-size="12" fill="#cbd5e1" font-weight="600">
-        <text x="360" y="55">?</text>
-        <text x="360" y="155">?</text>
-        <text x="360" y="245">?</text>
-        <text x="360" y="345">?</text>
-        <text x="360" y="435">?</text>
-      </g>
-      
-      <!-- Root label -->
-      <g font-family="Inter" font-size="9" fill="#4a5568">
-        <text x="10" y="215">Common</text>
-        <text x="10" y="228">Ancestor</text>
-      </g>
-    </svg>
+<!-- Page 2: Tree Mat (A3 Landscape) -->
+<div class="tree-mat-page">
+  <div class="tree-mat">
+    <div class="tree-title">🌳 Build the EVE Family Tree</div>
+    
+    <div class="tree-tip">
+      💡 <strong>Tip:</strong> Compare the barcode cards. More matching coloured bars at the same positions = more shared EVEs = closer relatives.
+    </div>
+    
+    <div class="tree-svg-container">
+      <!-- A3-optimised SVG with larger slots for physical cards -->
+      <svg viewBox="0 0 1000 600" width="100%" height="auto" style="background: #faf9f6; border-radius: 20px;">
+        <!-- Tree branches - scaled for A3 -->
+        <g stroke="#60a5fa" stroke-width="3" fill="none" stroke-linecap="round">
+          <path d="M 80 280 C 150 280, 150 280, 200 280" />
+          <path d="M 200 280 C 260 280, 260 130, 330 120" />
+          <path d="M 200 280 C 260 280, 260 380, 330 370" />
+          <path d="M 200 280 C 260 280, 260 500, 330 500" />
+          <path d="M 330 120 C 400 120, 400 60, 480 60" />
+          <path d="M 330 120 C 400 120, 400 180, 480 180" />
+          <path d="M 330 370 C 400 370, 400 300, 480 300" />
+          <path d="M 330 370 C 400 370, 400 440, 480 440" />
+          <path d="M 330 500 C 400 500, 400 550, 480 550" />
+        </g>
+        
+        <!-- Timescale labels -->
+        <g font-family="Inter" font-size="11" fill="#f59e0b" font-weight="600">
+          <text x="220" y="300">40-60 MYA</text>
+          <text x="290" y="135">2-3 MYA</text>
+          <text x="290" y="385">~25 MYA</text>
+        </g>
+        
+        <!-- Slot 1 - Pair A top (enlarged for physical cards) -->
+        <foreignObject x="480" y="35" width="140" height="70">
+          <div xmlns="http://www.w3.org/1999/xhtml" class="tree-slot">
+            <div class="slot-label">Pair A (closest)</div>
+            <div class="slot-hint">Most shared EVEs</div>
+          </div>
+        </foreignObject>
+        
+        <!-- Slot 2 - Pair A bottom -->
+        <foreignObject x="480" y="155" width="140" height="70">
+          <div xmlns="http://www.w3.org/1999/xhtml" class="tree-slot">
+            <div class="slot-hint">Place card here →</div>
+          </div>
+        </foreignObject>
+        
+        <!-- Slot 3 - Pair B top -->
+        <foreignObject x="480" y="275" width="140" height="70">
+          <div xmlns="http://www.w3.org/1999/xhtml" class="tree-slot">
+            <div class="slot-label">Pair B (next closest)</div>
+            <div class="slot-hint">Fewer shared EVEs</div>
+          </div>
+        </foreignObject>
+        
+        <!-- Slot 4 - Pair B bottom -->
+        <foreignObject x="480" y="415" width="140" height="70">
+          <div xmlns="http://www.w3.org/1999/xhtml" class="tree-slot">
+            <div class="slot-hint">Place card here →</div>
+          </div>
+        </foreignObject>
+        
+        <!-- Slot 5 - Outgroup -->
+        <foreignObject x="480" y="525" width="140" height="70">
+          <div xmlns="http://www.w3.org/1999/xhtml" class="tree-slot">
+            <div class="slot-label">Outgroup (oldest)</div>
+            <div class="slot-hint">Least shared EVEs</div>
+          </div>
+        </foreignObject>
+        
+        <!-- Question marks -->
+        <g font-family="Inter" font-size="16" fill="#cbd5e1" font-weight="600">
+          <text x="550" y="75">?</text>
+          <text x="550" y="195">?</text>
+          <text x="550" y="315">?</text>
+          <text x="550" y="455">?</text>
+          <text x="550" y="575">?</text>
+        </g>
+        
+        <!-- Root label -->
+        <g font-family="Inter" font-size="11" fill="#4a5568">
+          <text x="15" y="275">Common</text>
+          <text x="15" y="292">Ancestor</text>
+        </g>
+      </svg>
+    </div>
+    
+    <!-- Answer Key Box -->
+    <div class="answer-box">
+      <div class="answer-title">✅ Correct Answer</div>
+      <div class="answer-content">
+        • <strong>Pair A (closest)</strong> – D. melanogaster + D. simulans (share most EVEs, 2-3 MYA)<br>
+        • <strong>Pair B (next closest)</strong> – D. yakuba + D. pseudoobscura (share fewer EVEs, ~25 MYA)<br>
+        • <strong>Outgroup (oldest)</strong> – D. virilis (least shared EVEs, 40-60 MYA)
+      </div>
+      <div class="key-messages">
+        <strong>🎯 What you learned:</strong><br>
+        🧬 EVEs are viral fossils – ancient virus DNA trapped in genomes for millions of years.<br>
+        🪰 Fruit flies help us study them – they share 60% of our genes.<br>
+        🛡️ Some EVEs fight new viruses – like a molecular "wanted poster" system.
+      </div>
+    </div>
   </div>
 </div>
 
